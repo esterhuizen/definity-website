@@ -24,7 +24,7 @@ export function Hero() {
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted text-pretty animate-fade-up [animation-delay:160ms] md:text-xl">
             Definity is a non-custodial stake pool that turns your staking yield into real growth
-            for the regions shaping Solana's next chapter — without ever locking up your liquidity.
+            for the regions shaping Solana's next chapter.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-fade-up [animation-delay:240ms]">
