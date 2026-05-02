@@ -105,7 +105,7 @@ export default function WhitelistApplyPage() {
         <div className="mt-6 surface overflow-hidden p-2 md:p-3">
           <TypeformEmbed
             formId="01JY0GPM667JFMXDBYDEHQ4Q94"
-            minHeight={640}
+            height={720}
             className="w-full"
           />
         </div>

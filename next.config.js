@@ -24,7 +24,7 @@ const nextConfig = {
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://embed.typeform.com",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "connect-src 'self' https:",

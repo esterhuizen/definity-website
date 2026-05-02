@@ -13,11 +13,17 @@ const TYPEFORM_EMBED_SRC = 'https://embed.typeform.com/next/embed.js';
 // useEffect avoids the preload-vs-execute race entirely.
 export function TypeformEmbed({
   formId,
-  minHeight = 600,
+  height = 720,
   className,
 }: {
   formId: string;
-  minHeight?: number;
+  /**
+   * Wrapper height in px. Must be a definite height (not min-height) so
+   * Typeform's iframe — which uses `height: 100%` — has something to
+   * resolve against; otherwise the iframe collapses to its natural size
+   * and renders as a small tile.
+   */
+  height?: number;
   className?: string;
 }) {
   useEffect(() => {
@@ -47,7 +53,7 @@ export function TypeformEmbed({
     <div
       data-tf-live={formId}
       className={className}
-      style={{ minHeight, position: 'relative', width: '100%' }}
+      style={{ height, position: 'relative', width: '100%' }}
     />
   );
 }
