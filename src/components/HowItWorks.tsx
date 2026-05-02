@@ -1,5 +1,6 @@
 import { Wallet, Coins, Workflow, Repeat, ArrowDown, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { LINKS, POOL } from '@/config/pool';
+import { TrackedLink } from './TrackedLink';
 
 const STEPS = [
   {
@@ -114,22 +115,22 @@ export function HowItWorks() {
             </div>
 
             <div className="relative mt-6 grid gap-3 sm:grid-cols-2">
-              <a
+              <TrackedLink
                 href={LINKS.jupiterSwap}
-                target="_blank"
-                rel="noopener noreferrer"
+                event="cta_stake_jupiter"
+                external
                 className="btn-primary"
               >
                 Stake on Jupiter <ArrowUpRight className="h-4 w-4" />
-              </a>
-              <a
+              </TrackedLink>
+              <TrackedLink
                 href={LINKS.sanctumLst}
-                target="_blank"
-                rel="noopener noreferrer"
+                event="cta_stake_sanctum"
+                external
                 className="btn-ghost"
               >
                 Stake on Sanctum <ArrowUpRight className="h-4 w-4" />
-              </a>
+              </TrackedLink>
             </div>
 
             <p className="relative mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-ink-dim">

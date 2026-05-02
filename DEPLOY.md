@@ -186,7 +186,92 @@ If you outgrow the public mainnet-beta RPC (which is rate-limited but more than
 enough for one hourly call), edit `pool-stats.service` to set
 `Environment=SOLANA_RPC=https://your.private.rpc`.
 
-### 9. Future deploys
+### 9. Daily visitor report
+
+The site captures first-party events (page views + CTA clicks) via
+`/api/track`, appends them to `/var/lib/definity/events.jsonl`, and a
+nightly systemd job aggregates yesterday's slice into an HTML report.
+**No cookies, no third-party trackers, no IP logging in the events file.**
+
+```bash
+# Create the events directory the app + report script both write/read.
+sudo mkdir -p /var/lib/definity
+sudo chown definity:definity /var/lib/definity
+
+# Reports land in /var/www/definity/current/public/reports/ — make the dir.
+sudo -u definity mkdir -p /var/www/definity/current/public/reports
+
+# Install the systemd unit + timer.
+sudo cp deploy/daily-report.service /etc/systemd/system/
+sudo cp deploy/daily-report.timer   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now daily-report.timer
+
+# Re-deploy the website service so its hardened sandbox can write to /var/lib/definity.
+# (The bundled definity.service now lists /var/lib/definity in ReadWritePaths.)
+sudo cp deploy/definity.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart definity
+
+# Force a first run so you have a baseline report immediately:
+sudo systemctl start daily-report.service
+sudo cat /var/www/definity/current/public/reports/latest-summary.txt
+```
+
+#### Where to view the report
+
+The script writes three files under `public/reports/`:
+
+- `YYYY-MM-DD.html` — the full report for that day, browsable.
+- `latest.html` — a copy of the most recent report.
+- `latest-summary.txt` — plain-text version. Also printed to journal:
+  ```
+  journalctl -u daily-report.service -n 200
+  ```
+
+By default the reports directory is **publicly readable at**
+`https://definity.finance/reports/latest.html`. You almost certainly
+want to put it behind nginx basic auth — add this to the HTTPS server
+block in `nginx.conf`:
+
+```nginx
+location /reports/ {
+    auth_basic "Definity reports";
+    auth_basic_user_file /etc/nginx/.htpasswd-reports;
+    proxy_pass http://127.0.0.1:3000;
+}
+```
+
+…and create the password file:
+
+```bash
+sudo apt install apache2-utils
+sudo htpasswd -c /etc/nginx/.htpasswd-reports yourname
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+#### Optional: GoAccess for nginx-side traffic
+
+If you `sudo apt install goaccess`, the daily-report script auto-detects
+it and embeds a GoAccess HTML view (top hosts, browsers, status codes,
+bandwidth) at the bottom of each daily report. Without GoAccess, the
+report just shows the first-party events.
+
+#### What's tracked, exactly
+
+| Event | Trigger |
+|---|---|
+| `pageview` | Every navigation (auto, via `<TrackPageView />`) |
+| `cta_stake_jupiter` | "Stake on Jupiter" button on home |
+| `cta_stake_sanctum` | "Stake on Sanctum" button on home |
+| `cta_whitelist_apply` | "Apply for whitelisting" links (validators, footer) |
+| `outbound_solscan` / `outbound_telegram` / `outbound_twitter` / `outbound_github` | Footer + page-level external links |
+
+Nothing else. No cookies set, no fingerprints, no cross-site tracking,
+no IP recorded in events.jsonl (nginx logs already have IPs and stay
+where you set them in the access-log config).
+
+### 10. Future deploys
 
 After every push to `main`:
 

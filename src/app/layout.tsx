@@ -3,6 +3,7 @@ import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { TrackPageView } from '@/components/TrackPageView';
 import { SITE } from '@/config/pool';
 
 const inter = Inter({
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body className="min-h-screen flex flex-col">
+        <TrackPageView />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

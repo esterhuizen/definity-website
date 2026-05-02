@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { LINKS, POOL } from '@/config/pool';
+import { TrackedLink } from './TrackedLink';
 
 export function Footer() {
   return (
@@ -22,7 +23,7 @@ export function Footer() {
             <li><Link className="text-ink-muted hover:text-ink" href="/#stake">Stake</Link></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/#how">How it works</Link></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/validators">Validators</Link></li>
-            <li><Link className="text-ink-muted hover:text-ink" href="/whitelist-apply">Apply for whitelisting</Link></li>
+            <li><TrackedLink className="text-ink-muted hover:text-ink" href="/whitelist-apply" event="cta_whitelist_apply">Apply for whitelisting</TrackedLink></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/addresses">Pool & token IDs</Link></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/faq">FAQ</Link></li>
           </ul>
@@ -33,9 +34,9 @@ export function Footer() {
             Community
           </h3>
           <ul className="space-y-2 text-sm">
-            <li><a className="text-ink-muted hover:text-ink" href={LINKS.twitter} target="_blank" rel="noopener noreferrer">Twitter / X</a></li>
-            <li><a className="text-ink-muted hover:text-ink" href={LINKS.telegram} target="_blank" rel="noopener noreferrer">Telegram</a></li>
-            <li><a className="text-ink-muted hover:text-ink" href={LINKS.github} target="_blank" rel="noopener noreferrer">GitHub</a></li>
+            <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.twitter} event="outbound_twitter" external>Twitter / X</TrackedLink></li>
+            <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.telegram} event="outbound_telegram" external>Telegram</TrackedLink></li>
+            <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.github} event="outbound_github" external>GitHub</TrackedLink></li>
           </ul>
         </div>
       </div>

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { LINKS } from '@/config/pool';
+import { TrackedLink } from '@/components/TrackedLink';
 
 export const metadata: Metadata = {
   title: 'Validators',
@@ -99,14 +100,14 @@ export default function ValidatorsPage() {
             The list of currently-delegated validators is recorded on-chain in the pool account
             itself. The most accurate, up-to-the-epoch view is in Solscan.
           </p>
-          <a
+          <TrackedLink
             href={LINKS.solscanPool}
-            target="_blank"
-            rel="noopener noreferrer"
+            event="outbound_solscan"
+            external
             className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-sunrise-600 hover:text-sunrise-500"
           >
             View pool on Solscan <ExternalLink className="h-4 w-4" />
-          </a>
+          </TrackedLink>
         </div>
 
         <div className="surface p-6 md:p-8">
@@ -118,12 +119,13 @@ export default function ValidatorsPage() {
             your details for review. Approved validators become eligible to receive stake
             from the pool.
           </p>
-          <Link
+          <TrackedLink
             href="/whitelist-apply"
+            event="cta_whitelist_apply"
             className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-sunrise-600 hover:text-sunrise-500"
           >
             Apply for whitelisting <ExternalLink className="h-4 w-4" />
-          </Link>
+          </TrackedLink>
         </div>
       </div>
     </div>

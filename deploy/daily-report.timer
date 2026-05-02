@@ -1,0 +1,22 @@
+# /etc/systemd/system/daily-report.timer
+#
+# Fires once a day at 02:13 UTC (after midnight, off the hour to dodge
+# log-rotation moments). Persistent=true so a missed run fires on the next
+# boot.
+#
+# Enable: sudo systemctl daemon-reload && sudo systemctl enable --now daily-report.timer
+# Force a run now: sudo systemctl start daily-report.service
+# Inspect: systemctl list-timers daily-report.timer
+# Logs: journalctl -u daily-report.service -n 200
+
+[Unit]
+Description=Daily generation of the Definity visitor report
+
+[Timer]
+OnCalendar=*-*-* 02:13:00
+RandomizedDelaySec=10min
+Persistent=true
+Unit=daily-report.service
+
+[Install]
+WantedBy=timers.target

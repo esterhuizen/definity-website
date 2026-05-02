@@ -40,7 +40,7 @@ RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=true
 LockPersonality=true
 MemoryDenyWriteExecute=true
-ReadWritePaths=/var/www/definity
+ReadWritePaths=/var/www/definity /var/lib/definity
 
 [Install]
 WantedBy=multi-user.target

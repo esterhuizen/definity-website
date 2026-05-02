@@ -9,6 +9,7 @@ This repo is the public marketing + staking site for **definity.finance**. Users
 - **Next.js 15** (App Router) + **TypeScript** + **Tailwind CSS**
 - **Routes out** to Jupiter (primary) and Sanctum (secondary) for the actual swap — both are audited, non-custodial, and load in a new tab so wallet signing happens entirely on their origins
 - **Live on-chain stats** — validator count + total SOL staked refreshed hourly, plus per-validator geographic locations refreshed daily, all by a tiny zero-dependency Node script that reads the SPL stake-pool account directly and queries Stakewiz for the IP-based geo lookup
+- **First-party analytics** — `/api/track` accepts page views and CTA-click events; a nightly systemd job aggregates them into a daily HTML report. No cookies, no third-party SDK, no IP logged to the events file
 - **No managed PaaS** — builds to a Next.js standalone server, runs anywhere `node` runs (nginx + systemd + Let's Encrypt for production)
 
 ## Repo layout

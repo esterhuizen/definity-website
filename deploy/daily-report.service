@@ -1,0 +1,37 @@
+# /etc/systemd/system/daily-report.service
+#
+# Runs scripts/daily-report.mjs once a day. Reads:
+#   - /var/lib/definity/events.jsonl   (written by /api/track)
+#   - /var/log/nginx/access.log        (read-only; goaccess optional)
+# Writes:
+#   - /var/www/definity/current/public/reports/YYYY-MM-DD.html
+#   - /var/www/definity/current/public/reports/latest.html
+#   - /var/www/definity/current/public/reports/latest-summary.txt
+# The summary text also appears in `journalctl -u daily-report.service`.
+
+[Unit]
+Description=Generate Definity daily visitor report
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=definity
+Group=definity
+WorkingDirectory=/var/www/definity/current
+Environment=EVENTS_LOG_PATH=/var/lib/definity/events.jsonl
+Environment=NGINX_ACCESS_LOG=/var/log/nginx/access.log
+Environment=REPORTS_DIR=/var/www/definity/current/public/reports
+ExecStart=/usr/bin/node scripts/daily-report.mjs
+TimeoutStartSec=120
+
+# Hardening — same template as pool-stats.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/www/definity /var/lib/definity
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
