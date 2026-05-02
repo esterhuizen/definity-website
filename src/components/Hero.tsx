@@ -15,11 +15,11 @@ export function Hero() {
           </span>
 
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-balance md:text-7xl animate-fade-up [animation-delay:80ms]">
-            Stake SOL with those who{' '}
+            Stake SOL{' '}
             <span className="bg-sunrise-gradient bg-clip-text text-transparent">
-              are building the future
+              responsibly
             </span>
-            .
+            . Grow Solana where it&apos;s needed.
           </h1>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-ink-muted text-pretty animate-fade-up [animation-delay:160ms] md:text-xl">
