@@ -9,12 +9,16 @@ export const metadata: Metadata = {
     'Validators: apply to be whitelisted in the Definity stake pool. Performance criteria, regional alignment, and how to submit.',
 };
 
-const CRITERIA = [
-  'Sustained high uptime across recent epochs (we drop validators that consistently miss leader slots).',
+const REQUIRED = [
+  'Sustained high uptime across recent epochs. We drop validators that consistently miss leader slots.',
   'Independent infrastructure — own hardware in distinct geographies, not a shared upstream provider.',
   'Reasonable commission. Healthy validators invest in their nodes; we weigh commission against demonstrated performance.',
   'Self-stake and a track record across multiple epochs.',
-  'Regional alignment with the pool\'s mission is a plus — operators based in or contributing to APAC and EMEA emerging markets get a tilt.',
+  'Operating in, or actively serving, APAC or EMEA emerging markets. This is a base requirement, not a tiebreaker — pool delegations are reserved for validator teams aligned with the mission.',
+];
+
+const PREFERRED = [
+  'Validator teams who are themselves founders, builders, or shippers — and who can point to visible, measurable work growing the Solana ecosystem in their region. Shipped products, dev tooling, hackathons run, education or community work, audited contributions. Real outputs, not stated intentions.',
 ];
 
 export default function WhitelistApplyPage() {
@@ -42,16 +46,48 @@ export default function WhitelistApplyPage() {
         </p>
       </div>
 
-      <ol className="mt-12 space-y-3">
-        {CRITERIA.map((c, i) => (
-          <li key={i} className="surface flex items-start gap-3 p-5">
-            <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-muted font-mono text-xs text-ink-muted ring-1 ring-ring">
-              {i + 1}
-            </span>
-            <p className="text-sm leading-relaxed text-ink-muted text-pretty">{c}</p>
-          </li>
-        ))}
-      </ol>
+      <div className="mt-12 space-y-10">
+        <div>
+          <h2 className="font-display text-xl font-semibold text-ink">Required to be eligible</h2>
+          <p className="mt-2 text-sm text-ink-muted text-pretty">
+            All five must be true before we&apos;ll review an application.
+          </p>
+          <ol className="mt-5 space-y-3">
+            {REQUIRED.map((c, i) => (
+              <li key={i} className="surface flex items-start gap-3 p-5">
+                <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-muted font-mono text-xs text-ink-muted ring-1 ring-ring">
+                  {i + 1}
+                </span>
+                <p className="text-sm leading-relaxed text-ink-muted text-pretty">{c}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="font-display text-xl font-semibold text-ink">What earns preference</h2>
+          <p className="mt-2 text-sm text-ink-muted text-pretty">
+            Beyond the eligibility bar, this is what moves an application up the queue.
+          </p>
+          <ol className="mt-5 space-y-3" start={REQUIRED.length + 1}>
+            {PREFERRED.map((c, i) => (
+              <li
+                key={i}
+                className="surface relative flex items-start gap-3 overflow-hidden p-5"
+              >
+                <div
+                  className="absolute inset-0 bg-dawn-gradient opacity-50"
+                  aria-hidden="true"
+                />
+                <span className="relative mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sunrise-gradient font-mono text-xs font-semibold text-white">
+                  {REQUIRED.length + i + 1}
+                </span>
+                <p className="relative text-sm leading-relaxed text-ink text-pretty">{c}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
 
       <div className="mt-12 surface relative overflow-hidden p-7 md:p-9">
         <div className="absolute inset-0 bg-dawn-gradient opacity-60" aria-hidden="true" />

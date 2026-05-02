@@ -9,7 +9,9 @@ export const metadata: Metadata = {
     'How Definity selects, monitors and rebalances the validators that secure your stake.',
 };
 
-const CRITERIA = [
+// Hard requirements — every active validator clears all five. The first four
+// are operational; the fifth is the mission filter.
+const REQUIRED = [
   {
     title: 'Reliability first',
     body: 'Validators must hit a sustained uptime threshold across recent epochs. Anything that consistently misses leader slots is dropped from the active set.',
@@ -27,10 +29,16 @@ const CRITERIA = [
     body: 'We favour validators with their own self-stake and a track record across multiple epochs — operators who treat running a node as a long-term commitment.',
   },
   {
-    title: 'Aligned with the mission',
-    body: 'Where we can, we tilt allocation toward validators based in the regions Definity exists to support, or who actively contribute to ecosystem development there.',
+    title: 'Regional alignment',
+    body: 'Operating in, or actively serving, APAC or EMEA emerging markets. This is a base requirement, not a tilt — pool delegations are reserved for teams aligned with the mission.',
   },
 ];
+
+// What earns preference on top of the bar above.
+const PREFERRED = {
+  title: 'Builder credentials',
+  body: 'Above the eligibility bar, validator teams who are themselves founders, builders, or shippers — with visible, measurable work growing the Solana ecosystem in their region — get preference. Shipped products, dev tooling, hackathons run, education or community work, audited contributions. Real outputs, not stated intentions.',
+};
 
 export default function ValidatorsPage() {
   return (
@@ -53,15 +61,34 @@ export default function ValidatorsPage() {
         </p>
       </div>
 
-      <ol className="mt-14 grid gap-6 md:grid-cols-2">
-        {CRITERIA.map((c, i) => (
-          <li key={c.title} className="surface p-6 md:p-7">
-            <div className="font-mono text-xs text-ink-dim">0{i + 1}</div>
-            <h3 className="mt-2 font-display text-lg font-semibold text-ink">{c.title}</h3>
-            <p className="mt-3 text-sm leading-relaxed text-ink-muted text-pretty">{c.body}</p>
-          </li>
-        ))}
-      </ol>
+      <div className="mt-14">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-ink-dim">
+          Required
+        </h2>
+        <ol className="mt-5 grid gap-6 md:grid-cols-2">
+          {REQUIRED.map((c, i) => (
+            <li key={c.title} className="surface p-6 md:p-7">
+              <div className="font-mono text-xs text-ink-dim">0{i + 1}</div>
+              <h3 className="mt-2 font-display text-lg font-semibold text-ink">{c.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted text-pretty">{c.body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="mt-14">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-ink-dim">
+          What earns preference
+        </h2>
+        <div className="mt-5 surface relative overflow-hidden p-6 md:p-7">
+          <div className="absolute inset-0 bg-dawn-gradient opacity-50" aria-hidden="true" />
+          <div className="relative">
+            <div className="font-mono text-xs text-ink-dim">0{REQUIRED.length + 1}</div>
+            <h3 className="mt-2 font-display text-lg font-semibold text-ink">{PREFERRED.title}</h3>
+            <p className="mt-3 text-sm leading-relaxed text-ink-muted text-pretty">{PREFERRED.body}</p>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-14 grid gap-4 md:grid-cols-2">
         <div className="surface p-6 md:p-8">
