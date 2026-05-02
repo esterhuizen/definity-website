@@ -1,7 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, ShieldCheck } from 'lucide-react';
-import { LINKS } from '@/config/pool';
+import { LINKS, POOL } from '@/config/pool';
+import { TypeformEmbed } from '@/components/TypeformEmbed';
+
+// Stop relying on POOL here since it's only imported for type-narrowing of
+// the applyFormId access pattern. (TS will complain if the field is ever
+// removed from the config — exactly what we want.)
+void POOL;
 
 export const metadata: Metadata = {
   title: 'Apply for whitelisting',
@@ -22,8 +28,6 @@ const PREFERRED = [
 ];
 
 export default function WhitelistApplyPage() {
-  const formConfigured = !!LINKS.applyForm;
-
   return (
     <div className="container-narrow py-20 md:py-28">
       <Link
@@ -89,54 +93,47 @@ export default function WhitelistApplyPage() {
         </div>
       </div>
 
-      <div className="mt-12 surface relative overflow-hidden p-7 md:p-9">
-        <div className="absolute inset-0 bg-dawn-gradient opacity-60" aria-hidden="true" />
-        <div className="relative">
-          <h2 className="font-display text-xl font-semibold text-ink md:text-2xl">
-            Open the application form
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted text-pretty">
-            The form opens on an external page. Have your vote-account pubkey, identity pubkey,
-            commission, self-stake amount, data-centre region, and a Telegram or email contact
-            ready before you start.
-          </p>
+      <div className="mt-12">
+        <h2 className="font-display text-xl font-semibold text-ink md:text-2xl">
+          Submit your application
+        </h2>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted text-pretty">
+          Have your vote-account pubkey, identity pubkey, commission, self-stake amount,
+          data-centre region, and a Telegram or email contact ready before you start.
+        </p>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            {formConfigured ? (
-              <a
-                href={LINKS.applyForm}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-              >
-                Open application form <ArrowUpRight className="h-4 w-4" />
-              </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                aria-disabled="true"
-                title="Set LINKS.applyForm in src/config/pool.ts"
-                className="btn-primary cursor-not-allowed opacity-60"
-              >
-                Application form — coming back online
-              </button>
-            )}
+        <div className="mt-6 surface overflow-hidden p-2 md:p-3">
+          <TypeformEmbed
+            formId="01JY0GPM667JFMXDBYDEHQ4Q94"
+            minHeight={640}
+            className="w-full"
+          />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-center gap-1.5 text-xs text-ink-dim">
+            <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
+            We never ask for your validator&apos;s private keys. Submissions go to Typeform and are
+            reviewed manually.
+          </p>
+          <div className="flex gap-3">
+            <a
+              href={LINKS.applyForm}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-ink-muted underline decoration-ring underline-offset-2 hover:text-ink"
+            >
+              Open in a new tab <ArrowUpRight className="inline h-3 w-3" />
+            </a>
             <a
               href={LINKS.telegram}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-ghost"
+              className="text-xs text-ink-muted underline decoration-ring underline-offset-2 hover:text-ink"
             >
-              Or reach us on Telegram <ArrowUpRight className="h-4 w-4" />
+              Telegram us instead <ArrowUpRight className="inline h-3 w-3" />
             </a>
           </div>
-
-          <p className="relative mt-5 flex items-center gap-1.5 text-xs text-ink-dim">
-            <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
-            We never ask for your validator&apos;s private keys. Application data stays on the
-            form provider&apos;s servers and is reviewed manually.
-          </p>
         </div>
       </div>
     </div>

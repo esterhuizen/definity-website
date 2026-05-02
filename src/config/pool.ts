@@ -27,12 +27,13 @@ export const LINKS = {
   github: 'https://github.com/esterhuizen/definity-website',
   oldSite: 'https://definity.finance',
 
-  // Validator whitelist application form. The /whitelist-apply page on this
-  // site is a thin landing that opens this URL in a new tab. Replace this
-  // placeholder with the real form URL (Tally / Google Forms / whatever you
-  // already use) before going live — until then the CTA is disabled.
-  // Example: 'https://forms.gle/abc123' or 'https://tally.so/r/your-form'
-  applyForm: '',
+  // Validator whitelist application — Typeform.
+  // The /whitelist-apply page embeds the form inline via the Typeform
+  // `data-tf-live` widget. The URL below is the public direct link, kept
+  // as a fallback "open in new tab" so the page still has a path even if
+  // the embed script is blocked or slow to load.
+  applyFormId: '01JY0GPM667JFMXDBYDEHQ4Q94',
+  applyForm: 'https://form.typeform.com/to/01JY0GPM667JFMXDBYDEHQ4Q94',
 } as const;
 
 export const SITE = {

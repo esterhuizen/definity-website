@@ -12,12 +12,12 @@ const nextConfig = {
   async headers() {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' https://embed.typeform.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "connect-src 'self' https:",
-      "frame-src https://app.sanctum.so https://*.sanctum.so https://jup.ag https://*.jup.ag",
+      "frame-src https://app.sanctum.so https://*.sanctum.so https://jup.ag https://*.jup.ag https://*.typeform.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
