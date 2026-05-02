@@ -1,0 +1,26 @@
+# /etc/systemd/system/certbot-renew.service
+#
+# Oneshot service that runs the renewal script. Triggered by certbot-renew.timer.
+# Inspect: systemctl status certbot-renew.service
+# Logs:    journalctl -u certbot-renew.service
+
+[Unit]
+Description=Renew Let's Encrypt certificates for definity.finance
+Documentation=file:///var/www/definity/current/deploy/tls-renew.sh
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/tls-renew.sh
+# The renew script itself is hardened to be a no-op when nothing is due.
+# Cap runtime at 5 minutes — anything longer means something is stuck.
+TimeoutStartSec=300
+# Modest hardening — still needs root to read /etc/letsencrypt and reload nginx.
+NoNewPrivileges=true
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true

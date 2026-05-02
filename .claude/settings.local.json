@@ -17,7 +17,20 @@
       "Bash(PORT=3137 HOSTNAME=127.0.0.1 node /home/sol/build/definity-new-website/.next/standalone/server.js)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git -c user.email=t@esterhuizens.org -c user.name=esterhuizen commit -q -m ' *)"
+      "Bash(git -c user.email=t@esterhuizens.org -c user.name=esterhuizen commit -q -m ' *)",
+      "Bash(curl -sS -o /tmp/home.html -w \"STATUS=%{http_code}\\\\nBYTES=%{size_download}\\\\n\" http://127.0.0.1:3137/)",
+      "Bash(curl -sS -o /dev/null -w \"/faq=%{http_code}\\\\n/validators=%{http_code}\\\\n/addresses=%{http_code}\\\\n\" -H \"Host: 127.0.0.1\" http://127.0.0.1:3137/faq)",
+      "Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:3137/validators)",
+      "Bash(curl -sS -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:3137/addresses)",
+      "Bash(curl -sS -I http://127.0.0.1:3137/)",
+      "Bash(kill %1)",
+      "Bash(pkill -f 'standalone/server.js')",
+      "Bash(gh repo *)",
+      "Skill(schedule)",
+      "Bash(chmod +x /home/sol/build/definity-new-website/deploy/tls-issue.sh /home/sol/build/definity-new-website/deploy/tls-renew.sh)",
+      "Bash(bash -n /home/sol/build/definity-new-website/deploy/tls-issue.sh)",
+      "Bash(bash -n /home/sol/build/definity-new-website/deploy/tls-renew.sh)",
+      "Bash(git push *)"
     ]
   }
 }

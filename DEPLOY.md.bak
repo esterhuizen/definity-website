@@ -48,19 +48,15 @@ sudo mkdir -p /var/www/definity
 sudo chown -R definity:definity /var/www/definity
 ```
 
-### 4. Drop in the systemd unit and a bootstrap nginx config
+### 4. Drop in the systemd unit and nginx config
 
-The full nginx config references TLS cert files that don't exist yet, so we install
-a **bootstrap** config first (HTTP only, with the ACME challenge path open). After
-the cert is issued in step 6, we swap to the full config.
+From this repo:
 
 ```bash
-sudo cp deploy/definity.service        /etc/systemd/system/definity.service
-sudo cp deploy/nginx-bootstrap.conf    /etc/nginx/sites-available/definity
-sudo cp deploy/nginx-ratelimit.conf    /etc/nginx/conf.d/definity-ratelimit.conf
+sudo cp deploy/definity.service       /etc/systemd/system/definity.service
+sudo cp deploy/nginx.conf             /etc/nginx/sites-available/definity
+sudo cp deploy/nginx-ratelimit.conf   /etc/nginx/conf.d/definity-ratelimit.conf
 sudo ln -sf /etc/nginx/sites-available/definity /etc/nginx/sites-enabled/definity
-sudo mkdir -p /var/www/certbot
-sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ### 5. First-time deploy
@@ -73,75 +69,15 @@ sudo -u definity /var/www/definity/deploy.sh main
 
 This clones the repo, builds it, and produces `/var/www/definity/current/.next/standalone/server.js`.
 
-### 6. TLS certificate (HTTPS)
+### 6. TLS certificate
 
-This step issues a Let's Encrypt cert for `definity.finance` + `www.definity.finance`
-using the **webroot** challenge — no nginx-config rewriting magic, fully scriptable,
-and easy to debug.
-
-**Pre-flight:** confirm DNS is correct.
+Make sure your DNS is pointing at the server first, then:
 
 ```bash
-dig +short definity.finance         # must return your server IP
-dig +short www.definity.finance     # must also return your server IP
+sudo certbot --nginx -d definity.finance -d www.definity.finance
 ```
 
-**Rehearse first** (Let's Encrypt rate-limits real issuances; staging does not):
-
-```bash
-sudo DRY_RUN=1 deploy/tls-issue.sh
-```
-
-If the dry run reports success, issue the real cert:
-
-```bash
-sudo deploy/tls-issue.sh
-```
-
-The script will:
-
-1. Verify it can serve a token at `http://definity.finance/.well-known/acme-challenge/...`
-   (catches 90% of TLS-issuance bugs before talking to Let's Encrypt).
-2. Run `certbot certonly --webroot` with a 4096-bit RSA key.
-3. Print the next-step commands when it succeeds.
-
-**Swap to the full HTTPS nginx config** (now that certs exist):
-
-```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/definity
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-**Wire up automatic renewal** — uses a systemd timer that fires twice a day with
-randomized delay; reloads nginx only when a cert was actually replaced.
-
-```bash
-sudo cp deploy/tls-renew.sh           /usr/local/sbin/tls-renew.sh
-sudo chmod +x                         /usr/local/sbin/tls-renew.sh
-sudo cp deploy/certbot-renew.service  /etc/systemd/system/
-sudo cp deploy/certbot-renew.timer    /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now certbot-renew.timer
-systemctl list-timers certbot-renew.timer    # confirm next-run time
-```
-
-**Test the renewal pipeline without touching the live cert:**
-
-```bash
-sudo /usr/local/sbin/tls-renew.sh --dry-run
-```
-
-**Inspect logs:**
-
-```bash
-journalctl -u certbot-renew.service -n 100
-```
-
-**Manual renew** (if you ever need to force one):
-
-```bash
-sudo /usr/local/sbin/tls-renew.sh
-```
+certbot will edit your nginx config to wire up the cert. The renewal cron runs automatically via the snap.
 
 ### 7. Start the service
 
