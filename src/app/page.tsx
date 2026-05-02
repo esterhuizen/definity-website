@@ -1,5 +1,6 @@
 import { Hero } from '@/components/Hero';
 import { StatsRow } from '@/components/StatsRow';
+import { ValidatorMap } from '@/components/ValidatorMap';
 
 // Regenerate the homepage every 30 minutes so the live on-chain stats
 // (validators, total staked) stay current. The hourly stats job writes
@@ -18,6 +19,7 @@ export default function HomePage() {
     <>
       <Hero />
       <StatsRow />
+      <ValidatorMap />
       <MissionSection />
       <HowItWorks />
       <StakeWidget />

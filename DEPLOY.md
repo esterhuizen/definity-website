@@ -156,9 +156,15 @@ Visit `https://definity.finance` — you should see the site.
 
 ### 8. Live pool stats pipeline
 
-The homepage shows two live numbers — **validator count** and **total SOL staked** —
-fetched directly from on-chain. The fetcher runs hourly, writes `public/stats.json`,
-and the website reads that file on each render (ISR, 30-min cache window). No
+The homepage shows live numbers (validator count, total SOL staked) and a world
+map of where the validators run. The same hourly job handles both:
+
+- **Hourly:** reads the pool state on-chain and writes `public/stats.json`.
+- **Daily:** the same script also calls Stakewiz to look up each validator's
+  data-centre location and writes `public/validators.json`. (Geo runs at most
+  once per 24 h — validators rarely change data centres.)
+
+The website reads both files on each render (ISR, 30-min cache window). No
 remote calls happen on user requests.
 
 ```bash
@@ -170,9 +176,10 @@ sudo systemctl enable --now pool-stats.timer
 # Force a first run so the file exists immediately:
 sudo systemctl start pool-stats.service
 
-# Sanity check:
+# Sanity check both files:
 sudo cat /var/www/definity/current/public/stats.json
-journalctl -u pool-stats.service -n 20
+sudo cat /var/www/definity/current/public/validators.json | head -20
+journalctl -u pool-stats.service -n 30
 ```
 
 If you outgrow the public mainnet-beta RPC (which is rate-limited but more than

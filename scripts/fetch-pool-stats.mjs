@@ -16,13 +16,19 @@
 //   1  unrecoverable error (RPC down, account not found, layout mismatch).
 //      The existing stats.json (if any) is left untouched.
 
-import { writeFile, mkdir, rename } from 'node:fs/promises';
+import { writeFile, readFile, mkdir, rename } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const POOL_ADDRESS = 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const LST_MINT     = 'DEF1NXSZ8Th9n28hYBayrFtx9bj1EwwTiy3mhHEB9oyA';
-const OUT_PATH     = resolve(process.argv[2] || 'public/stats.json');
+const OUT_PATH        = resolve(process.argv[2] || 'public/stats.json');
+const VALIDATORS_PATH = resolve(process.argv[3] || 'public/validators.json');
+
+const STAKEWIZ_URL = process.env.STAKEWIZ_URL || 'https://api.stakewiz.com/validators';
+// Refresh validator geo at most once per day. Validators rarely change data
+// centers, and Stakewiz doesn't need 24 hits per day per pool from us.
+const VALIDATORS_TTL_MS = 24 * 60 * 60 * 1000;
 
 // AccountType discriminators — first byte of every SPL stake-pool account.
 const ACCOUNT_TYPE = { UNINITIALIZED: 0, STAKE_POOL: 1, VALIDATOR_LIST: 2 };
@@ -113,7 +119,21 @@ function parseValidatorList(buf) {
   if (count > maxValidators) {
     throw new Error(`validators_count (${count}) > max_validators (${maxValidators}) — layout mismatch`);
   }
-  return { count, maxValidators };
+
+  // ValidatorStakeInfo entries (73 bytes each), starting at offset 9.
+  // Within each entry, vote_account_address sits at offset 41 (after 8+8+8+8+4+4+1).
+  const HEADER_SIZE = 9;
+  const ITEM_SIZE   = 73;
+  const VOTE_OFFSET = 41;
+
+  const votePubkeys = [];
+  for (let i = 0; i < count; i++) {
+    const start = HEADER_SIZE + i * ITEM_SIZE + VOTE_OFFSET;
+    const bytes = buf.subarray(start, start + 32);
+    votePubkeys.push(base58Encode(bytes));
+  }
+
+  return { count, maxValidators, votePubkeys };
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +150,83 @@ async function atomicWriteJson(path, obj) {
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Validator geo refresh — called at most once per day. Pulls all validators
+// from Stakewiz in one shot, filters to our pool's vote pubkeys, writes a
+// slim public/validators.json that the website reads at render time.
+// ---------------------------------------------------------------------------
+async function maybeRefreshValidators(votePubkeys) {
+  let existing = null;
+  try {
+    existing = JSON.parse(await readFile(VALIDATORS_PATH, 'utf8'));
+  } catch {
+    // file missing / bad JSON — treat as a fresh start.
+  }
+
+  const lastMs = existing?.lastFetchedAt ? new Date(existing.lastFetchedAt).getTime() : 0;
+  const ageMs  = Date.now() - lastMs;
+
+  if (existing && ageMs < VALIDATORS_TTL_MS) {
+    console.log(`validators.json is ${(ageMs / 3600_000).toFixed(1)}h old, skipping geo refresh`);
+    return;
+  }
+
+  console.log(`refreshing validator geo from ${new URL(STAKEWIZ_URL).host}...`);
+
+  const r = await fetch(STAKEWIZ_URL, {
+    headers: { 'user-agent': 'definity-website/1.0 (+https://definity.finance)' },
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!r.ok) throw new Error(`Stakewiz HTTP ${r.status}: ${await r.text().catch(() => '')}`);
+  const all = await r.json();
+  if (!Array.isArray(all)) throw new Error(`Stakewiz returned non-array (got ${typeof all})`);
+
+  const want = new Set(votePubkeys);
+  const matched = all.filter((v) => v && typeof v.vote_identity === 'string' && want.has(v.vote_identity));
+
+  // Country tally
+  const tally = new Map();
+  for (const v of matched) {
+    const key = v.ip_country || 'Unknown';
+    tally.set(key, (tally.get(key) || 0) + 1);
+  }
+  const byCountry = [...tally.entries()]
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count || a.country.localeCompare(b.country));
+
+  // Slim per-validator records — just what the UI needs.
+  const validators = matched.map((v) => ({
+    vote:     v.vote_identity,
+    identity: v.identity,
+    name:     v.name || null,
+    country:  v.ip_country || null,
+    city:     v.ip_city || null,
+    lat:      v.ip_latitude  != null ? Number(v.ip_latitude)  : null,
+    lng:      v.ip_longitude != null ? Number(v.ip_longitude) : null,
+    asn:      v.ip_org || null,
+    activatedStakeSol: v.activated_stake != null ? Number(v.activated_stake) : null,
+    commission:        v.commission     != null ? Number(v.commission)      : null,
+    website:           v.website || null,
+    image:             v.image   || null,
+  }));
+
+  const out = {
+    lastFetchedAt: new Date().toISOString(),
+    expected: votePubkeys.length,
+    matched: matched.length,
+    countries: byCountry.length,
+    byCountry,
+    validators,
+    source: new URL(STAKEWIZ_URL).host,
+  };
+
+  await atomicWriteJson(VALIDATORS_PATH, out);
+  console.log(
+    `wrote ${VALIDATORS_PATH}: ${matched.length}/${votePubkeys.length} matched, ` +
+    `${byCountry.length} countries`,
+  );
+}
+
 async function main() {
   const t0 = Date.now();
 
@@ -167,6 +264,15 @@ async function main() {
     `rate ${exchangeRate?.toFixed(6)} SOL/definSOL ` +
     `(${stats.fetchedInMs} ms)`,
   );
+
+  // Validator geo runs at most once per day. Failures here don't fail the
+  // whole job — the stats portion already wrote, and the prior validators.json
+  // (if any) is still intact.
+  try {
+    await maybeRefreshValidators(vlist.votePubkeys);
+  } catch (err) {
+    console.error(`validator geo refresh skipped: ${err.message}`);
+  }
 }
 
 main().catch((err) => {

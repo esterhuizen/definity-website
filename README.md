@@ -8,7 +8,7 @@ This repo is the public marketing + staking site for **definity.finance**. Users
 
 - **Next.js 15** (App Router) + **TypeScript** + **Tailwind CSS**
 - **Routes out** to Jupiter (primary) and Sanctum (secondary) for the actual swap — both are audited, non-custodial, and load in a new tab so wallet signing happens entirely on their origins
-- **Live on-chain stats** — validator count + total SOL staked, refreshed hourly by a tiny zero-dependency Node script that reads the SPL stake-pool account directly
+- **Live on-chain stats** — validator count + total SOL staked refreshed hourly, plus per-validator geographic locations refreshed daily, all by a tiny zero-dependency Node script that reads the SPL stake-pool account directly and queries Stakewiz for the IP-based geo lookup
 - **No managed PaaS** — builds to a Next.js standalone server, runs anywhere `node` runs (nginx + systemd + Let's Encrypt for production)
 
 ## Repo layout
@@ -82,18 +82,19 @@ cd definity-website
 
 ## How the live stats pipeline works
 
-Two completely separate processes, talking through a file on disk:
+Two completely separate processes, talking through files on disk:
 
-- `pool-stats.timer` fires every hour → runs `node scripts/fetch-pool-stats.mjs` → reads on-chain via Solana RPC → writes `public/stats.json` atomically.
-- The Next.js website reads `public/stats.json` from disk on each render (ISR window: 30 min). Zero remote calls happen on user requests.
+- `pool-stats.timer` fires every hour → runs `node scripts/fetch-pool-stats.mjs` → reads on-chain via Solana RPC → writes `public/stats.json` atomically. Also extracts the pool's vote-account list and, **once every 24 hours**, queries Stakewiz to look up each validator's data-centre location → writes `public/validators.json` atomically.
+- The Next.js website reads both JSON files from disk on each render (ISR window: 30 min). Zero remote calls happen on user requests.
 
 Robustness:
 
-- If the RPC is down, the script exits non-zero and **leaves the existing `stats.json` untouched** — the site keeps showing the last good data.
-- If the website crashes, the timer keeps refreshing the file regardless.
-- Atomic writes (write to `stats.json.tmp-<pid>`, rename) — the website never reads a half-written file.
+- If the Solana RPC is down, the script exits non-zero and **leaves the existing `stats.json` untouched** — the site keeps showing the last good data.
+- If Stakewiz is down or returns garbage, that part of the script logs the error but **doesn't fail the run** — the stats portion still writes, and the prior `validators.json` is left intact.
+- If the website crashes, the timer keeps refreshing the files regardless.
+- Atomic writes (write to `*.json.tmp-<pid>`, then rename) — the website never reads a half-written file.
 
-To point the script at a private RPC instead of public mainnet-beta, set `Environment=SOLANA_RPC=https://your.rpc` in `deploy/pool-stats.service`.
+To point the on-chain reads at a private RPC instead of public mainnet-beta, set `Environment=SOLANA_RPC=https://your.rpc` in `deploy/pool-stats.service`. Stakewiz can be swapped via `Environment=STAKEWIZ_URL=...`.
 
 ## Security notes
 
