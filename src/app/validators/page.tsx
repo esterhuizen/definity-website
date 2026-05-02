@@ -63,22 +63,41 @@ export default function ValidatorsPage() {
         ))}
       </ol>
 
-      <div className="mt-14 surface p-6 md:p-8">
-        <h2 className="font-display text-xl font-semibold text-ink">
-          See the live delegation set
-        </h2>
-        <p className="mt-3 text-sm text-ink-muted text-pretty">
-          The list of currently-delegated validators is recorded on-chain in the pool account
-          itself. The most accurate, up-to-the-epoch view is in Solscan.
-        </p>
-        <a
-          href={LINKS.solscanPool}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-sunrise-400 hover:text-sunrise-300"
-        >
-          View pool on Solscan <ExternalLink className="h-4 w-4" />
-        </a>
+      <div className="mt-14 grid gap-4 md:grid-cols-2">
+        <div className="surface p-6 md:p-8">
+          <h2 className="font-display text-xl font-semibold text-ink">
+            See the live delegation set
+          </h2>
+          <p className="mt-3 text-sm text-ink-muted text-pretty">
+            The list of currently-delegated validators is recorded on-chain in the pool account
+            itself. The most accurate, up-to-the-epoch view is in Solscan.
+          </p>
+          <a
+            href={LINKS.solscanPool}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-sunrise-600 hover:text-sunrise-500"
+          >
+            View pool on Solscan <ExternalLink className="h-4 w-4" />
+          </a>
+        </div>
+
+        <div className="surface p-6 md:p-8">
+          <h2 className="font-display text-xl font-semibold text-ink">
+            Run a validator? Apply to be whitelisted
+          </h2>
+          <p className="mt-3 text-sm text-ink-muted text-pretty">
+            If you operate a Solana validator and meet the criteria above, you can submit
+            your details for review. Approved validators become eligible to receive stake
+            from the pool.
+          </p>
+          <Link
+            href="/whitelist-apply"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-sunrise-600 hover:text-sunrise-500"
+          >
+            Apply for whitelisting <ExternalLink className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </div>
   );

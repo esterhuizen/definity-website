@@ -26,6 +26,13 @@ export const LINKS = {
   telegram: 'https://t.me/DefinityFinance',
   github: 'https://github.com/esterhuizen/definity-website',
   oldSite: 'https://definity.finance',
+
+  // Validator whitelist application form. The /whitelist-apply page on this
+  // site is a thin landing that opens this URL in a new tab. Replace this
+  // placeholder with the real form URL (Tally / Google Forms / whatever you
+  // already use) before going live — until then the CTA is disabled.
+  // Example: 'https://forms.gle/abc123' or 'https://tally.so/r/your-form'
+  applyForm: '',
 } as const;
 
 export const SITE = {

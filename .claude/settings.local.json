@@ -61,7 +61,12 @@
       "Bash(curl -sSL \"https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg\" -o /tmp/world-wiki.svg)",
       "Bash(node /home/sol/build/definity-new-website/scripts/fetch-pool-stats.mjs /home/sol/build/definity-new-website/public/stats.json /home/sol/build/definity-new-website/public/validators.json)",
       "Bash(python3 -c \"import json; d=json.load\\(open\\('/home/sol/build/definity-new-website/public/validators.json'\\)\\); print\\(f\\\\\"{d['matched']}/{d['expected']} matched, {d['countries']} countries\\\\\"\\); [print\\(f\\\\\"  {c['country']}: {c['count']}\\\\\"\\) for c in d['byCountry']]\")",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(curl -sSL https://definity.finance/)",
+      "WebFetch(domain:web.archive.org)",
+      "Bash(curl -sSL \"https://web.archive.org/web/2025*/definity.finance\")",
+      "Bash(curl -sSL \"https://web.archive.org/web/2025/https://definity.finance/validators\" -A \"Mozilla/5.0\")",
+      "Bash(curl -sSL \"https://web.archive.org/web/20260208053805/https://www.definity.finance/whitelist-apply\" -A \"Mozilla/5.0\" -o /tmp/whitelist-apply.html)"
     ]
   }
 }
