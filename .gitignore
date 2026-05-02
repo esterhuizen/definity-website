@@ -40,3 +40,6 @@ next-env.d.ts
 # deploy
 /releases
 /current
+
+# backup files (per local convention)
+*.bak

@@ -14,10 +14,10 @@ export const POOL = {
 } as const;
 
 export const LINKS = {
-  // Sanctum LST page for definSOL — used for the embedded widget and external CTA.
-  sanctumLst: `https://app.sanctum.so/lst/${POOL.lstMint}`,
-  // Jupiter swap pre-filled SOL → definSOL.
-  jupiterSwap: `https://jup.ag/swap/SOL-${POOL.lstMint}`,
+  // Sanctum's deep-link pattern uses the LST ticker symbol (NOT the mint).
+  sanctumLst: `https://app.sanctum.so/trade/SOL-${POOL.lstSymbol}`,
+  // Jupiter swap pre-filled SOL → definSOL (mint addresses, query-string form).
+  jupiterSwap: `https://jup.ag/swap?sell=${POOL.solMint}&buy=${POOL.lstMint}`,
   // Block explorers
   solscanPool: `https://solscan.io/account/${POOL.stakePoolAddress}`,
   solscanMint: `https://solscan.io/token/${POOL.lstMint}`,

@@ -1,11 +1,9 @@
-import Link from 'next/link';
-import { ArrowUpRight, ShieldCheck } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { LINKS, POOL } from '@/config/pool';
 
-// We embed the Sanctum LST page in an iframe — Sanctum is the audited stake-pool
-// aggregator already integrated with definSOL. The iframe is sandboxed to forms,
-// scripts, popups, and same-origin (needed for wallet connect inside Sanctum).
-// All wallet signing happens inside the iframe, never on this site's origin.
+// Sanctum and Jupiter both block iframe embedding (frame-ancestors / X-Frame-Options),
+// so we render a native "stake" panel and route the user out to their canonical UIs.
+// Wallet signing happens entirely on Sanctum or Jupiter — this site never touches keys.
 export function StakeWidget() {
   return (
     <section id="stake" className="scroll-mt-24 py-24 md:py-32">
@@ -18,9 +16,9 @@ export function StakeWidget() {
               <span className="bg-sunrise-gradient bg-clip-text text-transparent">{POOL.lstSymbol}</span>
             </h2>
             <p className="mt-5 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-              The widget below is powered by Sanctum, the audited stake-pool router used across
-              Solana. Your wallet connects directly inside it — Definity's site never touches your
-              keys or your SOL.
+              Definity routes the actual swap through Sanctum — the audited stake-pool router used
+              across Solana — or Jupiter, the network's biggest aggregator. Either way, your wallet
+              connects directly to them. Definity's site never touches your keys or your SOL.
             </p>
 
             <ul className="mt-8 space-y-3 text-sm">
@@ -37,57 +35,89 @@ export function StakeWidget() {
                 <span>Unstake instantly via Sanctum or swap on Jupiter anytime.</span>
               </li>
             </ul>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
-                href={LINKS.sanctumLst}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-              >
-                Open Sanctum <ArrowUpRight className="h-4 w-4" />
-              </a>
-              <a
-                href={LINKS.jupiterSwap}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost"
-              >
-                Swap on Jupiter <ArrowUpRight className="h-4 w-4" />
-              </a>
-            </div>
-
-            <p className="mt-6 text-xs text-ink-dim">
-              Trouble loading the widget? Open it directly on{' '}
-              <Link
-                href={LINKS.sanctumLst}
-                className="underline decoration-ring underline-offset-2 hover:text-ink"
-              >
-                app.sanctum.so
-              </Link>
-              .
-            </p>
           </div>
 
           <div className="md:col-span-7">
-            <div className="surface relative overflow-hidden p-2 shadow-glow-sm">
-              <div className="aspect-[5/6] w-full overflow-hidden rounded-xl bg-bg sm:aspect-[4/5]">
-                <iframe
-                  src={LINKS.sanctumLst}
-                  title="Stake SOL for definSOL via Sanctum"
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                  sandbox="allow-scripts allow-popups allow-forms allow-same-origin allow-popups-to-escape-sandbox"
-                  className="h-full w-full border-0"
-                />
+            <div className="surface relative overflow-hidden p-6 shadow-glow-sm md:p-8">
+              <div className="absolute inset-0 bg-dawn-gradient opacity-50" aria-hidden />
+
+              <div className="relative space-y-3">
+                <div className="rounded-xl border border-ring/80 bg-bg-muted/60 p-5">
+                  <div className="text-xs uppercase tracking-[0.18em] text-ink-dim">You stake</div>
+                  <div className="mt-2 flex items-center justify-between gap-4">
+                    <span className="font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+                      SOL
+                    </span>
+                    <TokenChip label="SOL" tone="solana" />
+                  </div>
+                  <p className="mt-2 text-xs text-ink-dim">Native Solana</p>
+                </div>
+
+                <div className="flex items-center justify-center" aria-hidden="true">
+                  <div className="-my-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-ring bg-bg-raised">
+                    <ArrowDown className="h-4 w-4 text-sunrise-400" />
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-sunrise-500/30 bg-bg-muted/60 p-5">
+                  <div className="text-xs uppercase tracking-[0.18em] text-ink-dim">You receive</div>
+                  <div className="mt-2 flex items-center justify-between gap-4">
+                    <span className="font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
+                      {POOL.lstSymbol}
+                    </span>
+                    <TokenChip label={POOL.lstSymbol} tone="sunrise" />
+                  </div>
+                  <p className="mt-2 text-xs text-ink-dim">
+                    Liquid receipt · accrues staking rewards
+                  </p>
+                </div>
               </div>
+
+              <div className="relative mt-6 grid gap-3 sm:grid-cols-2">
+                <a
+                  href={LINKS.sanctumLst}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                >
+                  Stake on Sanctum <ArrowUpRight className="h-4 w-4" />
+                </a>
+                <a
+                  href={LINKS.jupiterSwap}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost"
+                >
+                  Swap on Jupiter <ArrowUpRight className="h-4 w-4" />
+                </a>
+              </div>
+
+              <p className="relative mt-4 text-center text-[11px] text-ink-dim">
+                Both routes settle to the same {POOL.lstSymbol} mint —{' '}
+                <span className="font-mono">{POOL.lstMint.slice(0, 4)}…{POOL.lstMint.slice(-4)}</span>
+              </p>
             </div>
-            <p className="mt-3 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-ink-dim">
-              Powered by Sanctum · Pool {POOL.stakePoolAddress.slice(0, 6)}…{POOL.stakePoolAddress.slice(-4)}
-            </p>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function TokenChip({ label, tone }: { label: string; tone: 'solana' | 'sunrise' }) {
+  const ring =
+    tone === 'sunrise' ? 'ring-sunrise-500/40 bg-sunrise-500/10' : 'ring-solana-500/40 bg-solana-500/10';
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-ink ring-1 ${ring}`}
+    >
+      <span
+        className={`inline-block h-2 w-2 rounded-full ${
+          tone === 'sunrise' ? 'bg-sunrise-400' : 'bg-solana-500'
+        }`}
+        aria-hidden
+      />
+      {label}
+    </span>
   );
 }

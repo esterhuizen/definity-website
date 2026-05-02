@@ -30,7 +30,19 @@
       "Bash(chmod +x /home/sol/build/definity-new-website/deploy/tls-issue.sh /home/sol/build/definity-new-website/deploy/tls-renew.sh)",
       "Bash(bash -n /home/sol/build/definity-new-website/deploy/tls-issue.sh)",
       "Bash(bash -n /home/sol/build/definity-new-website/deploy/tls-renew.sh)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(ip -4 addr show eth0)",
+      "Bash(awk '/inet /{print \"wsl_ip=\"$2}')",
+      "Bash(PORT=3137 npx next *)",
+      "Bash(kill 3765)",
+      "Bash(nohup npx *)",
+      "Bash(disown)",
+      "Bash(curl -sS -o /dev/null -w \"localhost=%{http_code}\\\\n\" http://127.0.0.1:3137/)",
+      "Bash(curl -sS -o /dev/null -w \"wsl_ip=%{http_code}\\\\n\" http://172.19.244.123:3137/)",
+      "WebFetch(domain:app.sanctum.so)",
+      "Bash(git rm *)",
+      "Bash(awk '{print $2}')",
+      "Bash(curl -sS http://127.0.0.1:3137/)"
     ]
   }
 }
