@@ -15,9 +15,9 @@ export function Hero() {
           </span>
 
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] tracking-tight text-balance md:text-7xl animate-fade-up [animation-delay:80ms]">
-            Stake SOL where it{' '}
+            Stake SOL with those who{' '}
             <span className="bg-sunrise-gradient bg-clip-text text-transparent">
-              builds the future
+              are building the future
             </span>
             .
           </h1>

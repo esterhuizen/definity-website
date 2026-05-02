@@ -60,7 +60,8 @@
       "Bash(curl -sSL \"https://raw.githubusercontent.com/topojson/world-atlas/master/countries-110m.json\" -o /tmp/countries-110m.json)",
       "Bash(curl -sSL \"https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg\" -o /tmp/world-wiki.svg)",
       "Bash(node /home/sol/build/definity-new-website/scripts/fetch-pool-stats.mjs /home/sol/build/definity-new-website/public/stats.json /home/sol/build/definity-new-website/public/validators.json)",
-      "Bash(python3 -c \"import json; d=json.load\\(open\\('/home/sol/build/definity-new-website/public/validators.json'\\)\\); print\\(f\\\\\"{d['matched']}/{d['expected']} matched, {d['countries']} countries\\\\\"\\); [print\\(f\\\\\"  {c['country']}: {c['count']}\\\\\"\\) for c in d['byCountry']]\")"
+      "Bash(python3 -c \"import json; d=json.load\\(open\\('/home/sol/build/definity-new-website/public/validators.json'\\)\\); print\\(f\\\\\"{d['matched']}/{d['expected']} matched, {d['countries']} countries\\\\\"\\); [print\\(f\\\\\"  {c['country']}: {c['count']}\\\\\"\\) for c in d['byCountry']]\")",
+      "Bash(python3 *)"
     ]
   }
 }
