@@ -1,0 +1,31 @@
+# /etc/systemd/system/pool-stats.service
+#
+# Oneshot — fetches live pool stats and writes /var/www/definity/current/public/stats.json.
+# Triggered by pool-stats.timer.
+
+[Unit]
+Description=Refresh Definity stake-pool stats JSON
+Documentation=file:///var/www/definity/current/scripts/fetch-pool-stats.mjs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=definity
+Group=definity
+WorkingDirectory=/var/www/definity/current
+# Override SOLANA_RPC here to point at a private/paid RPC if you outgrow public mainnet-beta.
+# Environment=SOLANA_RPC=https://your.private.rpc
+ExecStart=/usr/bin/node scripts/fetch-pool-stats.mjs public/stats.json
+TimeoutStartSec=60
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/www/definity/current/public
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true

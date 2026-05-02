@@ -154,7 +154,32 @@ sudo nginx -t && sudo systemctl reload nginx
 
 Visit `https://definity.finance` — you should see the site.
 
-### 8. Future deploys
+### 8. Live pool stats pipeline
+
+The homepage shows two live numbers — **validator count** and **total SOL staked** —
+fetched directly from on-chain. The fetcher runs hourly, writes `public/stats.json`,
+and the website reads that file on each render (ISR, 30-min cache window). No
+remote calls happen on user requests.
+
+```bash
+sudo cp deploy/pool-stats.service /etc/systemd/system/
+sudo cp deploy/pool-stats.timer   /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now pool-stats.timer
+
+# Force a first run so the file exists immediately:
+sudo systemctl start pool-stats.service
+
+# Sanity check:
+sudo cat /var/www/definity/current/public/stats.json
+journalctl -u pool-stats.service -n 20
+```
+
+If you outgrow the public mainnet-beta RPC (which is rate-limited but more than
+enough for one hourly call), edit `pool-stats.service` to set
+`Environment=SOLANA_RPC=https://your.private.rpc`.
+
+### 9. Future deploys
 
 After every push to `main`:
 

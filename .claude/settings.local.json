@@ -52,7 +52,8 @@
       "Bash(curl -sSL -o /home/sol/build/definity-new-website/public/favicon.ico \"https://static.wixstatic.com/ficons/8b6d29_ce50903f713c4ed4a2af8a9678599dd8%7Emv2.ico\")",
       "Bash(pkill -f \"next dev\")",
       "Bash(curl -sS -o /tmp/home3.html -w \"STATUS=%{http_code} BYTES=%{size_download}\\\\n\" http://127.0.0.1:3137/)",
-      "Bash(echo \"started pid $!\")"
+      "Bash(echo \"started pid $!\")",
+      "Bash(node /home/sol/build/definity-new-website/scripts/fetch-pool-stats.mjs /home/sol/build/definity-new-website/public/stats.json)"
     ]
   }
 }

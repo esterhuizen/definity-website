@@ -1,5 +1,10 @@
 import { Hero } from '@/components/Hero';
 import { StatsRow } from '@/components/StatsRow';
+
+// Regenerate the homepage every 30 minutes so the live on-chain stats
+// (validators, total staked) stay current. The hourly stats job writes
+// public/stats.json; this ISR window picks it up between refreshes.
+export const revalidate = 1800;
 import { MissionSection } from '@/components/MissionSection';
 import { HowItWorks } from '@/components/HowItWorks';
 import { StakeWidget } from '@/components/StakeWidget';

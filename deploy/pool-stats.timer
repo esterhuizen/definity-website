@@ -1,0 +1,23 @@
+# /etc/systemd/system/pool-stats.timer
+#
+# Refreshes pool stats hourly. Persistent=true so a missed run fires when
+# the box comes back. RandomizedDelaySec=10m avoids hammering the public
+# RPC at the top of every hour with thousands of other clients.
+#
+# Enable: sudo systemctl daemon-reload && sudo systemctl enable --now pool-stats.timer
+# Force run: sudo systemctl start pool-stats.service
+# Inspect:   systemctl list-timers pool-stats.timer
+# Logs:      journalctl -u pool-stats.service -n 50
+
+[Unit]
+Description=Hourly refresh of Definity pool stats
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1h
+RandomizedDelaySec=10min
+Persistent=true
+Unit=pool-stats.service
+
+[Install]
+WantedBy=timers.target
