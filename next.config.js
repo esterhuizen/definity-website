@@ -10,9 +10,20 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   async headers() {
+    // Next.js's dev-mode React Refresh runtime evaluates strings as JS for HMR,
+    // which requires 'unsafe-eval'. Production builds don't include the refresh
+    // runtime, so we keep the production CSP strict and only relax in dev.
+    const isDev = process.env.NODE_ENV !== 'production';
+    const scriptSrc = [
+      "'self'",
+      "'unsafe-inline'",
+      isDev ? "'unsafe-eval'" : null,
+      'https://embed.typeform.com',
+    ].filter(Boolean).join(' ');
+
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://embed.typeform.com",
+      `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
