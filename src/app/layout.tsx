@@ -1,0 +1,80 @@
+import type { Metadata, Viewport } from 'next';
+import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
+import './globals.css';
+import { Navbar } from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { SITE } from '@/config/pool';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const display = Manrope({
+  subsets: ['latin'],
+  variable: '--font-display',
+  weight: ['500', '600', '700', '800'],
+  display: 'swap',
+});
+
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
+export const viewport: Viewport = {
+  themeColor: '#0a0a14',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
+  title: {
+    default: SITE.title,
+    template: '%s — Definity',
+  },
+  description: SITE.description,
+  applicationName: 'Definity',
+  keywords: [
+    'Solana',
+    'stake pool',
+    'liquid staking',
+    'definSOL',
+    'LST',
+    'DeFi',
+    'Solana APAC',
+    'staking rewards',
+  ],
+  openGraph: {
+    title: SITE.title,
+    description: SITE.description,
+    url: SITE.url,
+    siteName: 'Definity',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE.title,
+    description: SITE.description,
+  },
+  robots: { index: true, follow: true },
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html
+      lang="en"
+      className={`${inter.variable} ${display.variable} ${mono.variable} dark`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </body>
+    </html>
+  );
+}

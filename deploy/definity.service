@@ -1,0 +1,46 @@
+# /etc/systemd/system/definity.service
+#
+# Runs the Next.js standalone server as a non-login system user.
+# After installing:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now definity
+#   sudo systemctl status definity
+#   journalctl -u definity -f
+
+[Unit]
+Description=Definity website (Next.js standalone)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=definity
+Group=definity
+WorkingDirectory=/var/www/definity/current
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/bin/node /var/www/definity/current/.next/standalone/server.js
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+ReadWritePaths=/var/www/definity
+
+[Install]
+WantedBy=multi-user.target

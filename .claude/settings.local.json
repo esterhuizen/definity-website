@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:definity.finance)",
+      "Bash(npm --version)",
+      "Bash(gh --version)",
+      "Bash(git --version)",
+      "Bash(gh auth *)",
+      "Bash(chmod +x /home/sol/build/definity-new-website/deploy/deploy.sh)",
+      "Bash(npm install *)",
+      "Bash(npm view *)",
+      "Bash(python3 -c \"import sys,json; v=[x for x in json.load\\(sys.stdin\\) if x.startswith\\('15.'\\) and '-' not in x]; print\\('\\\\n'.join\\(v[-10:]\\)\\)\")",
+      "Bash(npm audit *)",
+      "Bash(npm run *)",
+      "Bash(cp -r /home/sol/build/definity-new-website/public /home/sol/build/definity-new-website/.next/standalone/)",
+      "Bash(cp -r /home/sol/build/definity-new-website/.next/static /home/sol/build/definity-new-website/.next/standalone/.next/static)",
+      "Bash(PORT=3137 HOSTNAME=127.0.0.1 node /home/sol/build/definity-new-website/.next/standalone/server.js)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git -c user.email=t@esterhuizens.org -c user.name=esterhuizen commit -q -m ' *)"
+    ]
+  }
+}
