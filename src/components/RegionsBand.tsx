@@ -4,17 +4,20 @@ import { ArrowRight } from 'lucide-react';
 // A quieter, copy-led section that drives the regional narrative home before FAQ.
 // Today's focus: APAC cities. EMEA expansion is on the near roadmap and shown as such.
 const APAC_NOW = [
+  'Singapore',
+  'Hong Kong',
+  'Tokyo',
   'Jakarta',
   'Manila',
   'Ho Chi Minh City',
+  'Bangkok',
+  'Kuala Lumpur',
   'Mumbai',
   'Karachi',
   'Dhaka',
-  'Bangkok',
-  'Kuala Lumpur',
 ];
 
-const EMEA_SOON = ['Lagos', 'Nairobi', 'Istanbul'];
+const EMEA_SOON = ['Dubai', 'Abu Dhabi', 'Istanbul', 'Lagos', 'Nairobi'];
 
 export function RegionsBand() {
   return (
