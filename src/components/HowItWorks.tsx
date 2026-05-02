@@ -31,7 +31,7 @@ export function HowItWorks() {
   return (
     <section id="how" className="scroll-mt-24 border-y border-ring bg-bg-muted/50">
       <div className="container-narrow py-24 md:py-32">
-        <div className="grid gap-12 md:grid-cols-12 md:items-end">
+        <div className="grid gap-12 md:grid-cols-12 md:items-center">
           <div className="md:col-span-5">
             <span className="eyebrow">How it works</span>
             <h2 className="mt-5 font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
