@@ -8,7 +8,6 @@ import { ValidatorMap } from '@/components/ValidatorMap';
 export const revalidate = 1800;
 import { MissionSection } from '@/components/MissionSection';
 import { HowItWorks } from '@/components/HowItWorks';
-import { StakeWidget } from '@/components/StakeWidget';
 import { TrustSection } from '@/components/TrustSection';
 import { RegionsBand } from '@/components/RegionsBand';
 import { HomeFAQ } from '@/components/HomeFAQ';
@@ -22,7 +21,6 @@ export default function HomePage() {
       <ValidatorMap />
       <MissionSection />
       <HowItWorks />
-      <StakeWidget />
       <TrustSection />
       <RegionsBand />
       <HomeFAQ />
