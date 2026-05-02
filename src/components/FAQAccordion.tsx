@@ -27,10 +27,10 @@ export const HOMEPAGE_FAQ: QA[] = [
 
 export function FAQAccordion({ items = HOMEPAGE_FAQ }: { items?: QA[] }) {
   return (
-    <div className="divide-y divide-ring/60 overflow-hidden rounded-2xl border border-ring/80 bg-bg-raised/40">
+    <div className="divide-y divide-ring overflow-hidden rounded-2xl border border-ring bg-bg shadow-card">
       {items.map((item) => (
         <details key={item.q} className="group">
-          <summary className="flex cursor-pointer list-none items-start justify-between gap-6 px-6 py-5 transition hover:bg-bg-muted/40 [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-start justify-between gap-6 px-6 py-5 transition hover:bg-bg-muted/60 [&::-webkit-details-marker]:hidden">
             <span className="font-display text-base font-medium text-ink">{item.q}</span>
             <span
               aria-hidden

@@ -11,7 +11,7 @@ const NAV = [
 
 export function Navbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-ring/60 bg-bg/70 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-ring bg-bg/80 backdrop-blur-md">
       <div className="container-narrow flex h-16 items-center justify-between">
         <Link href="/" aria-label="Definity home" className="-ml-1 rounded-md p-1 hover:opacity-90">
           <Logo />

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   html {
@@ -16,14 +16,14 @@
   body {
     @apply bg-bg text-ink font-sans;
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 138, 76, 0.15), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 100% 20%, rgba(153, 69, 255, 0.10), transparent 55%),
-      radial-gradient(ellipse 60% 40% at 0% 60%, rgba(176, 122, 255, 0.08), transparent 60%);
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(153, 69, 255, 0.07), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 20%, rgba(20, 241, 149, 0.06), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 0% 60%, rgba(220, 31, 255, 0.04), transparent 60%);
     background-attachment: fixed;
   }
 
   ::selection {
-    @apply bg-sunrise-500/40 text-ink;
+    @apply bg-solana-500/25 text-ink;
   }
 }
 
@@ -33,28 +33,30 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sunrise-400 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-solana-500 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn bg-sunrise-gradient text-bg shadow-glow-sm hover:shadow-glow hover:brightness-105 active:brightness-95;
+    @apply btn bg-sunrise-gradient text-white shadow-glow-sm hover:shadow-glow hover:brightness-105 active:brightness-95;
   }
 
   .btn-ghost {
-    @apply btn border border-ring bg-bg-raised/40 text-ink hover:bg-bg-raised hover:border-ring/80;
+    @apply btn border border-ring bg-bg text-ink hover:bg-bg-muted hover:border-ink-dim;
   }
 
   .surface {
-    @apply rounded-2xl border border-ring/80 bg-bg-raised/60 backdrop-blur-sm;
+    @apply rounded-2xl border border-ring bg-bg shadow-card;
   }
 
   .eyebrow {
-    @apply inline-flex items-center gap-2 rounded-full border border-ring bg-bg-raised/40 px-3 py-1 text-xs uppercase tracking-[0.18em] text-ink-muted;
+    @apply inline-flex items-center gap-2 rounded-full border border-ring bg-bg-muted px-3 py-1 text-xs uppercase tracking-[0.18em] text-ink-muted;
   }
 
+  /* Subtle background grid for hero accent — barely visible on white. */
   .grid-line {
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-image:
+      linear-gradient(to right, rgba(13, 16, 20, 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(13, 16, 20, 0.035) 1px, transparent 1px);
     background-size: 56px 56px;
   }
 }

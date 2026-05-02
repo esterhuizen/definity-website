@@ -46,12 +46,12 @@ export function RegionsBand() {
               {REGIONS.map((r) => (
                 <li
                   key={r}
-                  className="rounded-full border border-ring bg-bg-muted/50 px-3 py-1 text-sm text-ink-muted"
+                  className="rounded-full border border-ring bg-bg px-3 py-1 text-sm text-ink-muted"
                 >
                   {r}
                 </li>
               ))}
-              <li className="rounded-full border border-sunrise-500/40 bg-sunrise-500/10 px-3 py-1 text-sm text-sunrise-300">
+              <li className="rounded-full border border-solana-300 bg-solana-50 px-3 py-1 text-sm text-solana-700">
                 + the next ones
               </li>
             </ul>

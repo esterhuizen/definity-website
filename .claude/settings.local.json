@@ -42,7 +42,17 @@
       "WebFetch(domain:app.sanctum.so)",
       "Bash(git rm *)",
       "Bash(awk '{print $2}')",
-      "Bash(curl -sS http://127.0.0.1:3137/)"
+      "Bash(curl -sS http://127.0.0.1:3137/)",
+      "WebSearch",
+      "WebFetch(domain:sanctum.so)",
+      "WebFetch(domain:docs.sanctum.so)",
+      "Bash(curl -sSL https://www.definity.finance/)",
+      "Bash(curl -sSL -o /home/sol/build/definity-new-website/public/logo-source.png \"https://static.wixstatic.com/media/8b6d29_c09a0e82aa794289870b4bc9fa47a885~mv2.png\")",
+      "Bash(curl -sSL -o /home/sol/build/definity-new-website/public/logo.png \"https://static.wixstatic.com/media/8b6d29_c09a0e82aa794289870b4bc9fa47a885~mv2.png/v1/crop/x_138,y_176,w_226,h_115/fill/w_452,h_230,al_c,q_85,usm_0.66_1.00_0.01,enc_png/Definity%20logo.png\")",
+      "Bash(curl -sSL -o /home/sol/build/definity-new-website/public/favicon.ico \"https://static.wixstatic.com/ficons/8b6d29_ce50903f713c4ed4a2af8a9678599dd8%7Emv2.ico\")",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(curl -sS -o /tmp/home3.html -w \"STATUS=%{http_code} BYTES=%{size_download}\\\\n\" http://127.0.0.1:3137/)",
+      "Bash(echo \"started pid $!\")"
     ]
   }
 }

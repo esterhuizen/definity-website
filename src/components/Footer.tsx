@@ -4,7 +4,7 @@ import { LINKS, POOL } from '@/config/pool';
 
 export function Footer() {
   return (
-    <footer className="border-t border-ring/60 bg-bg-raised/30">
+    <footer className="border-t border-ring bg-bg-muted/40">
       <div className="container-narrow grid gap-10 py-14 md:grid-cols-4">
         <div className="md:col-span-2">
           <Logo />
@@ -39,7 +39,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-ring/40">
+      <div className="border-t border-ring">
         <div className="container-narrow flex flex-col gap-3 py-6 text-xs text-ink-dim md:flex-row md:items-center md:justify-between">
           <p>© {new Date().getFullYear()} Definity. {POOL.lstSymbol} is a liquid staking token on Solana.</p>
           <p className="font-mono">

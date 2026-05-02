@@ -11,7 +11,7 @@ const STATS = [
 export function StatsRow() {
   return (
     <section className="container-narrow -mt-10 relative z-10">
-      <div className="surface grid grid-cols-2 divide-y divide-ring/60 md:grid-cols-4 md:divide-y-0 md:divide-x">
+      <div className="surface grid grid-cols-2 divide-y divide-ring md:grid-cols-4 md:divide-y-0 md:divide-x">
         {STATS.map((s) => (
           <div key={s.label} className="px-6 py-5 text-center">
             <div className="font-display text-xl font-semibold text-ink md:text-2xl">{s.value}</div>

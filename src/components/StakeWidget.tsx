@@ -16,8 +16,8 @@ export function StakeWidget() {
               <span className="bg-sunrise-gradient bg-clip-text text-transparent">{POOL.lstSymbol}</span>
             </h2>
             <p className="mt-5 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-              Definity routes the actual swap through Sanctum — the audited stake-pool router used
-              across Solana — or Jupiter, the network's biggest aggregator. Either way, your wallet
+              Definity routes the actual swap through Jupiter — the network's biggest aggregator —
+              or Sanctum, the audited stake-pool router used across Solana. Either way, your wallet
               connects directly to them. Definity's site never touches your keys or your SOL.
             </p>
 
@@ -75,20 +75,20 @@ export function StakeWidget() {
 
               <div className="relative mt-6 grid gap-3 sm:grid-cols-2">
                 <a
-                  href={LINKS.sanctumLst}
+                  href={LINKS.jupiterSwap}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary"
                 >
-                  Stake on Sanctum <ArrowUpRight className="h-4 w-4" />
+                  Stake on Jupiter <ArrowUpRight className="h-4 w-4" />
                 </a>
                 <a
-                  href={LINKS.jupiterSwap}
+                  href={LINKS.sanctumLst}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-ghost"
                 >
-                  Swap on Jupiter <ArrowUpRight className="h-4 w-4" />
+                  Stake on Sanctum <ArrowUpRight className="h-4 w-4" />
                 </a>
               </div>
 

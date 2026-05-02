@@ -29,7 +29,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how" className="scroll-mt-24 border-y border-ring/60 bg-bg-raised/30">
+    <section id="how" className="scroll-mt-24 border-y border-ring bg-bg-muted/50">
       <div className="container-narrow py-24 md:py-32">
         <div className="grid gap-12 md:grid-cols-12 md:items-end">
           <div className="md:col-span-5">

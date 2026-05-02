@@ -29,16 +29,17 @@ const PROPS = [
 
 export function TrustSection() {
   return (
-    <section className="border-y border-ring/60 bg-bg-raised/30">
+    <section className="border-y border-ring bg-bg-muted/50">
       <div className="container-narrow py-24">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="eyebrow">Built to be trusted</span>
+          <span className="eyebrow">Security</span>
           <h2 className="mt-5 font-display text-3xl font-semibold tracking-tight text-balance md:text-4xl">
-            Security isn't a feature. It's the floor.
+            As secure as Solana itself.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-            Definity inherits the security model of Solana's native staking program — and adds
-            zero attack surface of its own.
+            Definity runs on Solana's own staking program. Your SOL inherits the same security
+            model that protects every validator and every transaction on the base chain — Definity
+            adds no custody and no extra contracts of its own.
           </p>
         </div>
 
