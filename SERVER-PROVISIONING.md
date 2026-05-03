@@ -41,6 +41,82 @@ commit grouping reflects the split.
 
 ## A · Persistent host-level changes (still in effect)
 
+### A0 · Staging environment (`test.definity.finance`)
+
+A second copy of the site runs on the same box, isolated by port + release tree
++ analytics dir, behind nginx basic auth. Prod and staging share the same
+`definity` Linux user (single user keeps sudoers + shared editing simple) and
+both build from the **single working tree at `/home/ubuntu/build/definity-website`**.
+Prod deploys from `origin/main` (committed code only); staging deploys from
+the local working tree (uncommitted ok).
+
+**Per-host setup that is NOT in the repo:**
+
+```bash
+# 1. Staging release + data dirs (owned by definity, same as prod).
+sudo mkdir -p /var/www/definity-staging /var/lib/definity-staging
+sudo chown -R definity:definity /var/www/definity-staging /var/lib/definity-staging
+
+# 2. Extend the existing /etc/sudoers.d/definity-deploy with -staging targets:
+echo 'definity ALL=(root) NOPASSWD: /usr/bin/systemctl restart definity, /usr/bin/systemctl status definity, /usr/bin/systemctl start definity, /usr/bin/systemctl stop definity, /usr/bin/systemctl restart definity-staging, /usr/bin/systemctl status definity-staging, /usr/bin/systemctl start definity-staging, /usr/bin/systemctl stop definity-staging' \
+    | sudo tee /etc/sudoers.d/definity-deploy >/dev/null
+sudo chmod 440 /etc/sudoers.d/definity-deploy
+sudo visudo -cf /etc/sudoers.d/definity-deploy
+
+# 3. Install ACL package + grant definity read/traverse on the working tree.
+#    Required because /home/ubuntu is 750 by default; deploy.sh staging needs
+#    to bundle the local working tree as the definity user.
+sudo apt-get install -y acl
+sudo setfacl -m u:definity:x /home/ubuntu
+sudo setfacl -m u:definity:x /home/ubuntu/build
+sudo setfacl -R -m u:definity:rX /home/ubuntu/build/definity-website
+sudo setfacl -d -R -m u:definity:rX /home/ubuntu/build/definity-website
+
+# 4. Tell git the working tree is safe to use across user boundaries (otherwise
+#    git refuses with "dubious ownership" when definity runs git ls-files there).
+sudo git config --system --add safe.directory /home/ubuntu/build/definity-website
+
+# 5. Install the staging systemd unit (committed in deploy/definity-staging.service):
+sudo cp /home/ubuntu/build/definity-website/deploy/definity-staging.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable definity-staging.service   # don't start until first deploy
+
+# 6. Basic auth credentials (one-time):
+sudo apt-get install -y apache2-utils
+STAGING_PW="$(openssl rand -base64 18)"
+echo "$STAGING_PW" | sudo htpasswd -ci /etc/nginx/.htpasswd-staging staging
+sudo chmod 640 /etc/nginx/.htpasswd-staging
+sudo chgrp www-data /etc/nginx/.htpasswd-staging
+echo "  username: staging"
+echo "  password: $STAGING_PW   # save this somewhere durable"
+
+# 7. First staging deploy (after the deploy.sh + nginx.conf changes from this
+#    branch are merged):
+sudo -u definity /var/www/definity/deploy.sh staging
+```
+
+**Day-to-day deploy commands:**
+
+```bash
+# Deploy current working tree (uncommitted ok) to staging:
+sudo -u definity /var/www/definity/deploy.sh staging
+
+# Deploy a specific git ref to staging (committed code):
+sudo -u definity /var/www/definity/deploy.sh staging some-feature-branch
+
+# Deploy origin/main to prod (committed code only):
+sudo -u definity /var/www/definity/deploy.sh prod
+
+# Or the legacy single-arg form, also prod:
+sudo -u definity /var/www/definity/deploy.sh
+```
+
+**To reset / rotate the staging basic-auth password:** re-run step 6 above.
+
+---
+
+
+
 ### A1 · Swapfile (2 GiB) + lowered swappiness
 
 `next build` peaks near 900 MB resident on a fresh checkout. This box has 951 MB
