@@ -1,0 +1,52 @@
+# /etc/systemd/system/definity-staging.service
+#
+# Staging twin of definity.service. Same hardening template, different port,
+# different release tree, isolated analytics dir. Runs as the same `definity`
+# user as prod (single user keeps sudoers + shared editing simple); each
+# service is sandboxed to its own ReadWritePaths so a misbehaving staging
+# build still can't touch prod release dirs or events.
+#
+# After installing:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now definity-staging
+#   sudo systemctl status definity-staging
+#   journalctl -u definity-staging -f
+
+[Unit]
+Description=Definity website — STAGING (Next.js standalone)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=definity
+Group=definity
+WorkingDirectory=/var/www/definity-staging/current
+Environment=NODE_ENV=production
+Environment=PORT=5100
+Environment=HOSTNAME=127.0.0.1
+Environment=NEXT_TELEMETRY_DISABLED=1
+Environment=EVENTS_LOG_PATH=/var/lib/definity-staging/events.jsonl
+ExecStart=/usr/bin/node /var/www/definity-staging/current/.next/standalone/server.js
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# Hardening — same template as prod definity.service.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+# MemoryDenyWriteExecute removed: incompatible with V8 JIT (Node crashes with SIGTRAP).
+ReadWritePaths=/var/www/definity-staging /var/lib/definity-staging
+
+[Install]
+WantedBy=multi-user.target
