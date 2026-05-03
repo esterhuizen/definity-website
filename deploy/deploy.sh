@@ -34,17 +34,23 @@ STAMP="$(date -u +%Y-%m-%d-%H%M%S)"
 RELEASE="$APP_ROOT/releases/$STAMP-$SHA"
 
 echo "==> Building release $STAMP-$SHA from ref $REF"
-git --git-dir="$APP_ROOT/repo.git" --work-tree="$RELEASE" checkout -f "$REF" -- .
 mkdir -p "$RELEASE"
 git --git-dir="$APP_ROOT/repo.git" archive "$REF" | tar -x -C "$RELEASE"
 
 cd "$RELEASE"
-npm ci --omit=dev=false
+npm ci
+# Populate public/stats.json + public/validators.json before build so the
+# build-time prerender has live data (otherwise the homepage shows '—' for
+# the first 30 min until ISR fires).
+npm run stats:fetch || echo "WARN: stats:fetch failed; build will use placeholders"
 npm run build
 
-# next standalone needs ./public and ./.next/static colocated next to server.js
-cp -r public ".next/standalone/public" 2>/dev/null || true
-cp -r .next/static ".next/standalone/.next/static"
+# next standalone needs ./public and ./.next/static colocated next to server.js.
+# Symlink (not copy) so the timer-written files (stats.json, validators.json,
+# reports/*.html) are immediately visible to the standalone server without a redeploy.
+rm -rf ".next/standalone/public" ".next/standalone/.next/static"
+ln -s ../../public ".next/standalone/public"
+ln -s ../../static ".next/standalone/.next/static"
 
 # atomic symlink swap
 ln -sfn "$RELEASE" "$APP_ROOT/current.new"
