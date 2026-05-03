@@ -39,7 +39,7 @@ ProtectControlGroups=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
+# MemoryDenyWriteExecute removed: incompatible with V8 JIT (Node crashes with SIGTRAP on baseline-compile).
 ReadWritePaths=/var/www/definity /var/lib/definity
 
 [Install]

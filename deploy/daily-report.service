@@ -34,4 +34,4 @@ ReadWritePaths=/var/www/definity /var/lib/definity
 RestrictAddressFamilies=AF_UNIX
 RestrictNamespaces=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
+# MemoryDenyWriteExecute removed: incompatible with V8 JIT (Node crashes with SIGTRAP).
