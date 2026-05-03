@@ -1,41 +1,114 @@
 # Operational notes for Claude
 
-This file is read automatically when Claude Code is invoked in this repo. It exists so that future you (running on a developer laptop *or* SSH'd into the production server) can act sensibly without re-reading every other doc.
+This file is read automatically when Claude Code is invoked in this repo. It exists so that a future Claude session (yours, picking up cold) can come up to speed in minutes without re-reading every other doc.
 
-For first-time install steps, read [DEPLOY.md](./DEPLOY.md). For what the project is, read [README.md](./README.md). This file is for **operations** — what to run, where things live, what to avoid.
+**Doc map** — read in this order if you're starting fresh:
+1. **This file (CLAUDE.md)** — operational cheat sheet, run-this-first commands
+2. **[SERVER-PROVISIONING.md](./SERVER-PROVISIONING.md)** — what's been done to the live box that is NOT in DEPLOY.md (swap, sudoers, ACLs, MDWE removal, staging env, basic-auth credentials location)
+3. **[README.md](./README.md)** — what the project is, stack overview, security posture
+4. **[DEPLOY.md](./DEPLOY.md)** — first-time install on a fresh Ubuntu/Debian box (mostly historical now — the prod box is already set up)
+
+---
+
+## Run these first to orient yourself
+
+If you've just started a session and don't know what the box looks like, copy-paste this block. It takes ~5 seconds and answers everything you need to know before touching anything.
+
+```bash
+# 1. Where am I? (live host vs anywhere else)
+test -d /var/www/definity/current && echo "ON THE LIVE HOST" || echo "DEV / OTHER"
+hostname && uname -a && lsb_release -d 2>/dev/null
+
+# 2. What's running? (5 services + 3 timers expected)
+systemctl is-active definity definity-staging nginx \
+                    pool-stats.timer daily-report.timer certbot-renew.timer
+
+# 3. Recent deploys (prod + staging)
+ls -1t /var/www/definity/releases/         | head -3
+ls -1t /var/www/definity-staging/releases/ | head -3 2>/dev/null
+
+# 4. Source-tree state (the canonical working tree both prod + staging build from)
+cd /home/ubuntu/build/definity-website && git status --short && git branch --show-current
+gh pr list --state open
+
+# 5. Health probes (no auth needed for prod; staging needs basic auth)
+curl -sS -o /dev/null -w "prod  %{http_code}  HTTP/%{http_version}\n" https://definity.finance/
+curl -sS -o /dev/null -w "staging %{http_code} (auth-gated)\n"        https://test.definity.finance/
+
+# 6. Recent journal (last 30 lines per service)
+journalctl -u definity         --no-pager -n 20
+journalctl -u definity-staging --no-pager -n 20
+```
+
+If any of those produce surprises, **read SERVER-PROVISIONING.md before changing anything** — there are several non-obvious things on the box (swap, sudoers, ACLs, MDWE removal, basic-auth file location) that DEPLOY.md doesn't cover but matter operationally.
 
 ---
 
 ## First, figure out where you are
 
-Behaviour differs between **local dev** and the **live server**. Detect which before doing anything:
+Behaviour differs between **the live host** (which runs both prod and staging) and **anywhere else** (dev laptop, fresh worktree, etc.). The detection from §1 above is the answer; expanded cases:
 
-```bash
-# Are we on the prod box?
-test -d /var/www/definity/current && echo PROD || echo DEV
+| Path that exists | Means |
+|---|---|
+| `/var/www/definity/current/` | You're on the live host. Both prod (`definity.service`, port 3000, `definity.finance`) and staging (`definity-staging.service`, port 5100, `test.definity.finance`) run here. |
+| `/home/ubuntu/build/definity-website/` (only) | You're on the live host's source-tree shell (or a dev box that mirrors it). The working tree here is the canonical one — `deploy.sh staging` bundles it as-is. |
+| Neither | You're on a dev box. Use `npm run dev` for local iteration; you'll have to git-push and SSH to the live host for any deployment. |
 
-# Hostname / OS sanity:
-hostname && uname -a
-```
+---
 
-Most diagnostic commands below assume **prod**. If you're in dev, the analogues are noted at the bottom.
+## ⚠ This is a PUBLIC GitHub repo
+
+`https://github.com/esterhuizen/definity-website` is public. **Never put secrets in any tracked file** — passwords, TLS private keys, API tokens, basic-auth plaintexts, anything sensitive. Use `/root/<service>-creds.txt` (chmod 600, root-only) on the live host instead, and reference the file path from repo docs. See "Where credentials live" below.
 
 ---
 
 ## Project at a glance
 
 - **Stack:** Next.js 15 (App Router) → standalone bundle, served by `node` behind nginx. Self-hosted, no PaaS.
-- **Data sources:**
+- **Two environments on one host** (both `definity` user, both reachable via nginx by hostname):
+  | | Prod | Staging |
+  |---|---|---|
+  | Hostname | `definity.finance` + `www` | `test.definity.finance` (basic-auth gated) |
+  | Port | 3000 | 5100 |
+  | systemd unit | `definity.service` | `definity-staging.service` |
+  | Release tree | `/var/www/definity/` | `/var/www/definity-staging/` |
+  | Analytics | `/var/lib/definity/events.jsonl` | `/var/lib/definity-staging/events.jsonl` |
+  | Source for deploys | `origin/main` (committed only) | local working tree (uncommitted ok) |
+  | Timers | pool-stats + daily-report + certbot-renew | none (uses build-time stats:fetch) |
+- **Single source-of-truth working tree** at `/home/ubuntu/build/definity-website/`. Both prod and staging deploys build FROM there. You edit code in one place.
+- **Data sources (prod):**
   - On-chain pool state (Solana mainnet RPC) — pulled hourly into `public/stats.json`.
   - Stakewiz API — pulled at most once per day into `public/validators.json` (validator geo).
   - First-party events from `/api/track` — appended to `/var/lib/definity/events.jsonl`.
-- **Three systemd timers run independently of the website process:**
+- **Three systemd timers run independently of the website process (prod only):**
   | Unit | Cadence | What it does |
   |---|---|---|
   | `pool-stats.timer` | hourly | runs `scripts/fetch-pool-stats.mjs` → writes `stats.json`, refreshes `validators.json` once / 24h |
   | `daily-report.timer` | daily 02:13 UTC | runs `scripts/daily-report.mjs` → writes `public/reports/{YYYY-MM-DD,latest}.html` |
-  | `certbot-renew.timer` | twice daily | runs `/usr/local/sbin/tls-renew.sh` → renews + reloads nginx if a cert was replaced |
+  | `certbot-renew.timer` | twice daily | runs `/usr/local/sbin/tls-renew.sh` → renews + reloads nginx if a cert was replaced (renews ALL certs on the box, including the staging cert) |
 - **Communication is by file on disk** between every moving piece. If the website crashes, the timers keep updating files. If the timers crash, the website keeps serving the last known-good files.
+
+---
+
+## The day-to-day deploy workflow
+
+```bash
+# 1. Edit code in /home/ubuntu/build/definity-website/
+
+# 2. Push the local working tree (uncommitted ok) to staging:
+sudo -u definity /var/www/definity/deploy.sh staging
+
+# 3. Visit https://test.definity.finance/ with the basic-auth creds
+#    (creds at /root/staging-creds.txt — sudo cat to read) and verify
+
+# 4. When happy, commit + push:
+git add . && git commit -m "..." && git push
+
+# 5. Promote to prod (origin/main only, never WIP):
+sudo -u definity /var/www/definity/deploy.sh prod
+```
+
+**Never `deploy.sh prod` uncommitted code** — `prod` always pulls `origin/main` from GitHub. If you need to test against prod's runtime topology, use `staging` first.
 
 ---
 
@@ -46,6 +119,8 @@ All commands assume you're on the prod server.
 ### Deploy latest from `main`
 
 ```bash
+sudo -u definity /var/www/definity/deploy.sh prod
+# or, equivalently (legacy single-arg form):
 sudo -u definity /var/www/definity/deploy.sh main
 ```
 
@@ -124,46 +199,112 @@ sudo nginx -t && sudo systemctl reload nginx
 ### Tail logs
 
 ```bash
-journalctl -u definity         -f          # app
-journalctl -u pool-stats       -n 100      # hourly stats
-journalctl -u daily-report     -n 100      # daily aggregator
-journalctl -u certbot-renew    -n 100      # cert renewals
+journalctl -u definity         -f          # prod app
+journalctl -u definity-staging -f          # staging app
+journalctl -u pool-stats       -n 100      # hourly stats (prod)
+journalctl -u daily-report     -n 100      # daily aggregator (prod)
+journalctl -u certbot-renew    -n 100      # cert renewals (both certs)
 sudo tail -F /var/log/nginx/{access,error}.log
 ```
+
+---
+
+## Staging cheat sheet
+
+```bash
+# Deploy from local working tree (uncommitted ok):
+sudo -u definity /var/www/definity/deploy.sh staging
+
+# Deploy a specific git ref (e.g. a PR branch) to staging:
+sudo -u definity /var/www/definity/deploy.sh staging some-feature-branch
+
+# Health
+systemctl status definity-staging
+journalctl -u definity-staging -f
+curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5100/   # bypass nginx + auth
+
+# External (need basic auth — creds at /root/staging-creds.txt):
+sudo cat /root/staging-creds.txt    # one-liner: get the password
+curl -u staging:'<password>' https://test.definity.finance/
+```
+
+Staging-specific facts worth remembering:
+- Staging cert at `/etc/letsencrypt/live/test.definity.finance/` is renewed by the same `certbot-renew.timer` that handles prod.
+- Staging has NO `pool-stats` / `daily-report` timers — `stats:fetch` runs at build time so stats are fresh-at-deploy.
+- Staging analytics events go to `/var/lib/definity-staging/events.jsonl` (separate from prod).
+- Staging robots.txt is overridden at the nginx layer to `Disallow: /` so even authenticated crawlers don't index it. `X-Robots-Tag: noindex, nofollow, nosnippet, noarchive` is also set on every staging response.
+- The staging deploy script can read the working tree at `/home/ubuntu/build/definity-website/` because of an ACL grant + `git config --system safe.directory` (see SERVER-PROVISIONING.md A0). If `deploy.sh staging` ever errors with permission denied or "dubious ownership", check those.
+
+---
+
+## Where credentials live (live host only — NOT in repo)
+
+| What | Where on the box | Notes |
+|---|---|---|
+| Staging basic-auth password | `/root/staging-creds.txt` (chmod 600) | `sudo cat` to read. Rotate via the snippet inside the file. |
+| Staging basic-auth hash | `/etc/nginx/.htpasswd-staging` (chmod 640, www-data group) | bcrypt hash, served by nginx. Regenerate with `htpasswd -ci`. |
+| TLS certs (prod + staging) | `/etc/letsencrypt/live/{definity.finance,test.definity.finance}/` | Auto-renewed by `certbot-renew.timer`. |
+| Sudoers grant for `definity` user | `/etc/sudoers.d/definity-deploy` | NOPASSWD restricted to `systemctl restart\|status\|start\|stop` of `definity` and `definity-staging`. Edit via `sudo visudo -f`. |
+| ACL grants for `definity` to read working tree | `/home/ubuntu`, `/home/ubuntu/build`, `/home/ubuntu/build/definity-website` | Inspect with `getfacl <path>`. Re-grant from SERVER-PROVISIONING.md A0 if it ever falls out. |
+
+There are no API keys, no private RPC tokens, no third-party service secrets currently in use — the design is deliberately key-free (Solana mainnet RPC is public; Stakewiz is unauthenticated; Typeform is embed-only).
 
 ---
 
 ## Where stuff lives on the production server
 
 ```
-/var/www/definity/
-├── current               -> releases/<stamp>     # symlink to active build
-├── releases/             # last 3 builds (atomic deploy keeps these)
-├── repo.git/             # bare clone for fast deploys
-└── deploy.sh             # the deploy script
+/home/ubuntu/build/definity-website/   # canonical source tree (you edit here)
+                                       # — both prod + staging deploys build from this
+
+/var/www/definity/                     # PROD release tree
+├── current               -> releases/<stamp>
+├── releases/             # last 3 prod builds (atomic deploy keeps these)
+├── repo.git/             # bare clone for fast deploys (origin/main)
+└── deploy.sh             # canonical deploy script (handles both targets)
+
+/var/www/definity-staging/             # STAGING release tree
+├── current               -> releases/<stamp>
+└── releases/             # last 3 staging builds (working-tree mode → no repo.git/)
 
 /var/lib/definity/
-└── events.jsonl          # first-party analytics events (one JSON per line)
+└── events.jsonl          # PROD first-party analytics
+/var/lib/definity-staging/
+└── events.jsonl          # STAGING analytics (isolated from prod)
 
 /var/log/nginx/
 ├── access.log            # combined-format; goaccess reads this
 └── error.log
 
-/etc/letsencrypt/live/definity.finance/
-├── fullchain.pem
-└── privkey.pem
+/etc/letsencrypt/live/
+├── definity.finance/{fullchain,privkey}.pem      # prod cert
+└── test.definity.finance/{fullchain,privkey}.pem # staging cert (auto-renewed too)
+
+/etc/nginx/
+├── sites-available/definity         # both server blocks live here (prod + staging)
+├── conf.d/definity-ratelimit.conf
+├── .htpasswd-staging                # bcrypt hash for staging basic auth
+└── (the staging password plaintext is at /root/staging-creds.txt — see "Where credentials live")
 
 /etc/systemd/system/
-├── definity.service              # the website
-├── pool-stats.{service,timer}    # hourly on-chain refresh
-├── daily-report.{service,timer}  # nightly aggregator
-└── certbot-renew.{service,timer} # twice-daily TLS renewal
+├── definity.service                # prod website
+├── definity-staging.service        # staging website
+├── pool-stats.{service,timer}      # hourly on-chain refresh (prod only)
+├── daily-report.{service,timer}    # nightly aggregator (prod only)
+└── certbot-renew.{service,timer}   # twice-daily TLS renewal (handles BOTH certs)
+
+/etc/sudoers.d/
+└── definity-deploy                 # NOPASSWD systemctl restart/status/start/stop
+                                    # for both definity and definity-staging
 
 /usr/local/sbin/
-└── tls-renew.sh                  # called by certbot-renew.service
+└── tls-renew.sh                    # called by certbot-renew.service
+
+/swapfile                           # 2 GiB swap (required — 951 MB RAM ceiling)
+                                    # see SERVER-PROVISIONING.md A1
 ```
 
-The website's hardened systemd unit (`definity.service`) lists `/var/www/definity` and `/var/lib/definity` in `ReadWritePaths`. Anywhere else on disk is read-only to that process.
+Both website units (`definity.service` and `definity-staging.service`) are hardened with `ProtectSystem=strict`. Each lists ONLY its own `ReadWritePaths` (prod can write to `/var/www/definity` + `/var/lib/definity`; staging to `/var/www/definity-staging` + `/var/lib/definity-staging`). Even though they share the `definity` Linux user, they cannot touch each other's release dirs or analytics.
 
 ---
 
@@ -204,12 +345,16 @@ ls -la /tmp/reports/
 ## DO NOT
 
 - **Don't `git push --force`** to `main`. The deploy script clones from `main`; force-pushing would scramble future deploys' history.
-- **Don't `npm install` directly under `/var/www/definity/current/`.** The current symlink can flip mid-install, and `npm` will trash an old release. Use `deploy.sh`, which builds in a stamp dir then swaps.
-- **Don't edit files inside `releases/<stamp>/`** by hand. Make the change in git → `deploy.sh main`.
-- **Don't disable hardening in `definity.service`** (`NoNewPrivileges`, `ProtectSystem=strict`, etc.) without a clear reason. The site has no business writing outside `/var/www/definity` and `/var/lib/definity`.
-- **Don't expose `/reports/` publicly.** It contains traffic data; protect with nginx basic auth as documented in `DEPLOY.md` step 9.
-- **Don't commit secrets** — `.env`, `.env.local`, anything with credentials, `.claude/settings.local.json`, generated JSON. All gitignored already; don't override.
-- **Don't bump major versions** (Next 15 → 16, React 19 → 20, etc.) on the live server in passing. Run the scheduled monthly maintenance routine (`trig_0173pLX63SKFRg6UMoqFsMX7`) which opens a PR for review.
+- **Don't deploy uncommitted code to prod.** `deploy.sh prod` always pulls from `origin/main`. Use `deploy.sh staging` (which uses the local working tree) for any WIP test.
+- **Don't `npm install` directly under `/var/www/definity/current/`** (or the staging equivalent). The `current` symlink can flip mid-install and `npm` will trash an old release. Use `deploy.sh`, which builds in a stamp dir then swaps.
+- **Don't edit files inside `releases/<stamp>/`** by hand. Make the change in `/home/ubuntu/build/definity-website/`, then `deploy.sh staging` or `deploy.sh prod`.
+- **Don't disable hardening in `definity.service` or `definity-staging.service`** (`NoNewPrivileges`, `ProtectSystem=strict`, `ReadWritePaths`, etc.) without a clear reason. They are precisely what keeps staging from being able to write into prod's release dirs.
+- **Don't re-enable `MemoryDenyWriteExecute=true` in any of the systemd units.** It SIGTRAPs Node on V8 baseline-compile. See SERVER-PROVISIONING.md §0.
+- **Don't expose `/reports/` publicly on prod.** It contains traffic data; protect with nginx basic auth as documented in `DEPLOY.md` §3.9. (On staging, the entire site is already basic-auth gated.)
+- **Don't disable basic auth on staging.** It's the only thing keeping URL-reputation classifiers (Bitdefender et al.) from seeing the test URL and miscategorising it, AND keeps Google from indexing test pages above prod.
+- **Don't commit secrets to this repo — IT IS PUBLIC.** No `.env`, no API keys, no basic-auth plaintexts, no TLS private keys. The staging basic-auth password lives at `/root/staging-creds.txt` on the box only. Generated JSON (`stats.json`, `validators.json`, `reports/*`) and `.claude/settings.local.json` are all gitignored — don't override.
+- **Don't issue more LE certs than necessary.** Production rate limit is 5 dups per registered domain per week. We already have certs for `definity.finance + www` and `test.definity.finance` — both auto-renew. Use `tls-issue.sh` only for genuinely new hostnames.
+- **Don't bump major versions** (Next 15 → 16, React 19 → 20, etc.) on the live server in passing. Test on staging first (the whole point of the staging environment); even then, prefer to ship in a reviewable PR.
 
 ---
 
@@ -223,15 +368,14 @@ If validator stats look frozen on the homepage: `journalctl -u pool-stats.servic
 
 ---
 
-## Pointers, not contents
+## Pointers
 
-This file is intentionally short. Anything detailed lives in:
-
-- [DEPLOY.md](./DEPLOY.md) — full first-time install on a fresh Ubuntu/Debian box.
-- [README.md](./README.md) — what the project is, stack overview, security notes.
-- [`src/config/pool.ts`](./src/config/pool.ts) — pool addresses + outbound URLs.
+- [SERVER-PROVISIONING.md](./SERVER-PROVISIONING.md) — **READ THIS BEFORE TOUCHING THE BOX.** Documents everything done to the live host beyond DEPLOY.md (Ubuntu-26 quirks, MDWE removal, swap, sudoers, ACLs, staging stand-up, basic-auth credential storage path).
+- [DEPLOY.md](./DEPLOY.md) — full first-time install on a fresh Ubuntu/Debian box. Mostly historical now (the prod box is already set up); useful as a reference if you ever rebuild from scratch.
+- [README.md](./README.md) — what the project is, stack overview, security posture.
+- [`src/config/pool.ts`](./src/config/pool.ts) — pool addresses + outbound URLs (single source of truth).
 - [`src/app/api/track/route.ts`](./src/app/api/track/route.ts) — what events are allowed.
 - [`scripts/`](./scripts) — every periodic job is a Node script with no npm deps.
-- [`deploy/`](./deploy) — every systemd unit, nginx config, TLS script.
+- [`deploy/`](./deploy) — every systemd unit (prod + staging), nginx config, TLS script, deploy.sh.
 
 If a file doesn't exist where this doc says it does, this doc is wrong — fix it.
