@@ -16,7 +16,15 @@
 
 set -euo pipefail
 
-DOMAINS=("definity.finance" "www.definity.finance")
+# Domains can be overridden via env, e.g.:
+#   sudo DOMAINS="test.definity.finance" ./tls-issue.sh
+#   sudo DOMAINS="definity.finance www.definity.finance" ./tls-issue.sh
+if [[ -n "${DOMAINS:-}" ]]; then
+    # shellcheck disable=SC2206
+    DOMAINS=(${DOMAINS})
+else
+    DOMAINS=("definity.finance" "www.definity.finance")
+fi
 EMAIL="${EMAIL:-t@esterhuizens.org}"
 WEBROOT="${WEBROOT:-/var/www/certbot}"
 DRY_RUN="${DRY_RUN:-0}"
