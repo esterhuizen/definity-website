@@ -1,13 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, ShieldCheck } from 'lucide-react';
-import { LINKS, POOL } from '@/config/pool';
-import { TypeformEmbed } from '@/components/TypeformEmbed';
-
-// Stop relying on POOL here since it's only imported for type-narrowing of
-// the applyFormId access pattern. (TS will complain if the field is ever
-// removed from the config — exactly what we want.)
-void POOL;
+import { LINKS } from '@/config/pool';
+import { WhitelistForm } from '@/components/WhitelistForm';
 
 export const metadata: Metadata = {
   title: 'Apply for whitelisting',
@@ -98,42 +93,27 @@ export default function WhitelistApplyPage() {
           Submit your application
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted text-pretty">
-          Have your vote-account pubkey, identity pubkey, commission, self-stake amount,
-          data-centre region, and a Telegram or email contact ready before you start.
+          Have your validator&apos;s vote id, country, and a Telegram / X / Discord / email
+          contact ready before you start.
         </p>
 
-        <div className="mt-6 surface overflow-hidden p-2 md:p-3">
-          <TypeformEmbed
-            formId="01JY0GPM667JFMXDBYDEHQ4Q94"
-            height={720}
-            className="w-full"
-          />
+        <div className="mt-6">
+          <WhitelistForm />
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-center gap-1.5 text-xs text-ink-dim">
             <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
-            We never ask for your validator&apos;s private keys. Submissions go to Typeform and are
-            reviewed manually.
+            We never ask for your validator&apos;s private keys. Submissions are reviewed manually.
           </p>
-          <div className="flex gap-3">
-            <a
-              href={LINKS.applyForm}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-ink-muted underline decoration-ring underline-offset-2 hover:text-ink"
-            >
-              Open in a new tab <ArrowUpRight className="inline h-3 w-3" />
-            </a>
-            <a
-              href={LINKS.telegram}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-ink-muted underline decoration-ring underline-offset-2 hover:text-ink"
-            >
-              Telegram us instead <ArrowUpRight className="inline h-3 w-3" />
-            </a>
-          </div>
+          <a
+            href={LINKS.telegram}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-ink-muted underline decoration-ring underline-offset-2 hover:text-ink"
+          >
+            Telegram us instead <ArrowUpRight className="inline h-3 w-3" />
+          </a>
         </div>
       </div>
     </div>

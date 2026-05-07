@@ -26,14 +26,6 @@ export const LINKS = {
   telegram: 'https://t.me/DefinityFinance',
   github: 'https://github.com/esterhuizen/definity-website',
   oldSite: 'https://definity.finance',
-
-  // Validator whitelist application — Typeform.
-  // The /whitelist-apply page embeds the form inline via the Typeform
-  // `data-tf-live` widget. The URL below is the public direct link, kept
-  // as a fallback "open in new tab" so the page still has a path even if
-  // the embed script is blocked or slow to load.
-  applyFormId: '01JY0GPM667JFMXDBYDEHQ4Q94',
-  applyForm: 'https://form.typeform.com/to/01JY0GPM667JFMXDBYDEHQ4Q94',
 } as const;
 
 export const SITE = {
