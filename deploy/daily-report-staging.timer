@@ -1,0 +1,18 @@
+# /etc/systemd/system/daily-report-staging.timer
+#
+# Fires once a day at 02:23 UTC (10 minutes after the prod timer to avoid
+# concurrent goaccess runs reading the same nginx access log).
+#
+# Enable: sudo systemctl daemon-reload && sudo systemctl enable --now daily-report-staging.timer
+
+[Unit]
+Description=Daily generation of the Definity STAGING visitor report
+
+[Timer]
+OnCalendar=*-*-* 02:23:00
+RandomizedDelaySec=10min
+Persistent=true
+Unit=daily-report-staging.service
+
+[Install]
+WantedBy=timers.target
