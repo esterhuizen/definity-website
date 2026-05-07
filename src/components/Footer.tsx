@@ -34,9 +34,8 @@ export function Footer() {
             Community
           </h3>
           <ul className="space-y-2 text-sm">
-            <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.twitter} event="outbound_twitter" external>Twitter / X</TrackedLink></li>
+            <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.twitter} event="outbound_twitter" external>X</TrackedLink></li>
             <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.telegram} event="outbound_telegram" external>Telegram</TrackedLink></li>
-            <li><TrackedLink className="text-ink-muted hover:text-ink" href={LINKS.github} event="outbound_github" external>GitHub</TrackedLink></li>
           </ul>
         </div>
       </div>

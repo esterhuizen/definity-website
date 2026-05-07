@@ -25,7 +25,6 @@ const ALLOWED_EVENTS = new Set([
   'outbound_solscan',
   'outbound_telegram',
   'outbound_twitter',
-  'outbound_github',
   // form-funnel
   'whitelist_form_open',
   'whitelist_form_submit_attempt',
