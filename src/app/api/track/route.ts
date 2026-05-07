@@ -28,6 +28,9 @@ const ALLOWED_EVENTS = new Set([
   'outbound_github',
   // form-funnel
   'whitelist_form_open',
+  'whitelist_form_submit_attempt',
+  'whitelist_form_submit_success',
+  'whitelist_form_submit_error',
 ]);
 
 export async function POST(req: Request) {
