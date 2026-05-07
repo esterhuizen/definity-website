@@ -6,6 +6,7 @@ import {
   type ContactMethod,
   type WhitelistApplication,
 } from '@/lib/notion';
+import { fireWhitelistRoutine } from '@/lib/routine';
 
 // Same first-party design as /api/track:
 //   1. Validate strictly. Reject silently with 400 on bad input.
@@ -124,7 +125,19 @@ export async function POST(req: Request) {
   // 2. Best-effort: push to Notion. We've already captured the data.
   const notion = await createWhitelistApplication(result.app, submittedAt);
   if (!notion.ok) {
-    console.warn(`[whitelist] notion write skipped/failed: ${notion.reason}${notion.detail ? ` — ${notion.detail}` : ''}`);
+    console.warn(`[whitelist] notion write skipped/failed: ${notion.reason}`);
+  }
+
+  // 3. Best-effort: fire the routine that processes new applications. Skipped
+  //    silently if no token configured (e.g. dev). Failure is logged and ignored —
+  //    the JSONL + Notion records are the durable trail; the routine can be
+  //    fired manually later if needed.
+  const notionPageUrl = notion.ok ? notion.url : null;
+  const routine = await fireWhitelistRoutine(notionPageUrl);
+  if (routine.ok) {
+    console.info(`[whitelist] routine fired: session=${routine.sessionId || '?'}`);
+  } else {
+    console.warn(`[whitelist] routine fire skipped/failed: ${routine.reason}`);
   }
 
   return NextResponse.json({ ok: true });
