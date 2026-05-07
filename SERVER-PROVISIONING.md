@@ -41,7 +41,57 @@ commit grouping reflects the split.
 
 ## A · Persistent host-level changes (still in effect)
 
-### A0 · Staging environment (`test.definity.finance`)
+### A0a · Notion integration for /api/whitelist
+
+The validator-whitelist form (`/api/whitelist`) writes new pages into the
+"Validator Applications" Notion database. Credentials are loaded by systemd
+via `EnvironmentFile=` from out-of-repo files:
+
+```bash
+# 1. Durable record (chmod 600, root-only). Source of truth — copy from here
+#    if either of the EnvironmentFile copies are lost.
+sudo cat /root/notion-creds.txt    # holds: NOTION_TOKEN, NOTION_DATABASE_ID
+
+# 2. Per-environment EnvironmentFile reads:
+#    /etc/default/definity.env           — prod   (no NOTION_TITLE_PREFIX)
+#    /etc/default/definity-staging.env   — staging (NOTION_TITLE_PREFIX=[TEST])
+sudo cat /etc/default/definity.env
+sudo cat /etc/default/definity-staging.env
+```
+
+Both systemd units reference these via `EnvironmentFile=-/etc/default/definity{,-staging}.env`
+(the leading dash means: if the file is absent, the service still starts and
+`/api/whitelist` falls back to JSONL-only mode). The repo's `deploy/definity{,-staging}.service`
+both list the EnvironmentFile path, so a fresh deploy correctly wires the file in.
+
+**Notion integration permissions:** the integration only needs **insert** permission
+on the "Validator Applications" database. The endpoint code never reads, updates,
+or deletes pages — just creates.
+
+**Per-env behavior:**
+- **Prod** writes records with the validator's vote id as the title verbatim (e.g. `VotE1abc…`).
+- **Staging** prepends `[TEST] ` so test submissions are obvious in the same DB. The user manually deletes them when reviewing.
+
+**Rotation:** if the integration secret needs rotating:
+
+```bash
+# At https://www.notion.so/profile/integrations regenerate, then on the box:
+sudo $EDITOR /root/notion-creds.txt
+sudo $EDITOR /etc/default/definity.env
+sudo $EDITOR /etc/default/definity-staging.env
+sudo systemctl restart definity definity-staging
+```
+
+**Failure modes (defensive):**
+- Notion API unreachable / 5xx → `/api/whitelist` still returns `{ ok: true }` to the user.
+- The submission is *always* appended to JSONL on disk *first*. If the disk
+  write fails, the API returns 500 (because we then have no durable record);
+  if Notion fails, we log and proceed.
+- `WHITELIST_LOG_PATH` env var (per-environment) controls where the JSONL is written:
+  - prod: `/var/lib/definity/whitelist-applications.jsonl`
+  - staging: `/var/lib/definity-staging/whitelist-applications.jsonl`
+
+### A0b · Staging environment (`test.definity.finance`)
 
 A second copy of the site runs on the same box, isolated by port + release tree
 + analytics dir, behind nginx basic auth. Prod and staging share the same
