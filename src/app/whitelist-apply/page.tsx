@@ -93,8 +93,8 @@ export default function WhitelistApplyPage() {
           Submit your application
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted text-pretty">
-          Have your validator&apos;s vote id, country, and a Telegram / X / Discord / email
-          contact ready before you start.
+          Have your validator&apos;s vote id, country, and an email / X / Discord contact ready
+          before you start.
         </p>
 
         <div className="mt-6">
@@ -104,7 +104,7 @@ export default function WhitelistApplyPage() {
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-center gap-1.5 text-xs text-ink-dim">
             <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
-            We never ask for your validator&apos;s private keys. Submissions are reviewed manually.
+            Your information is kept private and confidential.
           </p>
           <a
             href={LINKS.telegram}
@@ -112,7 +112,7 @@ export default function WhitelistApplyPage() {
             rel="noopener noreferrer"
             className="text-xs text-ink-muted underline decoration-ring underline-offset-2 hover:text-ink"
           >
-            Telegram us instead <ArrowUpRight className="inline h-3 w-3" />
+            Questions? DM {LINKS.telegramHandle} on Telegram <ArrowUpRight className="inline h-3 w-3" />
           </a>
         </div>
       </div>
