@@ -22,9 +22,12 @@ export const LINKS = {
   solscanPool: `https://solscan.io/account/${POOL.stakePoolAddress}`,
   solscanMint: `https://solscan.io/token/${POOL.lstMint}`,
 
-  twitter: 'https://twitter.com/DefinityFinance',
-  telegram: 'https://t.me/DefinityFinance',
-  github: 'https://github.com/esterhuizen/definity-website',
+  twitter: 'https://x.com/realdefinity',
+  // Single Telegram link: the operator's personal handle. There is no
+  // separate "DefinityFinance" channel — every "Telegram" reference on the
+  // site points here.
+  telegram: 'https://t.me/realtielman',
+  telegramHandle: '@realtielman',
   oldSite: 'https://definity.finance',
 } as const;
 
