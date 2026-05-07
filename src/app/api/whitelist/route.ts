@@ -18,7 +18,6 @@ import {
 
 const CONTACT_METHODS: readonly ContactMethod[] = [
   'Email',
-  'Telegram',
   'X / Twitter',
   'Discord',
 ];

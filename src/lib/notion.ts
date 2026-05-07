@@ -17,7 +17,7 @@
 const NOTION_VERSION = '2022-06-28';
 const NOTION_PAGES_ENDPOINT = 'https://api.notion.com/v1/pages';
 
-export type ContactMethod = 'Email' | 'Telegram' | 'X / Twitter' | 'Discord';
+export type ContactMethod = 'Email' | 'X / Twitter' | 'Discord';
 
 export type WhitelistApplication = {
   voteId: string;
