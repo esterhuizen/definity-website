@@ -243,11 +243,14 @@ Staging-specific facts worth remembering:
 |---|---|---|
 | Staging basic-auth password | `/root/staging-creds.txt` (chmod 600) | `sudo cat` to read. Rotate via the snippet inside the file. |
 | Staging basic-auth hash | `/etc/nginx/.htpasswd-staging` (chmod 640, www-data group) | bcrypt hash, served by nginx. Regenerate with `htpasswd -ci`. |
+| **Notion integration token + database ID** | **`/root/notion-creds.txt`** (chmod 600) | Source of truth. Used by `/api/whitelist` to write into "Validator Applications" DB. |
+| Notion creds — prod systemd | `/etc/default/definity.env` (chmod 600) | Loaded by `definity.service` via `EnvironmentFile=`. |
+| Notion creds — staging systemd | `/etc/default/definity-staging.env` (chmod 600) | Loaded by `definity-staging.service`. Includes `NOTION_TITLE_PREFIX=[TEST]` so staging records are marked. |
 | TLS certs (prod + staging) | `/etc/letsencrypt/live/{definity.finance,test.definity.finance}/` | Auto-renewed by `certbot-renew.timer`. |
 | Sudoers grant for `definity` user | `/etc/sudoers.d/definity-deploy` | NOPASSWD restricted to `systemctl restart\|status\|start\|stop` of `definity` and `definity-staging`. Edit via `sudo visudo -f`. |
 | ACL grants for `definity` to read working tree | `/home/ubuntu`, `/home/ubuntu/build`, `/home/ubuntu/build/definity-website` | Inspect with `getfacl <path>`. Re-grant from SERVER-PROVISIONING.md A0 if it ever falls out. |
 
-There are no API keys, no private RPC tokens, no third-party service secrets currently in use — the design is deliberately key-free (Solana mainnet RPC is public; Stakewiz is unauthenticated; Typeform is embed-only).
+The Notion integration is the only third-party API token in use. Solana mainnet RPC is public, Stakewiz is unauthenticated, no other external services are wired in.
 
 ---
 
