@@ -1,12 +1,15 @@
 # /etc/systemd/system/daily-report.service
 #
 # Runs scripts/daily-report.mjs once a day. Reads:
-#   - /var/lib/definity/events.jsonl   (written by /api/track)
-#   - /var/log/nginx/access.log        (read-only; goaccess optional)
+#   - /var/lib/definity/events.jsonl                  (written by /api/track)
+#   - /var/lib/definity/whitelist-applications.jsonl  (written by /api/whitelist)
+#   - /var/log/nginx/access.log                       (read-only; for goaccess country)
+#   - /var/lib/GeoIP/dbip-country-lite.mmdb           (read-only; goaccess --geoip-database)
 # Writes:
-#   - /var/www/definity/current/public/reports/YYYY-MM-DD.html
-#   - /var/www/definity/current/public/reports/latest.html
-#   - /var/www/definity/current/public/reports/latest-summary.txt
+#   - /var/lib/definity/reports/YYYY-MM-DD.html
+#   - /var/lib/definity/reports/latest.html
+#   - /var/lib/definity/reports/latest-summary.txt
+# Reports live OUTSIDE the release tree so they survive deploys.
 # The summary text also appears in `journalctl -u daily-report.service`.
 
 [Unit]
@@ -20,8 +23,10 @@ User=definity
 Group=definity
 WorkingDirectory=/var/www/definity/current
 Environment=EVENTS_LOG_PATH=/var/lib/definity/events.jsonl
+Environment=WHITELIST_LOG_PATH=/var/lib/definity/whitelist-applications.jsonl
 Environment=NGINX_ACCESS_LOG=/var/log/nginx/access.log
-Environment=REPORTS_DIR=/var/www/definity/current/public/reports
+Environment=GEOIP_DB=/var/lib/GeoIP/dbip-country-lite.mmdb
+Environment=REPORTS_DIR=/var/lib/definity/reports
 ExecStart=/usr/bin/node scripts/daily-report.mjs
 TimeoutStartSec=120
 
