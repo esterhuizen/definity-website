@@ -18,17 +18,16 @@ const nextConfig = {
       "'self'",
       "'unsafe-inline'",
       isDev ? "'unsafe-eval'" : null,
-      'https://embed.typeform.com',
     ].filter(Boolean).join(' ');
 
     const csp = [
       "default-src 'self'",
       `script-src ${scriptSrc}`,
-      "style-src 'self' 'unsafe-inline' https://embed.typeform.com",
+      "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "connect-src 'self' https:",
-      "frame-src https://app.sanctum.so https://*.sanctum.so https://jup.ag https://*.jup.ag https://*.typeform.com",
+      "frame-src https://app.sanctum.so https://*.sanctum.so https://jup.ag https://*.jup.ag",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
