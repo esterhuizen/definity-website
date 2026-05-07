@@ -27,6 +27,13 @@ Environment=PORT=5100
 Environment=HOSTNAME=127.0.0.1
 Environment=NEXT_TELEMETRY_DISABLED=1
 Environment=EVENTS_LOG_PATH=/var/lib/definity-staging/events.jsonl
+Environment=WHITELIST_LOG_PATH=/var/lib/definity-staging/whitelist-applications.jsonl
+# Optional: marks Notion submissions as test data (so prod's Validator
+# Applications DB stays clean of staging traffic). Empty / unset on prod.
+Environment=NOTION_TITLE_PREFIX=[TEST]
+# Out-of-repo file holding NOTION_TOKEN + NOTION_DATABASE_ID. Existence is
+# optional — if missing, the /api/whitelist endpoint falls back to JSONL-only.
+EnvironmentFile=-/etc/default/definity-staging.env
 ExecStart=/usr/bin/node /var/www/definity-staging/current/.next/standalone/server.js
 Restart=on-failure
 RestartSec=3
