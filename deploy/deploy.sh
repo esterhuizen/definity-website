@@ -90,8 +90,12 @@ else
   RELEASE="$APP_ROOT/releases/$STAMP-${WT_HEAD}${WT_DIRTY}"
   echo "==> [$TARGET] Building release $STAMP-${WT_HEAD}${WT_DIRTY} from working tree at $WORKTREE_DIR"
   mkdir -p "$RELEASE"
+  # Subtract deleted-on-disk-but-still-tracked files (e.g. mid-edit) so
+  # tar doesn't fail with "Cannot stat: No such file or directory".
   ( cd "$WORKTREE_DIR" \
-      && git ls-files -co --exclude-standard \
+      && comm -23 \
+          <(git ls-files -co --exclude-standard | sort -u) \
+          <(git ls-files -d                     | sort -u) \
       | tar -cf - -T - ) \
     | tar -x -C "$RELEASE"
 fi
