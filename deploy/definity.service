@@ -21,6 +21,11 @@ Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=HOSTNAME=127.0.0.1
 Environment=NEXT_TELEMETRY_DISABLED=1
+Environment=WHITELIST_LOG_PATH=/var/lib/definity/whitelist-applications.jsonl
+# Out-of-repo file holding NOTION_TOKEN + NOTION_DATABASE_ID. Existence is
+# optional — if missing, the /api/whitelist endpoint falls back to JSONL-only
+# (provision via /root/notion-creds.txt — see SERVER-PROVISIONING.md).
+EnvironmentFile=-/etc/default/definity.env
 ExecStart=/usr/bin/node /var/www/definity/current/.next/standalone/server.js
 Restart=on-failure
 RestartSec=3
