@@ -26,9 +26,11 @@ import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 
-const EVENTS_LOG_PATH = process.env.EVENTS_LOG_PATH  || '/var/lib/definity/events.jsonl';
-const NGINX_ACCESS    = process.env.NGINX_ACCESS_LOG || '/var/log/nginx/access.log';
-const REPORTS_DIR     = resolve(process.env.REPORTS_DIR || '/var/www/definity/reports');
+const EVENTS_LOG_PATH    = process.env.EVENTS_LOG_PATH    || '/var/lib/definity/events.jsonl';
+const WHITELIST_LOG_PATH = process.env.WHITELIST_LOG_PATH || '/var/lib/definity/whitelist-applications.jsonl';
+const NGINX_ACCESS       = process.env.NGINX_ACCESS_LOG   || '/var/log/nginx/access.log';
+const GEOIP_DB           = process.env.GEOIP_DB || '';   // empty = skip country panel
+const REPORTS_DIR        = resolve(process.env.REPORTS_DIR || '/var/lib/definity/reports');
 
 const PRIMARY_EVENTS = [
   'pageview',
@@ -54,11 +56,11 @@ function escapeHtml(s) {
   }[c]));
 }
 
-async function loadEvents(date) {
-  if (!existsSync(EVENTS_LOG_PATH)) {
-    return { lines: [], available: false };
+async function loadJsonl(path, date) {
+  if (!existsSync(path)) {
+    return { rows: [], available: false };
   }
-  const raw = await readFile(EVENTS_LOG_PATH, 'utf8');
+  const raw = await readFile(path, 'utf8');
   const out = [];
   for (const line of raw.split('\n')) {
     if (!line) continue;
@@ -67,7 +69,39 @@ async function loadEvents(date) {
       if (typeof o?.ts === 'string' && o.ts.slice(0, 10) === date) out.push(o);
     } catch { /* skip malformed */ }
   }
-  return { lines: out, available: true };
+  return { rows: out, available: true };
+}
+
+async function loadEvents(date) {
+  const r = await loadJsonl(EVENTS_LOG_PATH, date);
+  return { lines: r.rows, available: r.available };
+}
+
+async function loadWhitelist(date) {
+  return loadJsonl(WHITELIST_LOG_PATH, date);
+}
+
+function aggregateWhitelist(rows) {
+  const byCountry = new Map();
+  const byMethod  = new Map();
+  for (const r of rows) {
+    const c = (r.country || 'Unknown').trim() || 'Unknown';
+    byCountry.set(c, (byCountry.get(c) || 0) + 1);
+    const m = r.contactMethod || 'Unknown';
+    byMethod.set(m, (byMethod.get(m) || 0) + 1);
+  }
+  return {
+    total: rows.length,
+    byCountry: [...byCountry.entries()].sort((a, b) => b[1] - a[1]).map(([country, count]) => ({ country, count })),
+    byMethod:  [...byMethod.entries()].sort((a, b) => b[1] - a[1]).map(([method,  count]) => ({ method,  count })),
+    samples:   rows.map((r) => ({
+      voteId:   (r.voteId || '').slice(0, 64),
+      country:  r.country  || '',
+      method:   r.contactMethod || '',
+      contact:  r.contactId || '',
+      x:        r.xHandles  || '',
+    })),
+  };
 }
 
 function aggregate(rows) {
@@ -128,30 +162,69 @@ function funnel(agg) {
   ];
 }
 
-async function maybeGoaccess(date) {
+// Country-of-origin breakdown from nginx access log.
+// We run goaccess in JSON mode and pluck the `geolocation` panel — much
+// cleaner than embedding the full goaccess HTML in an iframe (no styling
+// fights, no third-party JS, no goaccess HTML quirks). Returns:
+//   { available: true,  topCountries: [{country, hits, visitors}, ...],
+//                       totalVisitors, totalHits }
+//   { available: false, reason: '...' }
+async function maybeCountries() {
+  try { await exec('which', ['goaccess']); }
+  catch { return { available: false, reason: 'goaccess not installed' }; }
+  if (!existsSync(NGINX_ACCESS)) return { available: false, reason: 'nginx access log not present' };
+  if (!GEOIP_DB || !existsSync(GEOIP_DB)) return { available: false, reason: 'no GeoIP database configured' };
+
+  const args = [
+    NGINX_ACCESS,
+    '--log-format=COMBINED',
+    '-o', '-',
+    '--output=json',
+    '--ignore-crawlers',
+    '--anonymize-ip',
+    `--geoip-database=${GEOIP_DB}`,
+  ];
+  let stdout;
   try {
-    await exec('which', ['goaccess']);
-  } catch {
-    return null;
-  }
-  if (!existsSync(NGINX_ACCESS)) return null;
-  try {
-    const { stdout } = await exec('goaccess', [
-      NGINX_ACCESS,
-      '--log-format=COMBINED',
-      '-o', '-',
-      '--no-global-config',
-      '--ignore-crawlers',
-      '--anonymize-ip',
-      '--html-report-title=Definity nginx ' + date,
-    ], { maxBuffer: 32 * 1024 * 1024 });
-    return stdout;
+    ({ stdout } = await exec('goaccess', args, { maxBuffer: 64 * 1024 * 1024 }));
   } catch (err) {
-    return `<!-- goaccess failed: ${escapeHtml(err.message || String(err))} -->`;
+    return { available: false, reason: `goaccess failed: ${err.message || String(err)}` };
   }
+
+  let parsed;
+  try { parsed = JSON.parse(stdout); }
+  catch { return { available: false, reason: 'goaccess JSON parse failed' }; }
+
+  // geolocation.data is an array of continents; each has .items[] of countries.
+  // entry.data is a string like "US United States" → split on first space.
+  const continents = parsed?.geolocation?.data || [];
+  const flat = [];
+  for (const cont of continents) {
+    for (const it of (cont.items || [])) {
+      const data = String(it.data || '');
+      const space = data.indexOf(' ');
+      const country = space > 0 ? data.slice(space + 1) : data;
+      flat.push({
+        country,
+        hits:     it.hits?.count     || 0,
+        visitors: it.visitors?.count || 0,
+      });
+    }
+  }
+  flat.sort((a, b) => b.visitors - a.visitors || b.hits - a.hits);
+
+  const totalHits     = flat.reduce((s, c) => s + c.hits, 0);
+  const totalVisitors = flat.reduce((s, c) => s + c.visitors, 0);
+
+  return {
+    available: true,
+    topCountries: flat.slice(0, 15),
+    totalVisitors,
+    totalHits,
+  };
 }
 
-function renderHtml({ date, total, agg, funnelRows, goaccessHtml, eventsAvailable }) {
+function renderHtml({ date, total, agg, funnelRows, countries, whitelist, eventsAvailable }) {
   const css = `
     :root { color-scheme: light; }
     body { font: 15px/1.5 -apple-system, system-ui, sans-serif; color: #0d1014; background: #fff; max-width: 960px; margin: 32px auto; padding: 0 20px; }
@@ -215,6 +288,50 @@ function renderHtml({ date, total, agg, funnelRows, goaccessHtml, eventsAvailabl
         </details>`).join('')
     : '<p class="empty">No event breakdowns.</p>';
 
+  const countriesTable = countries.available
+    ? (countries.topCountries.length
+        ? `<p class="meta">Source: nginx access log via GoAccess + DB-IP IP-to-Country. Crawlers excluded; IPs anonymised. ${countries.totalVisitors} visitors, ${countries.totalHits} hits across all countries.</p>
+           <table>
+            <thead><tr><th>Country</th><th class="num">Visitors</th><th class="num">Hits</th></tr></thead>
+            <tbody>${countries.topCountries.map((c) =>
+              `<tr><td>${escapeHtml(c.country)}</td><td class="num">${c.visitors}</td><td class="num">${c.hits}</td></tr>`,
+            ).join('')}</tbody>
+           </table>`
+        : '<p class="empty">No traffic with resolvable country in this period.</p>')
+    : `<p class="empty">Country breakdown unavailable: ${escapeHtml(countries.reason)}.</p>`;
+
+  const whitelistSection = whitelist.total === 0
+    ? '<p class="empty">No whitelist applications submitted on this day.</p>'
+    : `<p class="meta">${whitelist.total} application${whitelist.total === 1 ? '' : 's'} on this day.</p>
+       <h3 style="margin-top:18px;font-size:15px;">By country (as submitted)</h3>
+       <table>
+        <thead><tr><th>Country</th><th class="num">Count</th></tr></thead>
+        <tbody>${whitelist.byCountry.map((r) =>
+          `<tr><td>${escapeHtml(r.country)}</td><td class="num">${r.count}</td></tr>`,
+        ).join('')}</tbody>
+       </table>
+       <h3 style="margin-top:18px;font-size:15px;">By preferred contact method</h3>
+       <table>
+        <thead><tr><th>Method</th><th class="num">Count</th></tr></thead>
+        <tbody>${whitelist.byMethod.map((r) =>
+          `<tr><td>${escapeHtml(r.method)}</td><td class="num">${r.count}</td></tr>`,
+        ).join('')}</tbody>
+       </table>
+       <details style="margin-top:18px;">
+         <summary>Submissions (vote id · country · contact · X)</summary>
+         <table>
+          <thead><tr><th>Vote ID</th><th>Country</th><th>Contact</th><th>X</th></tr></thead>
+          <tbody>${whitelist.samples.map((s) =>
+            `<tr>
+              <td><code style="font-size:12px;">${escapeHtml(s.voteId)}</code></td>
+              <td>${escapeHtml(s.country)}</td>
+              <td>${escapeHtml(s.method)} · ${escapeHtml(s.contact)}</td>
+              <td>${escapeHtml(s.x)}</td>
+            </tr>`,
+          ).join('')}</tbody>
+         </table>
+       </details>`;
+
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
@@ -228,6 +345,12 @@ function renderHtml({ date, total, agg, funnelRows, goaccessHtml, eventsAvailabl
   <h2>Conversion funnel</h2>
   ${funnelTable}
 
+  <h2>Whitelist applications</h2>
+  ${whitelistSection}
+
+  <h2>Visitor countries</h2>
+  ${countriesTable}
+
   <h2>Top pages</h2>
   ${pageViewsTable}
 
@@ -239,12 +362,10 @@ function renderHtml({ date, total, agg, funnelRows, goaccessHtml, eventsAvailabl
 
   <h2>Event breakdown by page</h2>
   ${eventByPageDetails}
-
-  ${goaccessHtml ? `<h2>Server traffic (GoAccess)</h2><iframe srcdoc="${escapeHtml(goaccessHtml)}" style="width:100%;height:1200px;border:1px solid #ecedf3;border-radius:8px;"></iframe>` : ''}
 </body></html>`;
 }
 
-function renderText({ date, total, agg, funnelRows, eventsAvailable }) {
+function renderText({ date, total, agg, funnelRows, countries, whitelist, eventsAvailable }) {
   const lines = [];
   lines.push(`Definity daily report — ${date} (UTC)`);
   lines.push(`==========================================`);
@@ -254,6 +375,23 @@ function renderText({ date, total, agg, funnelRows, eventsAvailable }) {
   lines.push('Conversion funnel:');
   for (const r of funnelRows) {
     lines.push(`  ${r.step.padEnd(40)} ${String(r.value).padStart(6)}   ${r.rate.padStart(7)}`);
+  }
+  lines.push('');
+  lines.push(`Whitelist applications: ${whitelist.total}`);
+  if (whitelist.total > 0) {
+    for (const r of whitelist.byCountry.slice(0, 10)) {
+      lines.push(`  ${r.country.padEnd(40)} ${String(r.count).padStart(6)}`);
+    }
+  }
+  lines.push('');
+  if (countries.available) {
+    lines.push(`Visitor countries (top 10 by visitors, ${countries.totalVisitors} total visitors / ${countries.totalHits} hits):`);
+    if (!countries.topCountries.length) lines.push('  (none)');
+    for (const r of countries.topCountries.slice(0, 10)) {
+      lines.push(`  ${r.country.padEnd(40)} v=${String(r.visitors).padStart(4)}  h=${String(r.hits).padStart(5)}`);
+    }
+  } else {
+    lines.push(`Visitor countries: unavailable (${countries.reason})`);
   }
   lines.push('');
   lines.push('Top pages:');
@@ -283,10 +421,13 @@ async function main() {
   const agg = aggregate(lines);
   const funnelRows = funnel(agg);
 
-  const goaccessHtml = await maybeGoaccess(date);
+  const { rows: whitelistRows } = await loadWhitelist(date);
+  const whitelist = aggregateWhitelist(whitelistRows);
 
-  const html = renderHtml({ date, total: lines.length, agg, funnelRows, goaccessHtml, eventsAvailable });
-  const text = renderText({ date, total: lines.length, agg, funnelRows, eventsAvailable });
+  const countries = await maybeCountries();
+
+  const html = renderHtml({ date, total: lines.length, agg, funnelRows, countries, whitelist, eventsAvailable });
+  const text = renderText({ date, total: lines.length, agg, funnelRows, countries, whitelist, eventsAvailable });
 
   const htmlPath = `${REPORTS_DIR}/${date}.html`;
   await writeFile(htmlPath, html, 'utf8');
