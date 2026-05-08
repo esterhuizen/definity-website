@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { track } from '@/lib/track';
 
-const CONTACT_METHODS = ['Email', 'X / Twitter', 'Discord'] as const;
+const CONTACT_METHODS = ['Email', 'Telegram', 'X / Twitter', 'Other'] as const;
 type ContactMethod = (typeof CONTACT_METHODS)[number];
 
 type Errors = Partial<Record<keyof FormState | '_form', string>>;
@@ -204,7 +204,7 @@ export function WhitelistForm() {
       <Field
         label="Your best contact ID"
         htmlFor="wl-contactId"
-        helper="Your email, X handle, or Discord username — matching whichever you picked above."
+        helper="Your email, Telegram username, X handle, or another way to reach you — matching whichever method you picked above."
         required
         error={errors.contactId}
       >
