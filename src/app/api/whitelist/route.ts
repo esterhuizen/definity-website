@@ -7,6 +7,7 @@ import {
   type WhitelistApplication,
 } from '@/lib/notion';
 import { fireWhitelistRoutine } from '@/lib/routine';
+import { sendWhitelistTelegram } from '@/lib/telegram';
 
 // Same first-party design as /api/track:
 //   1. Validate strictly. Reject silently with 400 on bad input.
@@ -128,16 +129,23 @@ export async function POST(req: Request) {
     console.warn(`[whitelist] notion write skipped/failed: ${notion.reason}`);
   }
 
-  // 3. Best-effort: fire the routine that processes new applications. Skipped
-  //    silently if no token configured (e.g. dev). Failure is logged and ignored —
-  //    the JSONL + Notion records are the durable trail; the routine can be
-  //    fired manually later if needed.
   const notionPageUrl = notion.ok ? notion.url : null;
+
+  // 3. Best-effort: fire the routine that processes new applications.
   const routine = await fireWhitelistRoutine(notionPageUrl);
   if (routine.ok) {
     console.info(`[whitelist] routine fired: session=${routine.sessionId || '?'}`);
   } else {
     console.warn(`[whitelist] routine fire skipped/failed: ${routine.reason}`);
+  }
+
+  // 4. Best-effort: ping operator's Telegram so they see new applications
+  //    without having to refresh Notion. Same skip-on-failure semantics.
+  const tg = await sendWhitelistTelegram(result.app, notionPageUrl);
+  if (tg.ok) {
+    console.info('[whitelist] telegram sent');
+  } else {
+    console.warn(`[whitelist] telegram skipped/failed: ${tg.reason}${'detail' in tg && tg.detail ? ` — ${tg.detail}` : ''}`);
   }
 
   return NextResponse.json({ ok: true });
