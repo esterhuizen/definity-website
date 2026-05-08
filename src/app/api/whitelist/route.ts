@@ -20,8 +20,9 @@ import { sendWhitelistTelegram } from '@/lib/telegram';
 
 const CONTACT_METHODS: readonly ContactMethod[] = [
   'Email',
+  'Telegram',
   'X / Twitter',
-  'Discord',
+  'Other',
 ];
 
 const MAX = {

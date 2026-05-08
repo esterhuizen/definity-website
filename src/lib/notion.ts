@@ -17,7 +17,10 @@
 const NOTION_VERSION = '2022-06-28';
 const NOTION_PAGES_ENDPOINT = 'https://api.notion.com/v1/pages';
 
-export type ContactMethod = 'Email' | 'X / Twitter' | 'Discord';
+// Mirrors the "Contact method" select options on the Validator Applications
+// Notion DB, minus Discord (we don't currently support it operationally).
+// Order matches the order shown in the form's <select>.
+export type ContactMethod = 'Email' | 'Telegram' | 'X / Twitter' | 'Other';
 
 export type WhitelistApplication = {
   voteId: string;

@@ -93,8 +93,8 @@ export default function WhitelistApplyPage() {
           Submit your application
         </h2>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-ink-muted text-pretty">
-          Have your validator&apos;s vote id, country, and an email / X / Discord contact ready
-          before you start.
+          Have your validator&apos;s vote id, country, and an email / Telegram / X contact
+          ready before you start.
         </p>
 
         <div className="mt-6">
