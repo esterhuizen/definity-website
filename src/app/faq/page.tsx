@@ -36,7 +36,30 @@ const FULL_FAQ = [
   },
   {
     q: 'How are validators selected?',
-    a: 'Admission gates: commission ≤ 5%, MEV commission ≤ 10%, actively voting on mainnet (< 4hr offline / 7d), skip rate below 10% across recent epochs (stricter than SFDP), SFDP standing intact, and team based in APAC. After admission, the size of each validator\'s delegation is determined each epoch by their composite rarity rank under the GDI methodology (gdindex.app/validator): operators whose country / city / ASN are underrepresented in Solana network stake receive larger delegations than those in already-saturated buckets. Validator hosting location is NOT an admission gate — every admitted operator gets some stake; rarity determines how much. Approved validators are continuously monitored for operational compliance (commission drift, delinquency, etc.); substance is not re-evaluated after admission. Full criteria are on the Validators page.',
+    a: (
+      <>
+        Admission gates: commission ≤ 5%, MEV commission ≤ 10%, actively voting on
+        mainnet (&lt; 4hr offline / 7d), skip rate below 10% across recent epochs
+        (stricter than SFDP), SFDP standing intact, and team based in APAC. After
+        admission, the size of each validator&apos;s delegation is determined each
+        epoch by their composite rarity rank under the{' '}
+        <a
+          href="https://gdindex.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-ring underline-offset-2 hover:text-ink"
+        >
+          GDI methodology
+        </a>
+        : operators whose country / city / ASN are underrepresented in Solana
+        network stake receive larger delegations than those in already-saturated
+        buckets. Validator hosting location is NOT an admission gate — every
+        admitted operator gets some stake; rarity determines how much. Approved
+        validators are continuously monitored for operational compliance (commission
+        drift, delinquency, etc.); substance is not re-evaluated after admission.
+        Full criteria are on the Validators page.
+      </>
+    ),
   },
   {
     q: 'Where does the "supporting the ecosystem in emerging regions" part actually come from?',

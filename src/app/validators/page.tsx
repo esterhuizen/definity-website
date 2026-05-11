@@ -136,8 +136,16 @@ export default function ValidatorsPage() {
           <strong className="text-ink">how much</strong> depends on where they
           run. Each epoch, pool stake is distributed across the admitted set
           in proportion to each validator&apos;s composite rarity on country,
-          city, and ASN (measured live against the GDI methodology). A
-          validator whose country and ASN are both underweight in the network
+          city, and ASN (measured live against the{' '}
+          <TrackedLink
+            href="https://gdindex.app/"
+            event="outbound_gdindex"
+            external
+            className="underline decoration-ring underline-offset-2 hover:text-ink"
+          >
+            GDI methodology
+          </TrackedLink>
+          ). A validator whose country and ASN are both underweight in the network
           earns the largest delegation. One whose location duplicates an
           already-saturated bucket receives the minimum but is still admitted.
         </p>
@@ -162,11 +170,19 @@ export default function ValidatorsPage() {
             Operators — check where you stand
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted text-pretty">
-            Look up your validator on the public GDI index to see your current
-            composite rarity, network rank, and which dimensions (country,
-            city, ASN) are dragging your score up or down. If you&apos;re in a
-            saturated bucket and want a path back into the active delegation
-            set, the index shows you which dimensions to change.
+            Look up your validator on the public{' '}
+            <TrackedLink
+              href="https://gdindex.app/"
+              event="outbound_gdindex"
+              external
+              className="underline decoration-ring underline-offset-2 hover:text-ink"
+            >
+              GDI index
+            </TrackedLink>{' '}
+            to see your current composite rarity, network rank, and which
+            dimensions (country, city, ASN) are dragging your score up or down.
+            If you&apos;re in a saturated bucket and want a path back into the
+            active delegation set, the index shows you which dimensions to change.
           </p>
           <TrackedLink
             href="https://gdindex.app/validator"
@@ -196,7 +212,16 @@ export default function ValidatorsPage() {
           re-evaluated after admission — only operational compliance. A validator admitted on
           a modest substance score is not at risk of removal as long as it stays within the
           published thresholds. Stake allocation, however, is recomputed every epoch from the
-          live GDI index, so a validator that becomes more (or less) decentralised over time
+          live{' '}
+          <TrackedLink
+            href="https://gdindex.app/"
+            event="outbound_gdindex"
+            external
+            className="underline decoration-ring underline-offset-2 hover:text-ink"
+          >
+            GDI index
+          </TrackedLink>
+          , so a validator that becomes more (or less) decentralised over time
           gets more (or less) stake on autopilot.
         </p>
       </div>

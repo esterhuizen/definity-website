@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react';
 import { POOL } from '@/config/pool';
 
-type QA = { q: string; a: string };
+type QA = { q: string; a: ReactNode };
 
 export const HOMEPAGE_FAQ: QA[] = [
   {
