@@ -163,7 +163,7 @@ export function WhitelistForm() {
       </Field>
 
       <Field
-        label="Please detail your contributions to the Solana ecosystem in APAC region"
+        label="Please detail your contributions to the Solana ecosystem in the APAC region you serve"
         htmlFor="wl-contribution"
         required
         error={errors.contribution}

@@ -10,16 +10,20 @@ export const metadata: Metadata = {
     'Validators: apply to be whitelisted in the Definity stake pool. Performance criteria, regional alignment, and how to submit.',
 };
 
-const REQUIRED = [
-  'Sustained high uptime across recent epochs. We drop validators that consistently miss leader slots.',
-  'Independent infrastructure — own hardware in distinct geographies, not a shared upstream provider.',
-  'Reasonable commission. Healthy validators invest in their nodes; we weigh commission against demonstrated performance.',
-  'Self-stake and a track record across multiple epochs.',
-  'Operating in, or actively serving, APAC or EMEA emerging markets. This is a base requirement, not a tiebreaker — pool delegations are reserved for validator teams aligned with the mission.',
+const HARD_THRESHOLDS = [
+  'Validator commission ≤ 5%. Exactly 5% is allowed; 5.01% rejects.',
+  'MEV commission ≤ 10% (1000 bps). Jito MEV commission cannot exceed this.',
+  'Actively voting on Solana mainnet — vote account live, not persistently delinquent (no more than 4 hours offline in any 7-day window).',
+  'Strong voting performance — Stakewiz `skip_rate` below 10% across recent epochs. Stricter than SFDP\'s `network_average + 5pp` rule. A persistent pattern of missed leader slots is degraded operational health, even if the validator never goes fully offline.',
+  'SFDP standing intact — not removed from the Solana Foundation Delegation Program for cause.',
+];
+
+const MISSION = [
+  'Team based in APAC. East Asia (Japan, Korea, Taiwan, Hong Kong), Southeast Asia (Singapore, Indonesia, Philippines, Thailand, Vietnam, Malaysia, …), South Asia (India, Bangladesh, Pakistan, Sri Lanka, Nepal), or Oceania (Australia, New Zealand). This is operator location — not corporate domicile, not hosting location.',
 ];
 
 const PREFERRED = [
-  'Validator teams who are themselves founders, builders, or shippers — and who can point to visible, measurable work growing the Solana ecosystem in their region. Shipped products, dev tooling, hackathons run, education or community work, audited contributions. Real outputs, not stated intentions.',
+  'Verifiable, measurable contributions to the Solana ecosystem in your region. Shipped products, dev tooling, hackathons run, education or community work, audited contributions. Real outputs with public evidence, not stated intentions.',
 ];
 
 export default function WhitelistApplyPage() {
@@ -38,24 +42,54 @@ export default function WhitelistApplyPage() {
           Apply for whitelisting
         </h1>
         <p className="mt-5 text-lg text-ink-muted text-pretty">
-          If you run a validator and you believe you meet the criteria below, submit your details
-          and we&apos;ll get back to you. Whitelisted validators are eligible to receive stake
-          based on their relative performance, in line with the rest of our validator selection
-          rules.
+          If you run a validator and you believe you meet the criteria below, submit your
+          details and we&apos;ll get back to you. Admission is gated by the hard thresholds +
+          team-location requirement. After admission, the size of your delegation is
+          determined each epoch by your composite rarity rank under the{' '}
+          <a
+            href="https://gdindex.app/validator"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-ring underline-offset-2 hover:text-ink"
+          >
+            GDI methodology
+          </a>
+          : operators in underrepresented countries, cities, and ASNs receive larger
+          delegations than those in already-saturated buckets, but everyone admitted gets
+          some stake.
         </p>
       </div>
 
       <div className="mt-12 space-y-10">
         <div>
-          <h2 className="font-display text-xl font-semibold text-ink">Required to be eligible</h2>
+          <h2 className="font-display text-xl font-semibold text-ink">Hard thresholds</h2>
           <p className="mt-2 text-sm text-ink-muted text-pretty">
-            All five must be true before we&apos;ll review an application.
+            Operational gates with concrete numbers. Each is verified against on-chain or
+            public-API data; every rejection cites the specific rule.
           </p>
           <ol className="mt-5 space-y-3">
-            {REQUIRED.map((c, i) => (
+            {HARD_THRESHOLDS.map((c, i) => (
               <li key={i} className="surface flex items-start gap-3 p-5">
                 <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-muted font-mono text-xs text-ink-muted ring-1 ring-ring">
                   {i + 1}
+                </span>
+                <p className="text-sm leading-relaxed text-ink-muted text-pretty">{c}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div>
+          <h2 className="font-display text-xl font-semibold text-ink">Mission alignment</h2>
+          <p className="mt-2 text-sm text-ink-muted text-pretty">
+            Two distinct location signals — both required. Team location is about where the
+            people doing the work are based; validator location is about where the box runs.
+          </p>
+          <ol className="mt-5 space-y-3" start={HARD_THRESHOLDS.length + 1}>
+            {MISSION.map((c, i) => (
+              <li key={i} className="surface flex items-start gap-3 p-5">
+                <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bg-muted font-mono text-xs text-ink-muted ring-1 ring-ring">
+                  {HARD_THRESHOLDS.length + i + 1}
                 </span>
                 <p className="text-sm leading-relaxed text-ink-muted text-pretty">{c}</p>
               </li>
@@ -68,7 +102,7 @@ export default function WhitelistApplyPage() {
           <p className="mt-2 text-sm text-ink-muted text-pretty">
             Beyond the eligibility bar, this is what moves an application up the queue.
           </p>
-          <ol className="mt-5 space-y-3" start={REQUIRED.length + 1}>
+          <ol className="mt-5 space-y-3" start={HARD_THRESHOLDS.length + MISSION.length + 1}>
             {PREFERRED.map((c, i) => (
               <li
                 key={i}
@@ -79,7 +113,7 @@ export default function WhitelistApplyPage() {
                   aria-hidden="true"
                 />
                 <span className="relative mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sunrise-gradient font-mono text-xs font-semibold text-white">
-                  {REQUIRED.length + i + 1}
+                  {HARD_THRESHOLDS.length + MISSION.length + i + 1}
                 </span>
                 <p className="relative text-sm leading-relaxed text-ink text-pretty">{c}</p>
               </li>
