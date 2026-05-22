@@ -22,7 +22,7 @@ export const HOMEPAGE_FAQ: QA[] = [
   },
   {
     q: 'How does Definity support the regions narrative?',
-    a: `A portion of pool fees is reinvested into developer programs, hackathons and early-stage support for builders in emerging markets — initially focused on the APAC region but expanding from there. The rest of the rewards go straight back to ${POOL.lstSymbol} holders.`,
+    a: `A portion of pool fees is reinvested into developer programs, hackathons and early-stage support for builders in emerging markets — focused on APAC, the Middle East, Africa, and South America. The rest of the rewards go straight back to ${POOL.lstSymbol} holders.`,
   },
 ];
 

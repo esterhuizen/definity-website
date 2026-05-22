@@ -40,7 +40,9 @@ const FULL_FAQ = [
       <>
         Admission gates: commission ≤ 5%, MEV commission ≤ 10%, actively voting on
         mainnet (&lt; 4hr offline / 7d), skip rate below 10% across recent epochs
-        (stricter than SFDP), SFDP standing intact, and team based in APAC. After
+        (stricter than SFDP), SFDP standing intact, and team based in one of
+        Definity&apos;s focus regions (APAC, the Middle East, Africa, or South
+        America). After
         admission, the size of each validator&apos;s delegation is determined each
         epoch by their composite rarity rank under the{' '}
         <a
@@ -63,7 +65,7 @@ const FULL_FAQ = [
   },
   {
     q: 'Where does the "supporting the ecosystem in emerging regions" part actually come from?',
-    a: 'A portion of pool fees — the share that would otherwise be Definity\'s revenue — is reinvested into developer programs, hackathons, and early-stage support for builders in emerging markets, with an initial focus on APAC. This is operational, not speculative: every reinvested dollar comes from real, on-chain pool fees that have already accrued.',
+    a: 'A portion of pool fees — the share that would otherwise be Definity\'s revenue — is reinvested into developer programs, hackathons, and early-stage support for builders in emerging markets across APAC, the Middle East, Africa, and South America. This is operational, not speculative: every reinvested dollar comes from real, on-chain pool fees that have already accrued.',
   },
   {
     q: 'Is there any minimum stake?',

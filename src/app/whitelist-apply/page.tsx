@@ -19,7 +19,7 @@ const HARD_THRESHOLDS = [
 ];
 
 const MISSION = [
-  'Team based in APAC. East Asia (Japan, Korea, Taiwan, Hong Kong), Southeast Asia (Singapore, Indonesia, Philippines, Thailand, Vietnam, Malaysia, …), South Asia (India, Bangladesh, Pakistan, Sri Lanka, Nepal), or Oceania (Australia, New Zealand). This is operator location — not corporate domicile, not hosting location.',
+  'Team based in one of Definity\'s focus regions: APAC, the Middle East, Africa, or South America. APAC covers East Asia (Japan, Korea, Taiwan, Hong Kong), Southeast Asia (Singapore, Indonesia, Philippines, Thailand, Vietnam, Malaysia, …), South Asia (India, Bangladesh, Pakistan, Sri Lanka, Nepal), and Oceania (Australia, New Zealand). The Middle East includes the GCC + Turkey + Israel. Africa covers the continent. South America covers Brazil, Argentina, Chile, Colombia, Peru, and the rest. This is operator location — not corporate domicile, not hosting location.',
 ];
 
 const PREFERRED = [

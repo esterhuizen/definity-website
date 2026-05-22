@@ -51,6 +51,9 @@ export const metadata: Metadata = {
     'LST',
     'DeFi',
     'Solana APAC',
+    'Solana Middle East',
+    'Solana Africa',
+    'Solana South America',
     'staking rewards',
   ],
   openGraph: {

@@ -2,22 +2,30 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
 // A quieter, copy-led section that drives the regional narrative home before FAQ.
-// Today's focus: APAC cities. EMEA expansion is on the near roadmap and shown as such.
-const APAC_NOW = [
+// Focus regions: APAC, the Middle East, Africa, South America. Mix of cities
+// across all four, kept short enough to scan.
+const FOCUS_CITIES = [
+  // APAC
   'Singapore',
   'Hong Kong',
   'Tokyo',
   'Jakarta',
   'Manila',
-  'Ho Chi Minh City',
   'Bangkok',
-  'Kuala Lumpur',
   'Mumbai',
   'Karachi',
-  'Dhaka',
+  // Middle East
+  'Dubai',
+  'Istanbul',
+  // Africa
+  'Lagos',
+  'Nairobi',
+  'Cape Town',
+  // South America
+  'São Paulo',
+  'Buenos Aires',
+  'Bogotá',
 ];
-
-const EMEA_SOON = ['Dubai', 'Abu Dhabi', 'Istanbul', 'Lagos', 'Nairobi'];
 
 export function RegionsBand() {
   return (
@@ -47,7 +55,7 @@ export function RegionsBand() {
 
           <div className="md:col-span-5">
             <ul className="flex flex-wrap gap-2">
-              {APAC_NOW.map((city) => (
+              {FOCUS_CITIES.map((city) => (
                 <li
                   key={city}
                   className="rounded-full border border-ring bg-bg px-3 py-1 text-sm text-ink-muted"
@@ -56,20 +64,6 @@ export function RegionsBand() {
                 </li>
               ))}
             </ul>
-
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-[0.18em] text-ink-dim">
-                Coming next
-              </span>
-              {EMEA_SOON.map((city) => (
-                <span
-                  key={city}
-                  className="rounded-full border border-dashed border-solana-300 bg-solana-50/60 px-3 py-1 text-sm italic text-solana-700"
-                >
-                  {city}
-                </span>
-              ))}
-            </div>
           </div>
         </div>
       </div>

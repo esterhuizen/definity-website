@@ -5,7 +5,7 @@ const PILLARS = [
     icon: Globe2,
     title: 'Where Solana grows next',
     body:
-      'Most of the world hasn\'t met Solana yet. Across Southeast Asia, South Asia, Latin America and Africa, builders are launching real products — payments, identity, on-chain savings — for users who actually need them. Definity exists to fund that wave.',
+      'Most of the world hasn\'t met Solana yet. Across APAC, the Middle East, Africa, and South America, builders are launching real products — payments, identity, on-chain savings — for users who actually need them. Definity exists to fund that wave.',
   },
   {
     icon: Sprout,

@@ -41,8 +41,8 @@ const HARD_THRESHOLDS = [
 // "How we allocate stake" below).
 const MISSION = [
   {
-    title: 'Team based in APAC',
-    body: 'Where the people doing the work are physically located — Japan, Korea, Singapore, Taiwan, Hong Kong, Indonesia, India, the Philippines, Thailand, Vietnam, Malaysia, Australia, New Zealand, and the rest of East/Southeast/South Asia + Oceania. This is operator location, not corporate domicile (FZCO / BVI / Cayman are common for tax — they don\'t affect this filter) and not hosting location. A Japan-based team running their node anywhere on the planet passes; a US-based team running their node in Tokyo does not.',
+    title: 'Team based in one of the focus regions',
+    body: 'Where the people doing the work are physically located. Definity\'s focus regions are APAC (East Asia, Southeast Asia, South Asia, Oceania — Japan, Korea, Singapore, Taiwan, Hong Kong, Indonesia, India, the Philippines, Thailand, Vietnam, Malaysia, Australia, New Zealand, …), the Middle East (GCC + Turkey + Israel), Africa, and South America (Brazil, Argentina, Chile, Colombia, Peru, …). This is operator location, not corporate domicile (FZCO / BVI / Cayman are common for tax — they don\'t affect this filter) and not hosting location. A Lagos-based team running their node anywhere on the planet passes; a US-based team running their node in Tokyo does not.',
   },
 ];
 
@@ -153,11 +153,11 @@ export default function ValidatorsPage() {
           This replaces a previous flat stake-per-validator approach. Flat
           was easy to reason about but didn&apos;t reward operators in places
           that need stake the most. Under the rarity-weighted strategy, an
-          APAC operator running a node in an underweight city / ASN — Manila,
-          Jakarta, Hong Kong outside the popular Chai Wan / Equinix clusters,
-          a Bangalore datacenter that isn&apos;t shared upstream with a dozen
-          other validators — receives meaningfully more stake than a seventh
-          validator in Frankfurt on Hetzner or Tokyo on Allnodes.
+          operator running a node in an underweight city / ASN — Manila,
+          Jakarta, Lagos, São Paulo, a Bangalore datacenter that isn&apos;t
+          shared upstream with a dozen other validators — receives
+          meaningfully more stake than a seventh validator in Frankfurt on
+          Hetzner or Tokyo on Allnodes.
         </p>
         <p className="mt-4 text-base text-ink-muted text-pretty">
           Rebalancing happens gradually each epoch. No operator loses more
