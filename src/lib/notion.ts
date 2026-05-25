@@ -16,6 +16,19 @@
 
 const NOTION_VERSION = '2022-06-28';
 const NOTION_PAGES_ENDPOINT = 'https://api.notion.com/v1/pages';
+// Notion caps a single rich_text block at 2000 chars. The form allows up to
+// 4000 chars for the contribution detail, so longer values must be split
+// across multiple blocks — Notion concatenates them visually as one field.
+const RICH_TEXT_BLOCK_LIMIT = 2000;
+
+function richText(content: string) {
+  if (!content) return [] as { text: { content: string } }[];
+  const out: { text: { content: string } }[] = [];
+  for (let i = 0; i < content.length; i += RICH_TEXT_BLOCK_LIMIT) {
+    out.push({ text: { content: content.slice(i, i + RICH_TEXT_BLOCK_LIMIT) } });
+  }
+  return out;
+}
 
 // Mirrors the "Contact method" select options on the Validator Applications
 // Notion DB, minus Discord (we don't currently support it operationally).
@@ -50,11 +63,11 @@ export async function createWhitelistApplication(
     parent: { database_id: databaseId },
     properties: {
       'Operator / Vote ID': { title: [{ text: { content: title } }] },
-      'Country (submitted)': { rich_text: [{ text: { content: app.country } }] },
-      'Contribution detail': { rich_text: [{ text: { content: app.contribution } }] },
+      'Country (submitted)': { rich_text: richText(app.country) },
+      'Contribution detail': { rich_text: richText(app.contribution) },
       'Contact method': { select: { name: app.contactMethod } },
-      'Contact ID': { rich_text: [{ text: { content: app.contactId } }] },
-      'X handles': { rich_text: [{ text: { content: app.xHandles } }] },
+      'Contact ID': { rich_text: richText(app.contactId) },
+      'X handles': { rich_text: richText(app.xHandles) },
       'Submitted at': { date: { start: submittedAtIso } },
       Status: { select: { name: 'Pending' } },
     },

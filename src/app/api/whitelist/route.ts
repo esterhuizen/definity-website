@@ -127,7 +127,10 @@ export async function POST(req: Request) {
   // 2. Best-effort: push to Notion. We've already captured the data.
   const notion = await createWhitelistApplication(result.app, submittedAt);
   if (!notion.ok) {
-    console.warn(`[whitelist] notion write skipped/failed: ${notion.reason}`);
+    // Include detail so we can diagnose without re-running the failed write —
+    // bare reason="http_error" hid the 4xx/5xx status + Notion error body.
+    const detail = 'detail' in notion && notion.detail ? ` — ${notion.detail}` : '';
+    console.warn(`[whitelist] notion write skipped/failed: ${notion.reason}${detail}`);
   }
 
   const notionPageUrl = notion.ok ? notion.url : null;

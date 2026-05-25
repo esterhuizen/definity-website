@@ -1,0 +1,40 @@
+# /etc/systemd/system/whitelist-backfill.service
+#
+# Oneshot — scans /var/lib/definity/whitelist-applications.jsonl and creates
+# Notion rows for any applications missing from the Validator Applications
+# DB. Catches the case where the live /api/whitelist handler captured a
+# submission to disk but the best-effort Notion POST failed (network blip,
+# rate limit, validation error after a schema change, etc).
+#
+# Idempotent — Notion is queried per-voteId before creating, so re-runs are
+# no-ops for already-synced rows.
+#
+# Triggered by whitelist-backfill.timer.
+
+[Unit]
+Description=Reconcile whitelist JSONL → Notion (backfill missing rows)
+Documentation=file:///var/www/definity/current/scripts/backfill-notion-whitelist.mjs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=definity
+Group=definity
+WorkingDirectory=/var/www/definity/current
+Environment=WHITELIST_LOG_PATH=/var/lib/definity/whitelist-applications.jsonl
+# NOTION_TOKEN, NOTION_DATABASE_ID, NOTION_TITLE_PREFIX come from the same
+# env file the website uses, so prod and this scanner can't drift.
+EnvironmentFile=-/etc/default/definity.env
+ExecStart=/usr/bin/node scripts/backfill-notion-whitelist.mjs --all
+TimeoutStartSec=120
+
+# Hardening — same template as pool-stats. Needs AF_INET{,6} for the Notion API.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/definity
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+LockPersonality=true
