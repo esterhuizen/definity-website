@@ -1,13 +1,13 @@
 # /etc/systemd/system/whitelist-backfill.timer
 #
-# Reconciles JSONL → Notion every 10 minutes. Short cadence chosen because:
-#   - whitelist submissions are sparse (a few per week), so the Notion-query
-#     cost is negligible (one query per JSONL entry per run);
-#   - if Notion is temporarily down/rate-limited, we don't want a submission
-#     to sit invisible for an hour — we want it in front of operators ASAP.
+# Reconciles JSONL → Notion every hour. Whitelist submissions are sparse
+# (a few per week) and the live /api/whitelist path already tries Notion
+# synchronously — this timer is the backstop for the rare case where that
+# fails. A 1h cadence keeps journal noise low; trade-off is up to 1h
+# invisibility for a submission that hits a Notion outage at the wrong moment.
 #
-# Persistent=true so a missed run catches up. RandomizedDelaySec=2min adds a
-# little jitter vs. clean 10-min boundaries.
+# Persistent=true so a missed run catches up. RandomizedDelaySec=5min adds
+# jitter vs. clean hour boundaries.
 #
 # Enable: sudo systemctl daemon-reload && sudo systemctl enable --now whitelist-backfill.timer
 # Force run: sudo systemctl start whitelist-backfill.service
@@ -15,12 +15,12 @@
 # Logs:      journalctl -u whitelist-backfill.service -n 100
 
 [Unit]
-Description=Reconcile whitelist JSONL → Notion (every 10 minutes)
+Description=Hourly reconciliation of whitelist JSONL → Notion
 
 [Timer]
 OnBootSec=5min
-OnUnitActiveSec=10min
-RandomizedDelaySec=2min
+OnUnitActiveSec=1h
+RandomizedDelaySec=5min
 Persistent=true
 Unit=whitelist-backfill.service
 
