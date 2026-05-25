@@ -32,6 +32,17 @@ const PAGES_ENDPOINT = 'https://api.notion.com/v1/pages';
 // multiple blocks (Notion concatenates them visually).
 const RICH_TEXT_BLOCK_LIMIT = 2000;
 
+// Solana vote pubkeys are base58, 32-44 chars. The JSONL has historical test
+// submissions with voteIds like "testid" / "Testid" that should NOT be
+// resurrected into Notion by the backfill. Skip anything that doesn't look
+// like a real pubkey. (Real failures will always have pubkey-shaped voteIds
+// because /api/whitelist accepts free-form text — but we filter the durable
+// log here as a safety net, not as input validation.)
+const BASE58_PUBKEY = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+function looksLikePubkey(s) {
+  return typeof s === 'string' && BASE58_PUBKEY.test(s);
+}
+
 function richText(content) {
   if (content == null || content === '') return [];
   const chunks = [];
@@ -194,9 +205,17 @@ async function main() {
     candidates = all;
   }
 
-  let created = 0, skipped = 0, failed = 0;
+  let created = 0, skipped = 0, failed = 0, nonPubkey = 0;
   for (const { lineno, entry } of candidates) {
     const tag = `[line ${lineno}] ${entry.voteId.slice(0, 12)}…`;
+    // Filter historical test submissions whose voteId isn't pubkey-shaped.
+    // The --vote-id mode bypasses this so an operator can force-backfill a
+    // specific row even if its voteId is unusual (e.g. URL-shaped).
+    if (!args['vote-id'] && !looksLikePubkey(entry.voteId)) {
+      console.log(`  · ${tag}  skipped (voteId not base58-pubkey-shaped)`);
+      nonPubkey++;
+      continue;
+    }
     let exists;
     try {
       exists = await notionRowExists(token, databaseId, entry.voteId);
@@ -225,7 +244,7 @@ async function main() {
   }
 
   console.log('');
-  console.log(`done: ${created} created, ${skipped} already-present, ${failed} failed`);
+  console.log(`done: ${created} created, ${skipped} already-present, ${nonPubkey} non-pubkey-skipped, ${failed} failed`);
   if (failed > 0) process.exit(1);
 }
 
