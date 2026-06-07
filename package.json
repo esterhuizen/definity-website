@@ -13,6 +13,8 @@
     "stats:fetch": "node scripts/fetch-pool-stats.mjs public/stats.json"
   },
   "dependencies": {
+    "@solana-program/token": "^0.13.0",
+    "@solana/kit": "^6.9.0",
     "@solana/react": "^6.9.0",
     "@solana/web3.js": "^3.0.0-rc.1",
     "@wallet-standard/react": "^1.0.3",
