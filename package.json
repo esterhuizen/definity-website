@@ -13,6 +13,9 @@
     "stats:fetch": "node scripts/fetch-pool-stats.mjs public/stats.json"
   },
   "dependencies": {
+    "@solana/react": "^6.9.0",
+    "@solana/web3.js": "^3.0.0-rc.1",
+    "@wallet-standard/react": "^1.0.3",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
     "next": "15.5.15",
