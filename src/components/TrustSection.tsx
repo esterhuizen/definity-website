@@ -11,7 +11,7 @@ const PROPS = [
     icon: FileCheck2,
     title: 'Built on audited code',
     body:
-      'The pool runs on Solana\'s native SPL Stake Pool program, which has been audited multiple times by independent firms. We don\'t roll our own staking logic.',
+      'The pool is built on Sanctum\'s audited stake-pool program — a battle-tested fork of Solana\'s SPL Stake Pool. We don\'t roll our own staking logic.',
   },
   {
     icon: Eye,
@@ -23,7 +23,7 @@ const PROPS = [
     icon: Unplug,
     title: 'No lockups',
     body:
-      'Liquid staking means you exit when you choose to. Swap definSOL back to SOL on Sanctum or Jupiter — usually instantly, without waiting epochs.',
+      'Liquid staking means you exit when you choose to. Switch the stake panel to Unstake and swap definSOL back to SOL through Jupiter — usually instant, without waiting epochs.',
   },
 ];
 

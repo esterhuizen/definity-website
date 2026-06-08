@@ -6,7 +6,7 @@ type QA = { q: string; a: ReactNode };
 export const HOMEPAGE_FAQ: QA[] = [
   {
     q: 'How safe is staking with Definity?',
-    a: `Definity runs on Solana's native SPL Stake Pool program, which has been audited multiple times by independent firms. The pool itself can't move your SOL — only you can, by signing transactions in your own wallet. You can unstake whenever you want.`,
+    a: `Definity is built on Sanctum's audited stake-pool program — a battle-tested fork of Solana's SPL Stake Pool. The pool itself can't move your SOL — only you can, by signing transactions in your own wallet. You can unstake whenever you want.`,
   },
   {
     q: `What is ${POOL.lstSymbol}?`,
@@ -14,7 +14,7 @@ export const HOMEPAGE_FAQ: QA[] = [
   },
   {
     q: 'How do I unstake?',
-    a: `Two ways. The fast way: swap ${POOL.lstSymbol} back to SOL on Sanctum or Jupiter — usually instant, with a small market fee. The slow way: request a stake-pool withdrawal directly, which settles at the next epoch boundary at the exact pool rate.`,
+    a: `Right in the stake panel: switch it to Unstake and we route ${POOL.lstSymbol} → SOL through Jupiter — usually instant, for a small market fee. If you'd rather avoid the market fee, a direct pool withdrawal on Sanctum settles at the next epoch boundary at the exact pool rate.`,
   },
   {
     q: 'Where do staking rewards come from?',

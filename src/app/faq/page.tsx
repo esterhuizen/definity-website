@@ -24,7 +24,7 @@ const FULL_FAQ = [
   },
   {
     q: 'How safe is it?',
-    a: `Definity uses Solana's native SPL Stake Pool program, which has been audited multiple times by independent firms. The audits and source code are public. The pool program enforces on-chain that user funds can only ever be moved by their owner — Definity does not have custody. Beyond that, the only "trust" assumption is that we delegate to good validators (we monitor uptime and rebalance accordingly).`,
+    a: `Definity is built on Sanctum's audited stake-pool program — a battle-tested fork of Solana's SPL Stake Pool, audited by independent firms. The audits and source code are public. The pool program enforces on-chain that user funds can only ever be moved by their owner — Definity does not have custody. Beyond that, the only "trust" assumption is that we delegate to good validators (we monitor uptime and rebalance accordingly).`,
   },
   {
     q: 'What are the fees?',
@@ -32,7 +32,7 @@ const FULL_FAQ = [
   },
   {
     q: 'How do I unstake?',
-    a: `Two paths. (1) Instant: swap ${POOL.lstSymbol} → SOL on Sanctum or Jupiter. There's a small market fee but you receive SOL within seconds. (2) Direct withdrawal: request a withdrawal from the pool. Settles at the next epoch boundary at the exact pool exchange rate, no market slippage.`,
+    a: `Two paths. (1) Instant, right in the stake panel: switch it to Unstake and we route ${POOL.lstSymbol} → SOL through Jupiter. Small market fee, but you receive SOL within seconds. (2) Direct withdrawal: request a withdrawal from the pool on Sanctum. Settles at the next epoch boundary at the exact pool exchange rate, no market slippage.`,
   },
   {
     q: 'How are validators selected?',
@@ -73,7 +73,7 @@ const FULL_FAQ = [
   },
   {
     q: 'What happens if Definity goes away?',
-    a: 'definSOL keeps working. The pool is on-chain and self-custodial. Even with no one running the website, you can still redeem definSOL for SOL via the SPL Stake Pool program directly, or trade it on Sanctum/Jupiter as long as liquidity exists. That\'s the point of building on top of an audited, native primitive instead of a bespoke contract.',
+    a: 'definSOL keeps working. The pool is on-chain and self-custodial. Even with no one running the website, you can still redeem definSOL for SOL via the Sanctum stake-pool program directly, or trade it on Jupiter or Sanctum as long as liquidity exists. That\'s the point of building on top of an audited stake-pool program instead of a bespoke contract.',
   },
 ];
 
