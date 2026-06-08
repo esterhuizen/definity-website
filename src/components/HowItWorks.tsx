@@ -1,6 +1,6 @@
-import { Wallet, Coins, Workflow, Repeat, ArrowDown, ArrowUpRight, ShieldCheck } from 'lucide-react';
-import { LINKS, POOL } from '@/config/pool';
-import { TrackedLink } from './TrackedLink';
+import { Wallet, Coins, Workflow, Repeat } from 'lucide-react';
+import { StakeProviders } from './stake/StakeProviders';
+import { StakeWidget } from './stake/StakeWidget';
 
 const STEPS = [
   {
@@ -25,7 +25,7 @@ const STEPS = [
     icon: Repeat,
     title: 'Use it in DeFi — or unstake',
     body:
-      'Hold definSOL, lend it, LP it, or swap it back to SOL the moment you want to. Your yield keeps compounding into the token even while it\'s working elsewhere.',
+      'Hold definSOL, lend it, LP it — or switch the panel to Unstake and swap it back to SOL the moment you want to. Your yield keeps compounding into the token even while it\'s working elsewhere.',
   },
 ];
 
@@ -77,92 +77,13 @@ export function HowItWorks() {
           <span className="hidden h-px flex-1 bg-ring sm:block" aria-hidden="true" />
         </div>
 
-        {/* Action panel */}
-        <div className="mx-auto mt-10 max-w-2xl">
-          <div className="surface relative overflow-hidden p-6 shadow-glow-sm md:p-8">
-            <div className="absolute inset-0 bg-dawn-gradient opacity-50" aria-hidden="true" />
-
-            <div className="relative space-y-3">
-              <div className="rounded-xl border border-ring bg-bg-muted/60 p-5">
-                <div className="text-xs uppercase tracking-[0.18em] text-ink-dim">You stake</div>
-                <div className="mt-2 flex items-center justify-between gap-4">
-                  <span className="font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
-                    SOL
-                  </span>
-                  <TokenChip label="SOL" tone="solana" />
-                </div>
-                <p className="mt-2 text-xs text-ink-dim">Native Solana</p>
-              </div>
-
-              <div className="flex items-center justify-center" aria-hidden="true">
-                <div className="-my-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-ring bg-bg">
-                  <ArrowDown className="h-4 w-4 text-sunrise-500" />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-sunrise-300 bg-bg-muted/60 p-5">
-                <div className="text-xs uppercase tracking-[0.18em] text-ink-dim">You receive</div>
-                <div className="mt-2 flex items-center justify-between gap-4">
-                  <span className="font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">
-                    {POOL.lstSymbol}
-                  </span>
-                  <TokenChip label={POOL.lstSymbol} tone="sunrise" />
-                </div>
-                <p className="mt-2 text-xs text-ink-dim">
-                  Liquid receipt · accrues staking rewards
-                </p>
-              </div>
-            </div>
-
-            <div className="relative mt-6 grid gap-3 sm:grid-cols-2">
-              <TrackedLink
-                href={LINKS.jupiterSwap}
-                event="cta_stake_jupiter"
-                external
-                className="btn-primary"
-              >
-                Stake on Jupiter <ArrowUpRight className="h-4 w-4" />
-              </TrackedLink>
-              <TrackedLink
-                href={LINKS.sanctumLst}
-                event="cta_stake_sanctum"
-                external
-                className="btn-ghost"
-              >
-                Stake on Sanctum <ArrowUpRight className="h-4 w-4" />
-              </TrackedLink>
-            </div>
-
-            <p className="relative mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-ink-dim">
-              <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
-              Both routes settle to the same {POOL.lstSymbol} mint —{' '}
-              <span className="font-mono">
-                {POOL.lstMint.slice(0, 4)}…{POOL.lstMint.slice(-4)}
-              </span>
-            </p>
-          </div>
+        {/* Live stake / unstake widget */}
+        <div className="mt-10">
+          <StakeProviders>
+            <StakeWidget />
+          </StakeProviders>
         </div>
       </div>
     </section>
-  );
-}
-
-function TokenChip({ label, tone }: { label: string; tone: 'solana' | 'sunrise' }) {
-  const ring =
-    tone === 'sunrise'
-      ? 'ring-sunrise-500/40 bg-sunrise-500/10'
-      : 'ring-solana-500/40 bg-solana-500/10';
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-ink ring-1 ${ring}`}
-    >
-      <span
-        className={`inline-block h-2 w-2 rounded-full ${
-          tone === 'sunrise' ? 'bg-sunrise-500' : 'bg-solana-500'
-        }`}
-        aria-hidden="true"
-      />
-      {label}
-    </span>
   );
 }

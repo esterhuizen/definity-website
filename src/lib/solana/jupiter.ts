@@ -1,8 +1,6 @@
 'use client';
 
-import {
-  JUPITER_BASE, SOL_MINT, DEFINSOL_MINT, SOL_DECIMALS, DEFINSOL_DECIMALS, DEFAULT_SLIPPAGE_BPS,
-} from './constants';
+import { JUPITER_BASE, DEFAULT_SLIPPAGE_BPS } from './constants';
 
 export type JupiterQuote = {
   inAmount: string;
@@ -13,39 +11,47 @@ export type JupiterQuote = {
   [k: string]: unknown;
 };
 
-/** Convert a decimal SOL string to integer lamports (no float drift). */
-export function solToLamports(amount: string): bigint {
+/** Convert a decimal token-amount string to integer base units (no float drift). */
+export function toBaseUnits(amount: string, decimals: number): bigint {
   const [whole, frac = ''] = amount.trim().split('.');
-  const fracPadded = (frac + '0'.repeat(SOL_DECIMALS)).slice(0, SOL_DECIMALS);
-  return BigInt(whole || '0') * 10n ** BigInt(SOL_DECIMALS) + BigInt(fracPadded || '0');
+  const fracPadded = (frac + '0'.repeat(decimals)).slice(0, decimals);
+  return BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(fracPadded || '0');
 }
 
 export function baseUnitsToDecimal(amount: string, decimals: number): number {
   return Number(BigInt(amount)) / 10 ** decimals;
 }
 
-/** Quote SOL → definSOL. Returns null if no route. */
-export async function quoteSolToDefinsol(
-  lamports: bigint,
+/**
+ * Quote a swap between two mints. `amount` is in the input mint's base units.
+ * Works both directions (SOL→definSOL to stake, definSOL→SOL to unstake).
+ * Returns null if Jupiter has no route.
+ */
+export async function quoteSwap(
+  inputMint: string,
+  outputMint: string,
+  amount: bigint,
   slippageBps = DEFAULT_SLIPPAGE_BPS,
 ): Promise<JupiterQuote | null> {
   const url =
-    `${JUPITER_BASE}/quote?inputMint=${SOL_MINT}&outputMint=${DEFINSOL_MINT}` +
-    `&amount=${lamports.toString()}&slippageBps=${slippageBps}`;
+    `${JUPITER_BASE}/quote?inputMint=${inputMint}&outputMint=${outputMint}` +
+    `&amount=${amount.toString()}&slippageBps=${slippageBps}`;
   const res = await fetch(url);
   if (!res.ok) return null;
   const q = (await res.json()) as JupiterQuote;
   return q?.outAmount ? q : null;
 }
 
-export function quoteOutDefinsol(q: JupiterQuote): number {
-  return baseUnitsToDecimal(q.outAmount, DEFINSOL_DECIMALS);
+/** Output amount of a quote in whole tokens, given the output mint's decimals. */
+export function quoteOut(q: JupiterQuote, outputDecimals: number): number {
+  return baseUnitsToDecimal(q.outAmount, outputDecimals);
 }
 
 /**
- * Build the SOL→definSOL swap transaction for `userPublicKey` from a quote.
- * Returns the wire-format serialized VersionedTransaction bytes, ready to hand
- * to the wallet's signAndSendTransaction.
+ * Build the swap transaction for `userPublicKey` from a quote (either
+ * direction). `wrapAndUnwrapSol` makes Jupiter wrap native SOL on the way in
+ * and unwrap it on the way out, so unstake settles to native SOL.
+ * Returns wire-format serialized VersionedTransaction bytes for the wallet.
  */
 export async function buildSwapTransaction(
   quote: JupiterQuote,

@@ -37,7 +37,7 @@ export function Hero() {
           </div>
 
           <p className="mt-6 text-xs text-ink-dim animate-fade-up [animation-delay:320ms]">
-            Non-custodial · Built on the Solana SPL Stake Pool program · Unstake anytime
+            Non-custodial · Built on Sanctum&apos;s audited stake-pool program · Unstake anytime
           </p>
         </div>
       </div>

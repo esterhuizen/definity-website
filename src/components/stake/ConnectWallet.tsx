@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { UiWallet, UiWalletAccount } from '@wallet-standard/react';
 import { useWallets, useConnect, useDisconnect } from '@wallet-standard/react';
+import { Wallet } from 'lucide-react';
 import { useSelectedWalletAccount } from '@solana/react';
 import { SOLANA_CHAIN } from '@/lib/solana/constants';
 
@@ -35,14 +36,14 @@ function WalletOption({
           console.error('connect failed', e);
         }
       }}
-      className="flex w-full items-center gap-3 rounded-lg border border-neutral-700 px-4 py-3 text-left hover:border-neutral-500 disabled:opacity-50"
+      className="flex w-full items-center gap-3 rounded-xl border border-ring bg-bg px-4 py-3 text-left transition hover:border-ink-dim hover:bg-bg-muted disabled:opacity-50"
     >
       {wallet.icon ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={wallet.icon} alt="" className="h-6 w-6 rounded" />
       ) : null}
-      <span className="font-medium">{wallet.name}</span>
-      {isConnecting ? <span className="ml-auto text-sm text-neutral-400">connecting…</span> : null}
+      <span className="font-medium text-ink">{wallet.name}</span>
+      {isConnecting ? <span className="ml-auto text-sm text-ink-dim">connecting…</span> : null}
     </button>
   );
 }
@@ -63,7 +64,7 @@ function DisconnectButton({ account }: { account: UiWalletAccount }) {
           setSelected(undefined);
         }
       }}
-      className="text-sm text-neutral-400 underline hover:text-neutral-200 disabled:opacity-50"
+      className="text-sm text-ink-dim underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
     >
       Disconnect
     </button>
@@ -77,8 +78,8 @@ export function ConnectWallet() {
 
   if (selected) {
     return (
-      <div className="flex items-center justify-between rounded-lg border border-neutral-700 px-4 py-3">
-        <span className="font-mono text-sm">{short(selected.address)}</span>
+      <div className="flex items-center justify-between rounded-xl border border-ring bg-bg-muted/60 px-4 py-3">
+        <span className="font-mono text-sm text-ink">{short(selected.address)}</span>
         <DisconnectButton account={selected} />
       </div>
     );
@@ -86,31 +87,46 @@ export function ConnectWallet() {
 
   if (wallets.length === 0) {
     return (
-      <div className="rounded-lg border border-neutral-700 px-4 py-3 text-sm text-neutral-400">
+      <div className="rounded-xl border border-ring bg-bg-muted/60 px-4 py-4 text-sm text-ink-muted">
         No Solana wallet detected. Install{' '}
-        <a className="underline" href="https://phantom.app" target="_blank" rel="noreferrer">Phantom</a>,{' '}
-        <a className="underline" href="https://solflare.com" target="_blank" rel="noreferrer">Solflare</a>, or{' '}
-        <a className="underline" href="https://backpack.app" target="_blank" rel="noreferrer">Backpack</a>.
+        <a className="text-ink underline underline-offset-2" href="https://phantom.app" target="_blank" rel="noreferrer">Phantom</a>,{' '}
+        <a className="text-ink underline underline-offset-2" href="https://solflare.com" target="_blank" rel="noreferrer">Solflare</a>, or{' '}
+        <a className="text-ink underline underline-offset-2" href="https://backpack.app" target="_blank" rel="noreferrer">Backpack</a>.
       </div>
     );
   }
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full rounded-lg bg-white px-4 py-3 font-semibold text-neutral-900 hover:bg-neutral-200"
-      >
-        Connect wallet
-      </button>
+    <div className="space-y-3">
+      <div className="text-center">
+        <p className="font-display text-lg font-semibold text-ink">Connect a wallet to stake</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          Definity never takes custody — every action is signed by you.
+        </p>
+      </div>
+
       {open ? (
-        <div className="mt-2 space-y-2">
+        <div className="space-y-2">
           {wallets.map((w) => (
             <WalletOption key={w.name} wallet={w} onConnected={(a) => { setSelected(a); setOpen(false); }} />
           ))}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="w-full text-center text-xs text-ink-dim hover:text-ink"
+          >
+            Cancel
+          </button>
         </div>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="btn-primary w-full"
+        >
+          <Wallet className="h-4 w-4" aria-hidden="true" /> Connect wallet
+        </button>
+      )}
     </div>
   );
 }

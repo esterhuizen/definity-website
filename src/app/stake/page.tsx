@@ -10,28 +10,29 @@ export const metadata: Metadata = {
 
 export default function StakePage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16">
-      <header className="mb-10 text-center">
-        <h1 className="text-3xl font-bold tracking-tight md:text-4xl">Stake SOL → definSOL</h1>
-        <p className="mx-auto mt-3 max-w-xl text-neutral-400">
-          Convert SOL into <span className="font-semibold">definSOL</span>, Definity’s liquid staking
-          token backed by a curated, geographically-decentralised validator set. Liquid, tradeable,
-          and earning from the moment you stake.
+    <section className="container-narrow py-24 md:py-32">
+      <header className="mx-auto max-w-2xl text-center">
+        <span className="eyebrow">Stake</span>
+        <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight text-balance md:text-5xl">
+          Stake SOL for{' '}
+          <span className="bg-sunrise-gradient bg-clip-text text-transparent">definSOL</span>.
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
+          Convert SOL into definSOL, Definity’s liquid staking token backed by a curated,
+          geographically-decentralised validator set. Liquid, tradeable, and earning from the
+          moment you stake.
         </p>
       </header>
 
-      <StakeProviders>
-        <StakeWidget />
-      </StakeProviders>
+      <div className="mt-10">
+        <StakeProviders>
+          <StakeWidget />
+        </StakeProviders>
+      </div>
 
-      <p className="mx-auto mt-6 max-w-md text-center text-xs text-neutral-500">
-        Deposits route through Jupiter, which mints definSOL via Sanctum at the live exchange rate.
-        Your wallet signs and submits the transaction — Definity never holds your funds.
-      </p>
-
-      <p className="mx-auto mt-8 max-w-md text-center text-sm text-neutral-400">
+      <p className="mx-auto mt-8 max-w-md text-center text-sm text-ink-dim">
         Coming next: choose the token your staking yield is paid in.
       </p>
-    </div>
+    </section>
   );
 }
