@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
+import { MobileMenu } from './MobileMenu';
 
 const NAV = [
+  { label: 'Institutions', href: '/institutions' },
   { label: 'Mission', href: '/#mission' },
   { label: 'How it works', href: '/#how' },
   { label: 'Stake', href: '/#stake' },
-  { label: 'FAQ', href: '/faq' },
   { label: 'Validators', href: '/validators' },
+  { label: 'FAQ', href: '/faq' },
 ];
 
 export function Navbar() {
@@ -29,9 +31,12 @@ export function Navbar() {
           </ul>
         </nav>
 
-        <Link href="/#stake" className="btn-primary text-sm">
-          Stake SOL
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/#stake" className="btn-primary text-sm">
+            Stake SOL
+          </Link>
+          <MobileMenu items={NAV} />
+        </div>
       </div>
     </header>
   );

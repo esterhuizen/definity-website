@@ -1,5 +1,6 @@
 import { Hero } from '@/components/Hero';
 import { StatsRow } from '@/components/StatsRow';
+import { GdiBand } from '@/components/GdiBand';
 import { ValidatorMap } from '@/components/ValidatorMap';
 
 // Regenerate the homepage every 30 minutes so the live on-chain stats
@@ -9,6 +10,7 @@ export const revalidate = 1800;
 import { MissionSection } from '@/components/MissionSection';
 import { HowItWorks } from '@/components/HowItWorks';
 import { TrustSection } from '@/components/TrustSection';
+import { InstitutionsDoorway } from '@/components/InstitutionsDoorway';
 import { RegionsBand } from '@/components/RegionsBand';
 import { HomeFAQ } from '@/components/HomeFAQ';
 import { FinalCTA } from '@/components/FinalCTA';
@@ -18,10 +20,12 @@ export default function HomePage() {
     <>
       <Hero />
       <StatsRow />
+      <GdiBand />
       <ValidatorMap />
       <MissionSection />
       <HowItWorks />
       <TrustSection />
+      <InstitutionsDoorway />
       <RegionsBand />
       <HomeFAQ />
       <FinalCTA />

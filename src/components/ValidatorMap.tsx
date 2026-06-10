@@ -100,16 +100,26 @@ export async function ValidatorMap() {
   return (
     <section className="container-narrow py-20 md:py-28">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="eyebrow">Where your stake runs</span>
+        <span className="eyebrow">Spread by design</span>
         <h2 className="mt-5 font-display text-3xl font-semibold tracking-tight text-balance md:text-4xl">
-          {data.matched} validators across{' '}
+          {data.matched} validators,{' '}
           <span className="bg-sunrise-gradient bg-clip-text text-transparent">
-            {data.countries} countries
+            deliberately spread out
           </span>
           .
         </h2>
         <p className="mt-4 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-          A live snapshot of where the validators we delegate to are physically running.
+          Concentrated stake is correlated-failure risk. We delegate across rare countries,
+          cities and network operators, and the spread is scored independently on the{' '}
+          <a
+            href="https://gdindex.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ink underline decoration-ring underline-offset-2 hover:decoration-ink"
+          >
+            GDI
+          </a>
+          . This is a live snapshot of where those validators physically run.
         </p>
       </div>
 
@@ -141,7 +151,7 @@ export async function ValidatorMap() {
                 <g key={`${v.vote}-${i}`}>
                   <title>
                     {v.name || v.vote.slice(0, 8)}
-                    {v.city ? ` — ${v.city}` : ''}
+                    {v.city ? ` · ${v.city}` : ''}
                     {v.country ? `, ${v.country}` : ''}
                   </title>
                   <circle cx={x} cy={y} r={18} fill="url(#vm-glow)" />

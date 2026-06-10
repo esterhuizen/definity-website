@@ -212,7 +212,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
               className="font-mono text-ink-muted hover:text-ink"
               title={dir.gasReserve ? `Use max (leaves ~${dir.gasReserve} SOL for fees)` : 'Use max'}
             >
-              {dir.inBalance == null ? '—' : dir.inBalance.toFixed(4)}
+              {dir.inBalance == null ? '-' : dir.inBalance.toFixed(4)}
             </button>
           </span>
         </div>
@@ -227,7 +227,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
           <TokenChip label={dir.inSym} tone={dir.inTone} />
         </div>
 
-        {/* Percent slider — snaps to 25 / 50 / 75 / 100% of the usable balance */}
+        {/* Percent slider: snaps to 25 / 50 / 75 / 100% of the usable balance */}
         <div className="mt-4">
           <input
             type="range"
@@ -285,7 +285,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
           <span className="text-xs text-ink-dim">
             Balance:{' '}
             <span className="font-mono text-ink-muted">
-              {dir.outBalance == null ? '—' : dir.outBalance.toFixed(4)}
+              {dir.outBalance == null ? '-' : dir.outBalance.toFixed(4)}
             </span>
           </span>
         </div>
@@ -330,7 +330,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
 
       <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-[11px] text-ink-dim">
         <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
-        Swaps route through Jupiter. Your wallet signs and submits — Definity never holds your funds.
+        Swaps route through Jupiter. Your wallet signs and submits; Definity never holds your funds.
       </p>
     </div>
   );

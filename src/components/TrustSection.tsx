@@ -1,17 +1,18 @@
-import { Lock, FileCheck2, Eye, Unplug } from 'lucide-react';
+import Link from 'next/link';
+import { Lock, FileCheck2, Eye, Unplug, ArrowRight } from 'lucide-react';
 
 const PROPS = [
   {
     icon: Lock,
     title: 'You hold the keys, always',
     body:
-      'Definity is non-custodial. Every stake or unstake is signed by your own wallet. The pool program itself can\'t move user funds — that\'s enforced on-chain by Solana.',
+      'Definity is non-custodial. Every stake or unstake is signed by your own wallet, and the pool program itself can\'t move user funds. Solana enforces that on-chain.',
   },
   {
     icon: FileCheck2,
     title: 'Built on audited code',
     body:
-      'The pool is built on Sanctum\'s audited stake-pool program — a battle-tested fork of Solana\'s SPL Stake Pool. We don\'t roll our own staking logic.',
+      'The pool is built on Sanctum\'s audited stake-pool program, a battle-tested fork of Solana\'s SPL Stake Pool. We don\'t roll our own staking logic.',
   },
   {
     icon: Eye,
@@ -23,7 +24,7 @@ const PROPS = [
     icon: Unplug,
     title: 'No lockups',
     body:
-      'Liquid staking means you exit when you choose to. Switch the stake panel to Unstake and swap definSOL back to SOL through Jupiter — usually instant, without waiting epochs.',
+      'Liquid staking means you exit when you choose to. Switch the stake panel to Unstake and swap definSOL back to SOL through Jupiter, usually instantly, without waiting epochs.',
   },
 ];
 
@@ -37,9 +38,9 @@ export function TrustSection() {
             As secure as Solana itself.
           </h2>
           <p className="mt-5 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-            Definity runs on Solana's own staking program. Your SOL inherits the same security
-            model that protects every validator and every transaction on the base chain — Definity
-            adds no custody and no extra contracts of its own.
+            Definity is built on Sanctum's audited stake-pool program. Your SOL inherits the
+            security model that protects every validator and every transaction on the base
+            chain, and Definity adds no custody and no extra contracts of its own.
           </p>
         </div>
 
@@ -55,6 +56,21 @@ export function TrustSection() {
               <p className="mt-3 text-sm leading-relaxed text-ink-muted text-pretty">{body}</p>
             </div>
           ))}
+        </div>
+
+        {/* Validator bar: the hard thresholds, surfaced on the homepage. */}
+        <div className="surface mt-6 flex flex-col gap-3 px-6 py-5 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-ink-muted">
+            <span className="font-semibold text-ink">Every validator must clear:</span>{' '}
+            commission ≤ 5% · MEV commission ≤ 10% · skip rate &lt; 10% · SFDP standing intact.
+            Checked every epoch; breaches drop out of the set.
+          </p>
+          <Link
+            href="/validators"
+            className="inline-flex shrink-0 items-center gap-1 font-medium text-sunrise-500 hover:underline"
+          >
+            Selection policy <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>

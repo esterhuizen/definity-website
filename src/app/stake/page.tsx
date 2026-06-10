@@ -5,7 +5,7 @@ import { StakeWidget } from '@/components/stake/StakeWidget';
 export const metadata: Metadata = {
   title: 'Stake',
   description:
-    'Stake SOL into definSOL — Definity’s geographically-decentralised liquid staking token. Connect a wallet and convert SOL to definSOL in one click.',
+    'Stake SOL into definSOL, Definity’s geographically-decentralised liquid staking token. Connect a wallet and convert SOL to definSOL in one click.',
 };
 
 export default function StakePage() {

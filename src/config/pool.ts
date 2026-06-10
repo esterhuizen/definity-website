@@ -24,7 +24,7 @@ export const LINKS = {
 
   twitter: 'https://x.com/realdefinity',
   // Single Telegram link: the operator's personal handle. There is no
-  // separate "DefinityFinance" channel — every "Telegram" reference on the
+  // separate "DefinityFinance" channel; every "Telegram" reference on the
   // site points here.
   telegram: 'https://t.me/realtielman',
   telegramHandle: '@realtielman',
@@ -33,7 +33,7 @@ export const LINKS = {
 
 export const SITE = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://definity.finance',
-  title: 'Definity — Stake SOL, grow the ecosystem where it matters most',
+  title: 'Definity - Stake SOL, grow the ecosystem where it matters most',
   description:
     'Definity is a Solana stake pool that turns staking yield into ecosystem growth in regions that need it most. Stake SOL, receive definSOL, keep your liquidity.',
 } as const;

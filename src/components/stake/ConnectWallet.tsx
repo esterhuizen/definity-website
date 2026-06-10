@@ -101,7 +101,7 @@ export function ConnectWallet() {
       <div className="text-center">
         <p className="font-display text-lg font-semibold text-ink">Connect a wallet to stake</p>
         <p className="mt-1 text-sm text-ink-muted">
-          Definity never takes custody — every action is signed by you.
+          Definity never takes custody. Every action is signed by you.
         </p>
       </div>
 

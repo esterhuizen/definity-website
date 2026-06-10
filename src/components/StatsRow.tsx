@@ -1,7 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { getGdiStanding } from '@/lib/gdi';
 
-// Shape produced by scripts/fetch-pool-stats.mjs. Kept narrow on purpose —
+// Shape produced by scripts/fetch-pool-stats.mjs. Kept narrow on purpose:
 // extra fields in the JSON are fine; we just don't read them here.
 type PoolStats = {
   validators: number;
@@ -25,21 +26,27 @@ const intFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 const solFmt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
 
 export async function StatsRow() {
-  const stats = await readStats();
+  const [stats, gdi] = await Promise.all([readStats(), getGdiStanding()]);
 
+  // Rigor leads: the independently-verified decentralisation rank is the
+  // strongest tile, so it comes first. Raw pool size comes last.
   const tiles = [
     {
-      value: stats ? intFmt.format(stats.validators) : '—',
+      value: gdi ? `#${gdi.rank} of ${gdi.total}` : 'Ranked',
+      label: 'GDI decentralisation',
+      live: true,
+    },
+    { value: 'Non-custodial', label: 'Custody', live: false },
+    {
+      value: stats ? intFmt.format(stats.validators) : '-',
       label: 'Validators',
       live: true,
     },
     {
-      value: stats ? `${solFmt.format(stats.totalSol)} SOL` : '— SOL',
+      value: stats ? `${solFmt.format(stats.totalSol)} SOL` : '- SOL',
       label: 'Total staked',
       live: true,
     },
-    { value: 'Non-custodial', label: 'Custody', live: false },
-    { value: 'Anytime', label: 'Unstake window', live: false },
   ];
 
   return (

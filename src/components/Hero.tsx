@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import { getGdiStanding } from '@/lib/gdi';
 
-export function Hero() {
+export async function Hero() {
+  const gdi = await getGdiStanding();
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0 grid-line opacity-40" aria-hidden="true" />
@@ -36,8 +38,20 @@ export function Hero() {
             </Link>
           </div>
 
+          <p className="mt-5 text-sm animate-fade-up [animation-delay:300ms]">
+            <Link
+              href="/institutions"
+              className="inline-flex items-center gap-1.5 text-ink-muted underline-offset-4 hover:text-ink hover:underline"
+            >
+              Staking as an institution?{' '}
+              <span className="font-medium text-ink">See definSOL for institutions</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </p>
+
           <p className="mt-6 text-xs text-ink-dim animate-fade-up [animation-delay:320ms]">
-            Non-custodial · Built on Sanctum&apos;s audited stake-pool program · Unstake anytime
+            Non-custodial · Audited Sanctum stake-pool program
+            {gdi ? ` · Ranked #${gdi.rank} of ${gdi.total} on the GDI` : ''} · Unstake anytime
           </p>
         </div>
       </div>

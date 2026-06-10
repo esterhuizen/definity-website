@@ -9,7 +9,7 @@ const STORAGE_KEY = 'definity:selected-wallet';
 
 // Wallet discovery (useWallets) reads the global wallet-standard registry and
 // needs no provider. We only need the selected-account context so the connect
-// button and the deposit panel agree on which account is active — plus
+// button and the deposit panel agree on which account is active, plus
 // localStorage state-sync so the choice survives reloads.
 export function StakeProviders({ children }: { children: ReactNode }) {
   return (
