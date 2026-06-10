@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const FULL_FAQ = [
   {
     q: 'What is staking, in plain terms?',
-    a: 'Solana is secured by validators that process transactions. To run a validator, you need stake. SOL holders can delegate their tokens to validators, and in exchange they earn a share of the rewards those validators produce — paid every epoch, about every two days. Staking is how the network pays the people who keep it honest.',
+    a: 'Solana is secured by validators that process transactions. To run a validator, you need stake. SOL holders can delegate their tokens to validators, and in exchange they earn a share of the rewards those validators produce, paid every epoch (about every two days). Staking is how the network pays the people who keep it honest.',
   },
   {
     q: 'What is a stake pool?',
@@ -20,15 +20,15 @@ const FULL_FAQ = [
   },
   {
     q: `What exactly is ${POOL.lstSymbol}?`,
-    a: `${POOL.lstSymbol} is the liquid staking token issued by Definity's stake pool. One ${POOL.lstSymbol} represents a share of the total SOL in the pool. As the pool earns staking rewards, the redemption rate grows — so 1 ${POOL.lstSymbol} is worth more SOL over time. The price isn't pegged 1:1 to SOL; it appreciates with rewards.`,
+    a: `${POOL.lstSymbol} is the liquid staking token issued by Definity's stake pool. One ${POOL.lstSymbol} represents a share of the total SOL in the pool. As the pool earns staking rewards, the redemption rate grows, so 1 ${POOL.lstSymbol} is worth more SOL over time. The price isn't pegged 1:1 to SOL; it appreciates with rewards.`,
   },
   {
     q: 'How safe is it?',
-    a: `Definity is built on Sanctum's audited stake-pool program — a battle-tested fork of Solana's SPL Stake Pool, audited by independent firms. The audits and source code are public. The pool program enforces on-chain that user funds can only ever be moved by their owner — Definity does not have custody. Beyond that, the only "trust" assumption is that we delegate to good validators (we monitor uptime and rebalance accordingly).`,
+    a: `Definity is built on Sanctum's audited stake-pool program, a battle-tested fork of Solana's SPL Stake Pool audited by independent firms. The audits and source code are public. The pool program enforces on-chain that user funds can only ever be moved by their owner; Definity does not have custody. Beyond that, the only "trust" assumption is that we delegate to good validators (we monitor uptime and rebalance accordingly).`,
   },
   {
     q: 'What are the fees?',
-    a: `Stake-pool fees are set on-chain and are visible on the pool account itself. They typically come in three forms: a small fee on staking rewards (the standard model — taken from yield, not principal), a small management fee, and an SOL-deposit fee for instant deposits. The exact current values are encoded on-chain at the pool address — check Solscan for the live numbers.`,
+    a: `Stake-pool fees are set on-chain and are visible on the pool account itself. They typically come in three forms: a small fee on staking rewards (the standard model: taken from yield, not principal), a small management fee, and an SOL-deposit fee for instant deposits. The exact current values are encoded on-chain at the pool address; check Solscan for the live numbers.`,
   },
   {
     q: 'How do I unstake?',
@@ -55,7 +55,7 @@ const FULL_FAQ = [
         </a>
         : operators whose country / city / ASN are underrepresented in Solana
         network stake receive larger delegations than those in already-saturated
-        buckets. Validator hosting location is NOT an admission gate — every
+        buckets. Validator hosting location is NOT an admission gate: every
         admitted operator gets some stake; rarity determines how much. Approved
         validators are continuously monitored for operational compliance (commission
         drift, delinquency, etc.); substance is not re-evaluated after admission.
@@ -65,11 +65,26 @@ const FULL_FAQ = [
   },
   {
     q: 'Where does the "supporting the ecosystem in emerging regions" part actually come from?',
-    a: 'A portion of pool fees — the share that would otherwise be Definity\'s revenue — is reinvested into developer programs, hackathons, and early-stage support for builders in emerging markets across APAC, the Middle East, Africa, and South America. This is operational, not speculative: every reinvested dollar comes from real, on-chain pool fees that have already accrued.',
+    a: 'A portion of pool fees (the share that would otherwise be Definity\'s revenue) is reinvested into developer programs, hackathons, and early-stage support for builders in emerging markets across APAC, the Middle East, Africa, and South America. This is operational, not speculative: every reinvested dollar comes from real, on-chain pool fees that have already accrued.',
+  },
+  {
+    q: 'Can institutions stake with Definity?',
+    a: (
+      <>
+        Yes. definSOL is non-custodial (you self-custody the token and exit permissionlessly),
+        built on Sanctum&apos;s audited stake-pool program, and its decentralisation is
+        independently verified on the GDI. For validator policy, MEV handling, reporting, and
+        custody-platform questions, see{' '}
+        <Link className="text-ink underline underline-offset-2" href="/institutions">
+          definSOL for institutions
+        </Link>{' '}
+        or get in touch with the team.
+      </>
+    ),
   },
   {
     q: 'Is there any minimum stake?',
-    a: 'No protocol-level minimum to hold definSOL. The Solana network does enforce a tiny rent-exempt minimum on token accounts (around 0.002 SOL) — that\'s a network thing, not a Definity thing.',
+    a: 'No protocol-level minimum to hold definSOL. The Solana network does enforce a tiny rent-exempt minimum on token accounts (around 0.002 SOL), but that\'s a network thing, not a Definity thing.',
   },
   {
     q: 'What happens if Definity goes away?',

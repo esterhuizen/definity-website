@@ -13,13 +13,13 @@ export const metadata: Metadata = {
 const HARD_THRESHOLDS = [
   'Validator commission ≤ 5%. Exactly 5% is allowed; 5.01% rejects.',
   'MEV commission ≤ 10% (1000 bps). Jito MEV commission cannot exceed this.',
-  'Actively voting on Solana mainnet — vote account live, not persistently delinquent (no more than 4 hours offline in any 7-day window).',
-  'Strong voting performance — Stakewiz `skip_rate` below 10% across recent epochs. Stricter than SFDP\'s `network_average + 5pp` rule. A persistent pattern of missed leader slots is degraded operational health, even if the validator never goes fully offline.',
-  'SFDP standing intact — not removed from the Solana Foundation Delegation Program for cause.',
+  'Actively voting on Solana mainnet: vote account live, not persistently delinquent (no more than 4 hours offline in any 7-day window).',
+  'Strong voting performance: Stakewiz `skip_rate` below 10% across recent epochs. Stricter than SFDP\'s `network_average + 5pp` rule. A persistent pattern of missed leader slots is degraded operational health, even if the validator never goes fully offline.',
+  'SFDP standing intact: not removed from the Solana Foundation Delegation Program for cause.',
 ];
 
 const MISSION = [
-  'Team based in one of Definity\'s focus regions: APAC, the Middle East, Africa, or South America. APAC covers East Asia (Japan, Korea, Taiwan, Hong Kong), Southeast Asia (Singapore, Indonesia, Philippines, Thailand, Vietnam, Malaysia, …), South Asia (India, Bangladesh, Pakistan, Sri Lanka, Nepal), and Oceania (Australia, New Zealand). The Middle East includes the GCC + Turkey + Israel. Africa covers the continent. South America covers Brazil, Argentina, Chile, Colombia, Peru, and the rest. This is operator location — not corporate domicile, not hosting location.',
+  'Team based in one of Definity\'s focus regions: APAC, the Middle East, Africa, or South America. APAC covers East Asia (Japan, Korea, Taiwan, Hong Kong), Southeast Asia (Singapore, Indonesia, Philippines, Thailand, Vietnam, Malaysia, …), South Asia (India, Bangladesh, Pakistan, Sri Lanka, Nepal), and Oceania (Australia, New Zealand). The Middle East includes the GCC + Turkey + Israel. Africa covers the continent. South America covers Brazil, Argentina, Chile, Colombia, Peru, and the rest. This is operator location, not corporate domicile and not hosting location.',
 ];
 
 const PREFERRED = [
@@ -82,7 +82,7 @@ export default function WhitelistApplyPage() {
         <div>
           <h2 className="font-display text-xl font-semibold text-ink">Mission alignment</h2>
           <p className="mt-2 text-sm text-ink-muted text-pretty">
-            Two distinct location signals — both required. Team location is about where the
+            Two distinct location signals, both required. Team location is about where the
             people doing the work are based; validator location is about where the box runs.
           </p>
           <ol className="mt-5 space-y-3" start={HARD_THRESHOLDS.length + 1}>

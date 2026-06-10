@@ -23,6 +23,7 @@ export function Footer() {
             <li><Link className="text-ink-muted hover:text-ink" href="/#stake">Stake</Link></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/#how">How it works</Link></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/validators">Validators</Link></li>
+            <li><Link className="text-ink-muted hover:text-ink" href="/institutions">Institutions</Link></li>
             <li><TrackedLink className="text-ink-muted hover:text-ink" href="/whitelist-apply" event="cta_whitelist_apply">Apply for whitelisting</TrackedLink></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/addresses">Pool & token IDs</Link></li>
             <li><Link className="text-ink-muted hover:text-ink" href="/faq">FAQ</Link></li>

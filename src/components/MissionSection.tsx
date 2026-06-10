@@ -5,7 +5,7 @@ const PILLARS = [
     icon: Globe2,
     title: 'Where Solana grows next',
     body:
-      'Most of the world hasn\'t met Solana yet. Across APAC, the Middle East, Africa, and South America, builders are launching real products — payments, identity, on-chain savings — for users who actually need them. Definity exists to fund that wave.',
+      'Most of the world hasn\'t met Solana yet. Across APAC, the Middle East, Africa, and South America, builders are launching real products (payments, identity, on-chain savings) for users who actually need them. Definity exists to fund that wave.',
   },
   {
     icon: Sprout,
@@ -17,7 +17,7 @@ const PILLARS = [
     icon: Heart,
     title: 'Aligned with the people who use it',
     body:
-      'You stay in control of your capital. You can swap definSOL back to SOL the moment you want to. Mission-aligned doesn\'t mean concessional — it means the upside compounds for everyone holding the token.',
+      'You stay in control of your capital. You can swap definSOL back to SOL the moment you want to. Mission-aligned doesn\'t mean concessional; it means the upside compounds for everyone holding the token.',
   },
 ];
 

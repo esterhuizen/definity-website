@@ -41,7 +41,7 @@ export default function AddressesPage() {
         </h1>
         <p className="mt-5 text-lg text-ink-muted text-pretty">
           Everything that matters about Definity lives on-chain. These are the canonical
-          addresses — bookmark them.
+          addresses. Bookmark them.
         </p>
       </div>
 

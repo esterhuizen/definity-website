@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     'How Definity selects, monitors and rebalances the validators that secure your stake.',
 };
 
-// Hard thresholds — concrete, published, automatically verified. Every
+// Hard thresholds: concrete, published, automatically verified. Every
 // rejection cites the specific rule violated so applicants can self-check.
 const HARD_THRESHOLDS = [
   {
@@ -23,11 +23,11 @@ const HARD_THRESHOLDS = [
   },
   {
     title: 'Actively voting on mainnet',
-    body: 'Vote account must be live on Solana mainnet and not persistently delinquent — no more than 4 hours offline in any 7-day window.',
+    body: 'Vote account must be live on Solana mainnet and not persistently delinquent: no more than 4 hours offline in any 7-day window.',
   },
   {
     title: 'Strong voting performance',
-    body: 'Skip rate must remain below 10% across recent epochs (Stakewiz `skip_rate`). This is stricter than SFDP\'s `network_average + 5pp` rule — Definity is a curated pool, not a delegation program. A persistent pattern of missed leader slots is degraded operational health even if the validator never goes fully offline.',
+    body: 'Skip rate must remain below 10% across recent epochs (Stakewiz `skip_rate`). This is stricter than SFDP\'s `network_average + 5pp` rule, because Definity is a curated pool, not a delegation program. A persistent pattern of missed leader slots is degraded operational health even if the validator never goes fully offline.',
   },
   {
     title: 'SFDP standing intact',
@@ -35,18 +35,18 @@ const HARD_THRESHOLDS = [
   },
 ];
 
-// Mission alignment — about *who* operates the validator, not *where* the
+// Mission alignment: about *who* operates the validator, not *where* the
 // box runs. Validator hosting location is NOT an admission requirement; it
 // only determines how much stake an admitted validator receives (see
 // "How we allocate stake" below).
 const MISSION = [
   {
     title: 'Team based in one of the focus regions',
-    body: 'Where the people doing the work are physically located. Definity\'s focus regions are APAC (East Asia, Southeast Asia, South Asia, Oceania — Japan, Korea, Singapore, Taiwan, Hong Kong, Indonesia, India, the Philippines, Thailand, Vietnam, Malaysia, Australia, New Zealand, …), the Middle East (GCC + Turkey + Israel), Africa, and South America (Brazil, Argentina, Chile, Colombia, Peru, …). This is operator location, not corporate domicile (FZCO / BVI / Cayman are common for tax — they don\'t affect this filter) and not hosting location. A Lagos-based team running their node anywhere on the planet passes; a US-based team running their node in Tokyo does not.',
+    body: 'Where the people doing the work are physically located. Definity\'s focus regions are APAC (East Asia, Southeast Asia, South Asia, Oceania: Japan, Korea, Singapore, Taiwan, Hong Kong, Indonesia, India, the Philippines, Thailand, Vietnam, Malaysia, Australia, New Zealand, …), the Middle East (GCC + Turkey + Israel), Africa, and South America (Brazil, Argentina, Chile, Colombia, Peru, …). This is operator location, not corporate domicile (FZCO / BVI / Cayman are common for tax; they don\'t affect this filter) and not hosting location. A Lagos-based team running their node anywhere on the planet passes; a US-based team running their node in Tokyo does not.',
   },
 ];
 
-// What earns preference — kept general but concrete in the asks.
+// What earns preference: kept general but concrete in the asks.
 const PREFERRED = {
   title: 'Verifiable, measurable contributions',
   body: 'Above the eligibility bar, validator teams with visible, measurable work growing the Solana ecosystem in their region get preference. Shipped products, dev tooling, hackathons run, education or community work, audited contributions. Real outputs with public evidence, not stated intentions.',
@@ -68,7 +68,7 @@ export default function ValidatorsPage() {
           How we choose where your stake goes.
         </h1>
         <p className="mt-5 text-lg text-ink-muted text-pretty">
-          Definity delegates across a curated set of validators — and the pool rebalances each
+          Definity delegates across a curated set of validators, and the pool rebalances each
           epoch so that allocation stays current. Here&apos;s what we filter for.
         </p>
       </div>
@@ -79,7 +79,7 @@ export default function ValidatorsPage() {
         </h2>
         <p className="mt-3 max-w-2xl text-sm text-ink-muted text-pretty">
           Operational gates with concrete numbers. Each is read from a public on-chain or
-          public-API source — every rejection cites the specific rule violated so you can
+          public-API source. Every rejection cites the specific rule violated so you can
           verify it yourself.
         </p>
         <ol className="mt-5 grid gap-6 md:grid-cols-2">
@@ -98,7 +98,7 @@ export default function ValidatorsPage() {
           Mission alignment
         </h2>
         <p className="mt-3 max-w-2xl text-sm text-ink-muted text-pretty">
-          About who runs the validator — not where the box runs. (Validator hosting location
+          About who runs the validator, not where the box runs. (Validator hosting location
           is not an admission requirement; it determines stake allocation post-admission. See
           &ldquo;How we allocate stake&rdquo; below.)
         </p>
@@ -132,7 +132,7 @@ export default function ValidatorsPage() {
           How we allocate stake
         </h2>
         <p className="mt-5 text-base text-ink-muted text-pretty">
-          Admitted validators all receive some stake — but{' '}
+          Admitted validators all receive some stake, but{' '}
           <strong className="text-ink">how much</strong> depends on where they
           run. Each epoch, pool stake is distributed across the admitted set
           in proportion to each validator&apos;s composite rarity on country,
@@ -153,9 +153,9 @@ export default function ValidatorsPage() {
           This replaces a previous flat stake-per-validator approach. Flat
           was easy to reason about but didn&apos;t reward operators in places
           that need stake the most. Under the rarity-weighted strategy, an
-          operator running a node in an underweight city / ASN — Manila,
+          operator running a node in an underweight city / ASN (Manila,
           Jakarta, Lagos, São Paulo, a Bangalore datacenter that isn&apos;t
-          shared upstream with a dozen other validators — receives
+          shared upstream with a dozen other validators) receives
           meaningfully more stake than a seventh validator in Frankfurt on
           Hetzner or Tokyo on Allnodes.
         </p>
@@ -167,7 +167,7 @@ export default function ValidatorsPage() {
         </p>
         <div className="mt-7 rounded-lg border border-ring bg-bg-muted/40 p-6">
           <h3 className="font-display text-base font-semibold text-ink">
-            Operators — check where you stand
+            Operators: check where you stand
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted text-pretty">
             Look up your validator on the public{' '}
@@ -202,14 +202,14 @@ export default function ValidatorsPage() {
         <p className="mt-5 text-base text-ink-muted text-pretty">
           Approved validators stay in the active delegation set as long as they remain within
           the hard thresholds above. A separate compliance scan re-checks each validator on a
-          regular cadence — commission, MEV commission, SFDP standing, delinquency, and
+          regular cadence: commission, MEV commission, SFDP standing, delinquency, and
           Stakewiz curator flags. If a validator drifts out of compliance (e.g., raises
           commission above 5%, gets flagged for sandwiching), it is removed from the active
           delegation set with an alert to the operator.
         </p>
         <p className="mt-4 text-base text-ink-muted text-pretty">
           Substance scoring (contributions, originality) is <strong className="text-ink">not</strong>{' '}
-          re-evaluated after admission — only operational compliance. A validator admitted on
+          re-evaluated after admission, only operational compliance. A validator admitted on
           a modest substance score is not at risk of removal as long as it stays within the
           published thresholds. Stake allocation, however, is recomputed every epoch from the
           live{' '}

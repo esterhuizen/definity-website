@@ -7,7 +7,7 @@ const STEPS = [
     icon: Wallet,
     title: 'Connect your wallet',
     body:
-      'Open the stake panel and connect Phantom, Solflare, or Backpack. Definity never takes custody of your SOL — every action is signed by you.',
+      'Open the stake panel and connect Phantom, Solflare, or Backpack. Definity never takes custody of your SOL. Every action is signed by you.',
   },
   {
     icon: Coins,
@@ -23,9 +23,9 @@ const STEPS = [
   },
   {
     icon: Repeat,
-    title: 'Use it in DeFi — or unstake',
+    title: 'Use it in DeFi, or unstake',
     body:
-      'Hold definSOL, lend it, LP it — or switch the panel to Unstake and swap it back to SOL the moment you want to. Your yield keeps compounding into the token even while it\'s working elsewhere.',
+      'Hold definSOL, lend it, LP it. Or switch the panel to Unstake and swap it back to SOL the moment you want to. Your yield keeps compounding into the token even while it\'s working elsewhere.',
   },
 ];
 
@@ -41,8 +41,8 @@ export function HowItWorks() {
               Four steps. About a minute.
             </h2>
             <p className="mt-5 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-              Liquid staking on Solana is mechanically simple. The hard part — picking validators,
-              rebalancing, monitoring health — is what we handle on your behalf.
+              Liquid staking on Solana is mechanically simple. The hard part (picking validators,
+              rebalancing, monitoring health) is what we handle on your behalf.
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export function HowItWorks() {
           </div>
         </div>
 
-        {/* Bridge — explanation → action */}
+        {/* Bridge: explanation → action */}
         <div
           id="stake"
           className="scroll-mt-24 mt-20 flex items-center justify-center gap-4 md:mt-24"

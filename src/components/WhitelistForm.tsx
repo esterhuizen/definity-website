@@ -16,7 +16,7 @@ type FormState = {
   contactMethod: ContactMethod | '';
   contactId: string;
   xHandles: string;
-  // honeypot — hidden from real users, attractive to naive bots
+  // honeypot: hidden from real users, attractive to naive bots
   url: string;
 };
 
@@ -58,7 +58,7 @@ export function WhitelistForm() {
       });
 
       if (res.status === 204) {
-        // honeypot path — pretend success
+        // honeypot path: pretend success
         setSubmitted(true);
         return;
       }
@@ -93,7 +93,7 @@ export function WhitelistForm() {
       <div className="surface flex items-start gap-3 p-6 md:p-8">
         <CheckCircle2 className="h-6 w-6 shrink-0 text-success" aria-hidden />
         <div>
-          <h3 className="font-display text-lg font-semibold text-ink">Thanks — we&apos;ve got your application.</h3>
+          <h3 className="font-display text-lg font-semibold text-ink">Thanks, we&apos;ve got your application.</h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted text-pretty">
             We review applications manually and we&apos;ll be in touch via the contact you provided. If
             you don&apos;t hear back within a couple of weeks, ping us on Telegram with your validator&apos;s
@@ -111,7 +111,7 @@ export function WhitelistForm() {
       noValidate
       aria-busy={busy}
     >
-      {/* honeypot — hidden from humans + assistive tech, visible to dumb bots */}
+      {/* honeypot: hidden from humans + assistive tech, visible to dumb bots */}
       <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
         <label htmlFor="wl-url">Website (leave blank)</label>
         <input
@@ -192,7 +192,7 @@ export function WhitelistForm() {
           onChange={(ev) => update('contactMethod', ev.target.value as ContactMethod)}
           className={inputClass + ' appearance-none'}
         >
-          <option value="">— pick one —</option>
+          <option value="">pick one</option>
           {CONTACT_METHODS.map((m) => (
             <option key={m} value={m}>
               {m}
@@ -204,7 +204,7 @@ export function WhitelistForm() {
       <Field
         label="Your best contact ID"
         htmlFor="wl-contactId"
-        helper="Your email, Telegram username, X handle, or another way to reach you — matching whichever method you picked above."
+        helper="Your email, Telegram username, X handle, or another way to reach you, matching whichever method you picked above."
         required
         error={errors.contactId}
       >

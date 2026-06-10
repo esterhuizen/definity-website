@@ -41,7 +41,7 @@ export function RegionsBand() {
               Crypto's loudest stories happen elsewhere. Its most important ones happen here.
             </h2>
             <p className="mt-5 text-base leading-relaxed text-ink-muted text-pretty md:text-lg">
-              In emerging markets, on-chain isn't a thought experiment — it's a remittance, a
+              In emerging markets, on-chain isn't a thought experiment: it's a remittance, a
               savings account, a side income. Definity sends a slice of every reward back to the
               builders making that real.
             </p>
