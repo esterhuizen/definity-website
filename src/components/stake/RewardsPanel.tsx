@@ -14,7 +14,7 @@ import type { UiWalletAccount } from '@wallet-standard/react';
 import { ArrowUpRight, CalendarSync, ShieldCheck, X } from 'lucide-react';
 import { useSignAndSendTransaction } from '@solana/react';
 import { getBase58Decoder } from '@solana/kit';
-import { getDefinsolBalance } from '@/lib/solana/rpc';
+import { getDefinsolBalance, waitForConfirmation } from '@/lib/solana/rpc';
 import { hasTokenAccount, buildCreateAtaTransaction } from '@/lib/solana/ata';
 import {
   getUsdPrices, listRecurringOrders, createRecurringOrder, cancelRecurringOrder,
@@ -109,7 +109,9 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
       });
       setBusy('signing');
       const { signature } = await signAndSend({ transaction: orderTx });
-      setLastSig(getBase58Decoder().decode(signature));
+      const sig = getBase58Decoder().decode(signature);
+      setLastSig(sig);
+      await waitForConfirmation(sig);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -124,7 +126,8 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
       setBusy('cancelling');
       const tx = await cancelRecurringOrder({ user: account.address, orderKey });
       setBusy('signing');
-      await signAndSend({ transaction: tx });
+      const { signature } = await signAndSend({ transaction: tx });
+      await waitForConfirmation(getBase58Decoder().decode(signature));
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
