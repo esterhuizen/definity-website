@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { useSignAndSendTransaction, useSelectedWalletAccount } from '@solana/react';
 import { getBase58Decoder } from '@solana/kit';
 import { ConnectWallet } from './ConnectWallet';
+import { RewardsPanel } from './RewardsPanel';
 import { getSolBalance, getDefinsolBalance } from '@/lib/solana/rpc';
 import {
   quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote,
@@ -14,7 +15,7 @@ import {
   SOLANA_CHAIN, SOL_MINT, SOL_DECIMALS, DEFINSOL_MINT, DEFINSOL_DECIMALS, DEFINSOL_SYMBOL,
 } from '@/lib/solana/constants';
 
-type Mode = 'stake' | 'unstake';
+type Mode = 'stake' | 'unstake' | 'rewards';
 type Tone = 'solana' | 'sunrise';
 
 type TxState =
@@ -58,7 +59,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
 
   // Direction-dependent token framing. SOL and definSOL are both 9-decimal.
   const dir = useMemo(() => {
-    if (mode === 'stake') {
+    if (mode !== 'unstake') {
       return {
         inMint: SOL_MINT, inSym: 'SOL', inTone: 'solana' as Tone,
         inDecimals: SOL_DECIMALS, inBalance: sol, gasReserve: 0.01,
@@ -103,8 +104,9 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
     setTx({ kind: 'idle' });
   }
 
-  // Debounced quote on amount / direction change.
+  // Debounced quote on amount / direction change. (Not used in rewards mode.)
   useEffect(() => {
+    if (mode === 'rewards') return;
     const n = Number(amount);
     if (!amount || !Number.isFinite(n) || n <= 0) { setQuote(null); setQuoting(false); return; }
     const seq = ++quoteSeq.current;
@@ -120,7 +122,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [amount, dir.inMint, dir.outMint, dir.inDecimals]);
+  }, [amount, mode, dir.inMint, dir.outMint, dir.inDecimals]);
 
   // Largest amount the user can actually submit (keeps a gas reserve when the
   // input is native SOL). Both presets and the slider scale off this.
@@ -179,9 +181,9 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
         </button>
       </div>
 
-      {/* Stake / Unstake toggle */}
-      <div className="grid grid-cols-2 gap-1 rounded-xl border border-ring bg-bg-muted/60 p-1">
-        {(['stake', 'unstake'] as Mode[]).map((m) => (
+      {/* Stake / Unstake / Rewards toggle */}
+      <div className="grid grid-cols-3 gap-1 rounded-xl border border-ring bg-bg-muted/60 p-1">
+        {(['stake', 'unstake', 'rewards'] as Mode[]).map((m) => (
           <button
             key={m}
             type="button"
@@ -198,6 +200,10 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
         ))}
       </div>
 
+      {mode === 'rewards' ? (
+        <RewardsPanel account={account} />
+      ) : (
+      <>
       {/* Input */}
       <div className="rounded-xl border border-ring bg-bg-muted/60 p-5">
         <div className="flex items-center justify-between">
@@ -332,6 +338,8 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
         <ShieldCheck className="h-3 w-3 text-success" aria-hidden="true" />
         Swaps route through Jupiter. Your wallet signs and submits; Definity never holds your funds.
       </p>
+      </>
+      )}
     </div>
   );
 }
