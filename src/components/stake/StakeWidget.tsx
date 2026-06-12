@@ -7,7 +7,7 @@ import { useSignAndSendTransaction, useSelectedWalletAccount } from '@solana/rea
 import { getBase58Decoder } from '@solana/kit';
 import { ConnectWallet } from './ConnectWallet';
 import { RewardsPanel } from './RewardsPanel';
-import { getSolBalance, getDefinsolBalance } from '@/lib/solana/rpc';
+import { getSolBalance, getDefinsolBalance, waitForConfirmation } from '@/lib/solana/rpc';
 import {
   quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote,
 } from '@/lib/solana/jupiter';
@@ -164,7 +164,13 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
       setTx({ kind: 'done', signature: sig });
       setAmount('');
       setQuote(null);
-      void refreshBalances();
+      // Wallets resolve on SUBMISSION, not confirmation — refresh once the
+      // trade actually lands (plus a trailing refresh for slow propagation).
+      void (async () => {
+        await waitForConfirmation(sig);
+        await refreshBalances();
+        setTimeout(() => { void refreshBalances(); }, 4_000);
+      })();
     } catch (e) {
       setTx({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
     }
