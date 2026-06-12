@@ -23,3 +23,28 @@ export const RPC_PROXY_PATH = '/api/rpc';
 // quote+swap build the SOL→definSOL transaction; the wallet signs & submits.
 export const JUPITER_BASE = 'https://lite-api.jup.ag/swap/v1';
 export const DEFAULT_SLIPPAGE_BPS = 50; // 0.50%
+
+// Jupiter Recurring + Price APIs (keyless tier on api.jup.ag — lite-api is
+// being phased out for new products). Power the Yield Streams feature:
+// user-signed recurring orders that sell a yield-sized definSOL slice into a
+// target token each cycle. Escrow lives in Jupiter's DCA program
+// (DCA265Vj8a9CEuX1eb1LWRnDT7uK6q1xMipnNyatn23M); we never hold funds.
+export const JUPITER_RECURRING_BASE = 'https://api.jup.ag/recurring/v1';
+export const JUPITER_PRICE_BASE = 'https://api.jup.ag/price/v3';
+
+// Trailing-APY estimate used ONLY to size yield streams (the slice sold per
+// cycle). Conservative; the un-escrowed principal keeps accruing regardless,
+// and renewals re-size from live data. TODO: derive from the pool's
+// exchange-rate history once the stats job records it.
+export const DEFINSOL_APY_ESTIMATE = 0.065;
+
+// Common payout tokens for yield streams.
+export const PAYOUT_TOKENS = [
+  { symbol: 'USDC', mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6 },
+  { symbol: 'USDT', mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', decimals: 6 },
+] as const;
+
+// Jupiter Recurring hard minimums (enforced by their API; we pre-validate for
+// friendlier UX): $100 total order value, $50 per cycle, at least 2 cycles.
+export const RECURRING_MIN_TOTAL_USD = 105;   // small buffer over the $100 floor
+export const RECURRING_MIN_CYCLE_USD = 55;    // small buffer over the $50 floor
