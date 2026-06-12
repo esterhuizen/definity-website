@@ -130,7 +130,13 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
     dir.inBalance == null ? 0 : Math.max(0, dir.inBalance - dir.gasReserve);
 
   function trimAmount(n: number) {
-    return n.toFixed(6).replace(/\.?0+$/, '');
+    // FLOOR to 6 decimals, never round: toFixed rounds half-up, so a balance
+    // like 12.3456789 became "12.345679", a dust amount ABOVE the real
+    // balance, and the 100% preset tripped the over-balance guard (worst on
+    // unstake, where no gas reserve hides it). Flooring keeps the filled
+    // amount at or below the true balance.
+    const floored = Math.floor(n * 1e6) / 1e6;
+    return floored.toFixed(6).replace(/\.?0+$/, '');
   }
 
   function setPct(pct: number) {
@@ -142,7 +148,9 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
   const sliderPct =
     usableMax > 0 && amount ? Math.min(100, Math.max(0, (Number(amount) / usableMax) * 100)) : 0;
 
-  const overBalance = dir.inBalance != null && Number(amount) > dir.inBalance;
+  // Dust epsilon forgives float artifacts at the very edge of the balance;
+  // anything a user actually over-types still trips the guard.
+  const overBalance = dir.inBalance != null && Number(amount) > dir.inBalance + 1e-9;
   const canSubmit =
     tx.kind !== 'submitting' && !!quote && Number(amount) > 0 && !overBalance;
 
