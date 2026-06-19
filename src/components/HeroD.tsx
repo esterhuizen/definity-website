@@ -61,10 +61,10 @@ export async function HeroD() {
             <div className="metric"><div className="k">definSOL base APY</div><div className="v">{apyStr}<small>%</small></div><div className="s">on-chain · net of fees</div></div>
             <div className="metric"><div className="k">Looped net APY</div><div className="v">Soon</div><div className="s">leverage product · in development</div></div>
             <div className="metric"><div className="k">Total value staked</div><div className="v">{tvlK}<small>K SOL</small></div><div className="s">across the pool</div></div>
-            <div className="metric"><div className="k">GDI rank · decentralisation</div><div className="v">#{rank}<small>/{total}</small></div><div className="s">{gdiScore} vs {baseline} baseline ↗</div></div>
+            <a className="metric metric-link" href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank · decentralisation</div><div className="v">#{rank}<small>/{total}</small></div><div className="s">{gdiScore} vs {baseline} baseline <span className="go">↗</span></div></a>
           </section>
           <div className="trust reveal d5">
-            <span>Non-custodial</span><span>Audited Sanctum program</span><span>Ranked #{rank} of {total} on the open GDI</span><span>Every input verifiable on-chain</span>
+            <span>Non-custodial</span><span>Audited Sanctum program</span><span>Ranked #{rank} of {total} on <a href={gdiHref} target="_blank" rel="noreferrer">the open GDI</a></span><span>Every input verifiable on-chain</span>
           </div>
         </div>
       </div>

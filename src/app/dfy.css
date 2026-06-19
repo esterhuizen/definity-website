@@ -84,6 +84,12 @@
 .dfy .metric .s{font-size:10px;color:var(--faint);margin-top:9px}
 .dfy .trust{padding:20px 0 46px;font-size:10.5px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;display:flex;gap:16px;flex-wrap:wrap;position:relative;z-index:2}
 .dfy .trust span::after{content:"·";margin-left:16px;color:var(--hair)}.dfy .trust span:last-child::after{content:""}
+.dfy .trust a{color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(55,240,176,.4)}.dfy .trust a:hover{color:#fff;border-color:var(--teal)}
+/* GDI metric is a link to definSOL's rank page — the ↗ is the affordance */
+.dfy a.metric{text-decoration:none;color:inherit;transition:background .2s}
+.dfy a.metric:hover{background:rgba(255,255,255,.045)}
+.dfy .metric .go{color:var(--teal);font-style:normal}
+.dfy a.metric:hover .go{text-shadow:0 0 9px var(--teal)}
 
 .dfy .reveal{opacity:0;transform:translateY(16px);animation:dfy-rise .85s cubic-bezier(.2,.7,.2,1) forwards}
 @keyframes dfy-rise{to{opacity:1;transform:none}}
