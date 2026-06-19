@@ -63,13 +63,13 @@ export const metadata: Metadata = {
     url: SITE.url,
     siteName: 'Definity',
     type: 'website',
-    images: ['/logo.png'],
+    // og:image is provided by the file-based opengraph-image.tsx (per route).
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: SITE.title,
     description: SITE.description,
-    images: ['/logo.png'],
+    // twitter:image falls back to og:image (the Concept-D card).
   },
   robots: { index: true, follow: true },
 };
