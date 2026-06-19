@@ -29,6 +29,10 @@ const HARD_THRESHOLDS = [
     title: 'SFDP standing intact',
     body: 'Must not have been removed from the Solana Foundation Delegation Program for cause.',
   },
+  {
+    title: 'Jito MEV enabled',
+    body: 'The validator must run the Jito-Solana client and participate in the Jito MEV auction, so MEV rewards accrue to the pool and its stakers instead of being left on the table.',
+  },
 ];
 
 const MISSION = [
