@@ -139,3 +139,22 @@
 .dfy .ftag{margin-top:16px;font-size:12px;color:var(--dim);line-height:1.6;max-width:280px}
 .dfy .fbot{display:flex;justify-content:space-between;margin-top:44px;padding-top:24px;border-top:1px solid var(--hair);font-size:10.5px;letter-spacing:.06em;color:var(--faint);flex-wrap:wrap;gap:10px;text-transform:uppercase}
 @media(max-width:760px){.dfy .steps,.dfy .creds,.dfy .fgrid{grid-template-columns:1fr}}
+
+/* ── institutions page ──────────────────────────────────── */
+.dfy .ihero{display:grid;grid-template-columns:1.08fr .92fr;gap:48px;align-items:center;margin-top:18px}
+.dfy .ihero h1{font-family:var(--serif);font-weight:900;text-transform:uppercase;font-size:clamp(38px,5vw,72px);line-height:.94;letter-spacing:.005em;margin:18px 0 22px;text-wrap:balance}
+.dfy .ihero h1 em{font-style:italic;font-weight:500}
+.dfy .ihero .lede{max-width:470px;color:var(--dim);font-size:14px;line-height:1.74}
+.dfy .ihero .lede b{color:#fff;font-weight:500;border-bottom:1px solid var(--teal);padding-bottom:1px}
+.dfy .gpanel .big .v{font-size:58px}
+.dfy .morelink{display:inline-flex;align-items:center;gap:8px;margin-top:28px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);text-decoration:none}
+.dfy .morelink:hover{color:#fff}
+.dfy .addrs{margin-top:30px;border:1px solid var(--hair)}
+.dfy .addr{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 22px;border-bottom:1px solid var(--hair)}
+.dfy .addr:last-child{border-bottom:0}
+.dfy .addr .al{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+.dfy .addr .av{font-family:var(--mono);font-size:13px;color:#fff;margin-top:6px}
+.dfy .addr a{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);text-decoration:none;white-space:nowrap}
+.dfy .addr a:hover{color:#fff}
+@media(max-width:900px){.dfy .ihero{grid-template-columns:1fr;gap:30px}}
+@media(max-width:560px){.dfy .addr{flex-direction:column;align-items:flex-start;gap:10px}}
