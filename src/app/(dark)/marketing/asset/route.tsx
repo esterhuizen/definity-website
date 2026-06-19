@@ -38,17 +38,20 @@ export async function GET(req: Request) {
     );
   }
 
-  // wordmark lockup
+  // wordmark lockup — v=logo is the clean canonical logo (no tagline).
+  const noSub = v === 'logo';
   return new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', gap: 40, padding: '0 90px', background: bg, fontFamily: 'JBMono' }}>
-        <Mark stroke={fg} w={156} />
+        <Mark stroke={fg} w={noSub ? 188 : 156} />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', fontWeight: 700, fontSize: 104, letterSpacing: 14, color: fg }}>DEFINITY</div>
-          <div style={{ display: 'flex', fontWeight: 700, fontSize: 21, letterSpacing: 8, color: sub, marginTop: 10 }}>LIQUID STAKING · SOLANA</div>
+          <div style={{ display: 'flex', fontWeight: 700, fontSize: noSub ? 124 : 104, letterSpacing: noSub ? 16 : 14, color: fg }}>DEFINITY</div>
+          {noSub ? null : (
+            <div style={{ display: 'flex', fontWeight: 700, fontSize: 21, letterSpacing: 8, color: sub, marginTop: 10 }}>LIQUID STAKING · SOLANA</div>
+          )}
         </div>
       </div>
     ),
-    { width: 1280, height: 340, fonts },
+    { width: noSub ? 1200 : 1280, height: noSub ? 380 : 340, fonts },
   );
 }
