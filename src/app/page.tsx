@@ -1,10 +1,15 @@
 import { HeroD } from '@/components/HeroD';
+import { HomeSections } from '@/components/HomeSections';
 
-// PHASE 1 preview — the redesigned hero (Concept D) in the real app, wired to the live
-// GDI rank + base APY. The rest of the page (loop, trust, validator map, institutional CTA,
-// footer) rolls out section by section in later phases.
+// Redesigned homepage (Concept D): hero + the loop, proof, decentralisation, institutional
+// CTA, and footer. ISR every 30 min keeps the live GDI / APY current.
 export const revalidate = 1800;
 
 export default function HomePage() {
-  return <HeroD />;
+  return (
+    <>
+      <HeroD />
+      <HomeSections />
+    </>
+  );
 }
