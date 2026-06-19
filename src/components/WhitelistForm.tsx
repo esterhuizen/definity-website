@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { CheckCircle2 } from 'lucide-react';
 import { track } from '@/lib/track';
 
 const CONTACT_METHODS = ['Email', 'Telegram', 'X / Twitter', 'Other'] as const;
@@ -90,11 +89,11 @@ export function WhitelistForm() {
 
   if (submitted) {
     return (
-      <div className="surface flex items-start gap-3 p-6 md:p-8">
-        <CheckCircle2 className="h-6 w-6 shrink-0 text-success" aria-hidden />
+      <div className="wl-success">
+        <span className="tick" aria-hidden>✓</span>
         <div>
-          <h3 className="font-display text-lg font-semibold text-ink">Thanks, we&apos;ve got your application.</h3>
-          <p className="mt-2 text-sm leading-relaxed text-ink-muted text-pretty">
+          <h3>Thanks, we&apos;ve got your application.</h3>
+          <p>
             We review applications manually and we&apos;ll be in touch via the contact you provided. If
             you don&apos;t hear back within a couple of weeks, ping us on Telegram with your validator&apos;s
             vote id and we&apos;ll surface your submission.
@@ -107,7 +106,7 @@ export function WhitelistForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="surface space-y-6 p-5 md:p-6"
+      className="wlform"
       noValidate
       aria-busy={busy}
     >
@@ -242,26 +241,21 @@ export function WhitelistForm() {
       </Field>
 
       {errors._form && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="wl-form-err">
           {errors._form}
         </p>
       )}
 
-      <div className="flex items-center justify-end gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={busy}
-          className="inline-flex items-center justify-center rounded-full bg-sunrise-gradient px-6 py-3 text-sm font-medium text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {busy ? 'Submitting…' : 'Submit application'}
+      <div className="wl-actions">
+        <button type="submit" disabled={busy} className="btn btn-solid">
+          {busy ? 'Submitting…' : 'Submit application →'}
         </button>
       </div>
     </form>
   );
 }
 
-const inputClass =
-  'mt-2 w-full rounded-lg border border-ring bg-bg-muted/40 px-3 py-2.5 text-sm text-ink placeholder:text-ink-dim outline-none transition focus:ring-2 focus:ring-sunrise-500';
+const inputClass = 'wl-input';
 
 function Field({
   label,
@@ -279,15 +273,15 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-ink">
+    <div className="wl-field">
+      <label htmlFor={htmlFor}>
         {label}
-        {required && <span className="ml-1 text-ink-dim">*</span>}
+        {required && <span className="req">*</span>}
       </label>
-      {helper && <p className="mt-1 text-xs text-ink-muted">{helper}</p>}
+      {helper && <p className="help">{helper}</p>}
       {children}
       {error && (
-        <p className="mt-2 text-xs text-red-600" role="alert">
+        <p className="wl-err" role="alert">
           {error}
         </p>
       )}
