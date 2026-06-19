@@ -220,3 +220,42 @@
 .dfy .wl-foot{max-width:720px;margin-top:16px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--faint)}
 .dfy .wl-foot a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--hair)}
 .dfy .wl-foot a:hover{color:#fff;border-color:var(--dim)}
+
+/* ── stake widget: scoped dark recolor of the light-theme utilities ─────────
+   .dfy .stakeui … out-specifies the bare Tailwind utilities, so the widget
+   renders dark without rewriting (and risking) any of its on-chain logic. */
+.dfy .stakeui{color:#fff}
+.dfy .stakeui .text-ink{color:#fff}
+.dfy .stakeui .text-ink-muted{color:var(--dim)}
+.dfy .stakeui .text-ink-dim{color:var(--faint)}
+.dfy .stakeui .text-success{color:var(--teal)}
+.dfy .stakeui .text-sunrise-500{color:var(--teal)}
+.dfy .stakeui .text-fuchsia-600{color:#ff8d8d}
+.dfy .stakeui .hover\:text-ink:hover{color:#fff}
+.dfy .stakeui .hover\:border-ink-dim:hover{border-color:var(--dim)}
+.dfy .stakeui .hover\:bg-bg-muted:hover{background-color:rgba(255,255,255,.07)}
+.dfy .stakeui .placeholder\:text-ink-dim::placeholder{color:var(--faint)}
+
+.dfy .stakeui .surface{background:rgba(8,16,90,.34);border-color:var(--hair);box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+.dfy .stakeui .bg-bg{background-color:rgba(8,16,90,.55)}
+.dfy .stakeui .bg-bg-muted,.dfy .stakeui .bg-bg-muted\/60{background-color:rgba(0,0,0,.22)}
+.dfy .stakeui .bg-ring{background-color:var(--hair)}
+.dfy .stakeui .border-ring{border-color:var(--hair)}
+.dfy .stakeui .border-sunrise-300{border-color:rgba(55,240,176,.55)}
+.dfy .stakeui .shadow-card,.dfy .stakeui .shadow-glow-sm{box-shadow:none}
+.dfy .stakeui .divide-ring>:not([hidden])~:not([hidden]){border-color:var(--hair)}
+
+.dfy .stakeui .bg-success{background-color:var(--teal)}
+.dfy .stakeui .bg-solana-500{background-color:#fff}
+.dfy .stakeui .bg-sunrise-500{background-color:var(--teal)}
+.dfy .stakeui .bg-solana-500\/10{background-color:rgba(255,255,255,.08)}
+.dfy .stakeui .bg-sunrise-500\/10{background-color:rgba(55,240,176,.12)}
+.dfy .stakeui .ring-solana-500\/40{--tw-ring-color:rgba(255,255,255,.28)}
+.dfy .stakeui .ring-sunrise-500\/40{--tw-ring-color:rgba(55,240,176,.45)}
+.dfy .stakeui .ring-ring{--tw-ring-color:var(--hair)}
+
+.dfy .stakeui .accent-sunrise-500{accent-color:var(--teal)}
+.dfy .stakeui .bg-dawn-gradient{background-image:none}
+.dfy .stakeui .btn-primary{background:var(--teal);color:#06112e;font-weight:700;box-shadow:none}
+.dfy .stakeui .btn-primary:hover{filter:brightness(1.06)}
+.dfy .stakeui .btn-primary:disabled{opacity:.45}
