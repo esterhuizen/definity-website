@@ -6,8 +6,8 @@ import { LogoMark } from './LogoMark';
 // (legacy pages still resolve at the same URLs during the rollout).
 const NAV = [
   { label: 'Stake', href: '/stake' },
-  { label: 'Loop', href: '/#loop' },
   { label: 'Institutions', href: '/institutions' },
+  { label: 'Validators', href: '/validators' },
   { label: 'Verify', href: '/addresses' },
   { label: 'FAQ', href: '/faq' },
 ];
