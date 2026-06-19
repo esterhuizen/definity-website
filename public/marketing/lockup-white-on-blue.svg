@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="168" viewBox="0 0 640 168">
+  <defs><radialGradient id="lg" cx="78%" cy="-14%" r="130%"><stop offset="0" stop-color="#1c3ae6"/><stop offset="0.45" stop-color="#1430cf"/><stop offset="1" stop-color="#0a1576"/></radialGradient></defs><rect width="640" height="168" fill="url(#lg)"/>
+  <g transform="translate(40,62) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 15 C30 4 12 4 12 15 C12 26 30 26 30 15 C30 4 48 4 48 15 C48 26 30 26 30 15 Z"/>
+  </g>
+  <text x="170" y="100" font-family="'JetBrains Mono','SFMono-Regular',ui-monospace,monospace" font-size="54" font-weight="700" letter-spacing="13" fill="#ffffff">DEFINITY</text>
+  <text x="172" y="128" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" font-weight="500" letter-spacing="6" fill="rgba(255,255,255,0.6)">LIQUID STAKING · SOLANA</text>
+</svg>

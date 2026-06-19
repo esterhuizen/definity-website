@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="168" viewBox="0 0 640 168">
+  <rect width="640" height="168" fill="#ffffff"/>
+  <g transform="translate(40,62) scale(1.5)" fill="none" stroke="#1430cf" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M30 15 C30 4 12 4 12 15 C12 26 30 26 30 15 C30 4 48 4 48 15 C48 26 30 26 30 15 Z"/>
+  </g>
+  <text x="170" y="100" font-family="'JetBrains Mono','SFMono-Regular',ui-monospace,monospace" font-size="54" font-weight="700" letter-spacing="13" fill="#1430cf">DEFINITY</text>
+  <text x="172" y="128" font-family="'JetBrains Mono',ui-monospace,monospace" font-size="14" font-weight="500" letter-spacing="6" fill="rgba(20,48,207,0.55)">LIQUID STAKING · SOLANA</text>
+</svg>

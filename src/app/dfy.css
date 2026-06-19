@@ -221,6 +221,33 @@
 .dfy .wl-foot a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--hair)}
 .dfy .wl-foot a:hover{color:#fff;border-color:var(--dim)}
 
+/* ── marketing / brand assets ───────────────────────────── */
+.dfy .mk-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:38px}
+.dfy .mk-grid-4{grid-template-columns:repeat(4,1fr)}
+.dfy .mk-tile{border:1px solid var(--hair);background:rgba(8,16,90,.3);overflow:hidden}
+.dfy .mk-frame{display:flex;align-items:center;justify-content:center;padding:28px;min-height:148px}
+.dfy .mk-frame img{max-width:100%;height:auto;display:block}
+.dfy .mk-frame.blue{background:radial-gradient(120% 120% at 75% 0,#1c3ae6,#0a1576)}
+.dfy .mk-frame.white{background:#fff}
+.dfy .mk-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-top:1px solid var(--hair)}
+.dfy .mk-meta .mk-t{color:var(--faint);text-transform:uppercase;letter-spacing:.16em;font-size:10px}
+.dfy .mk-dl a{color:var(--teal);text-decoration:none;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;margin-left:14px}
+.dfy .mk-dl a:hover{color:#fff}
+.dfy .mk-hero{margin-top:34px;border:1px solid var(--hair);overflow:hidden}
+.dfy .mk-hero img{width:100%;display:block}
+.dfy .mk-swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:36px}
+.dfy .mk-sw{border:1px solid var(--hair);overflow:hidden}
+.dfy .mk-sw .chip{height:92px}
+.dfy .mk-sw .lab{padding:12px 14px;border-top:1px solid var(--hair)}
+.dfy .mk-sw .lab b{display:block;font-family:var(--mono);color:#fff;font-size:12px}
+.dfy .mk-sw .lab span{color:var(--faint);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase}
+.dfy .mk-type{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.dfy .mk-face{border:1px solid var(--hair);background:rgba(8,16,90,.3);padding:28px}
+.dfy .mk-face .big{font-family:var(--serif);font-weight:600;font-size:44px;line-height:1.05;margin:0 0 8px}
+.dfy .mk-face .bigm{font-family:var(--mono);font-weight:600;font-size:34px;margin:0 0 8px;color:var(--teal)}
+.dfy .mk-face .nm{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+@media(max-width:760px){.dfy .mk-grid,.dfy .mk-grid-4,.dfy .mk-type{grid-template-columns:1fr 1fr}.dfy .mk-swatches{grid-template-columns:repeat(3,1fr)}}
+
 /* ── stake widget: scoped dark recolor of the light-theme utilities ─────────
    .dfy .stakeui … out-specifies the bare Tailwind utilities, so the widget
    renders dark without rewriting (and risking) any of its on-chain logic. */
