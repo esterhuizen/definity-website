@@ -1,11 +1,12 @@
 /* Definity redesign — Concept D design system. Scoped under .dfy so it never
    collides with the existing (white-theme) components during the rollout. */
 
-body{ background-color:#07114e; color:#fff; }
-/* Viewport-anchored depth via a COMPOSITED fixed layer (not background-attachment:fixed,
-   which repaints the whole gradient on every scroll tick and causes scroll jank). The
-   browser keeps this on its own GPU layer, so scrolling the content never repaints it. */
-body::before{
+/* Dark "Definity blue" canvas — scoped to the migrated (dark) route group via .dfy-root so
+   the not-yet-migrated light pages keep their original theme (no global body override).
+   Viewport-anchored depth via a COMPOSITED fixed layer (not background-attachment:fixed,
+   which repaints the whole gradient on every scroll tick and causes scroll jank). */
+.dfy-root{ color:#fff; min-height:100vh; }
+.dfy-root::before{
   content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(130% 110% at 72% -14%, #1c3ae6 0%, #1430cf 24%, #0c1c8f 58%, #07114e 100%);
   transform:translateZ(0);
@@ -24,6 +25,10 @@ body::before{
   background-size:72px 72px;-webkit-mask-image:radial-gradient(130% 100% at 50% 0,#000,transparent 78%);mask-image:radial-gradient(130% 100% at 50% 0,#000,transparent 78%)}
 .dfy .wrap{position:relative;max-width:1280px;margin:0 auto;padding:0 40px;z-index:2}
 
+/* Shared sticky nav (NavD) — translucent over the hero + content while scrolling. */
+.dfy .nav-d{position:sticky;top:0;z-index:50;background:rgba(7,16,70,.5);backdrop-filter:blur(14px) saturate(1.1);border-bottom:1px solid var(--hair)}
+.dfy .nav-d nav{padding:15px 0}
+.dfy .nav-d .brand{color:#fff;text-decoration:none}
 .dfy nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0;font-size:11px;letter-spacing:.22em;text-transform:uppercase}
 .dfy .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.28em}
 .dfy .brand svg{width:34px;height:18px}

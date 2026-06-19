@@ -1,7 +1,6 @@
 import { getGdiStanding, GDI_URLS } from '@/lib/gdi';
 import { getBaseApy } from '@/lib/apy';
 import { InfinityField } from './InfinityField';
-import { LogoMark } from './LogoMark';
 
 // Concept D hero — manifesto serif on Definity blue + a live instrument panel (the proof),
 // wrapped in a generative ∞. Real GDI rank + base APY; looped APY is "coming soon" until
@@ -18,18 +17,9 @@ export async function HeroD() {
   const gdiHref = gdi ? GDI_URLS.pool : GDI_URLS.index;
 
   return (
-    <div className="dfy">
-      <div className="hero-zone">
+    <div className="hero-zone">
         <InfinityField />
         <div className="wrap">
-          <nav className="reveal d1">
-            <div className="brand"><LogoMark className="logo" /> DEFINITY</div>
-            <div className="navlinks">
-              <a href="#">Stake</a><a href="#">Loop</a><a href="#">Institutions</a><a href="#">Data</a><a href="#">Docs</a>
-            </div>
-            <a className="navcta" href="#"><span className="live" /> Live data</a>
-          </nav>
-
           <section className="hero">
             <div>
               <div className="eyebrow reveal d2">Institutional liquid staking · Solana</div>
@@ -39,8 +29,8 @@ export async function HeroD() {
                 compounds every epoch, loops for leverage, and publishes every input behind its yield.
               </p>
               <div className="cta reveal d4">
-                <a className="btn btn-solid" href="#">Stake SOL →</a>
-                <a className="btn btn-ghost" href="#">Institutional access</a>
+                <a className="btn btn-solid" href="/stake">Stake SOL →</a>
+                <a className="btn btn-ghost" href="/institutions">Institutional access</a>
               </div>
             </div>
 
@@ -78,6 +68,5 @@ export async function HeroD() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

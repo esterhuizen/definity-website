@@ -1,6 +1,5 @@
 import { getGdiStanding, GDI_URLS } from '@/lib/gdi';
 import { POOL, LINKS } from '@/config/pool';
-import { LogoMark } from './LogoMark';
 
 // Phase 2 — the homepage below the hero, in Concept D's system: the loop (institutional
 // hook, "coming soon"), proof/trust (live GDI + verifiable links), the decentralised
@@ -14,9 +13,9 @@ export async function HomeSections() {
   const gdiHref = gdi ? GDI_URLS.pool : GDI_URLS.index;
 
   return (
-    <div className="dfy">
+    <>
       {/* 01 · The loop */}
-      <section className="sec">
+      <section className="sec" id="loop">
         <div className="wrap">
           <div className="chapter"><span className="n">01</span>&nbsp; The loop</div>
           <div className="sec-head">
@@ -101,38 +100,6 @@ export async function HomeSections() {
         </div>
       </section>
 
-      {/* footer */}
-      <footer className="foot">
-        <div className="wrap">
-          <div className="fgrid">
-            <div className="fcol">
-              <div className="fbrand"><LogoMark /> Definity</div>
-              <p className="ftag">Non-custodial liquid staking on Solana. Stake SOL → definSOL.</p>
-            </div>
-            <div className="fcol"><h4>Product</h4>
-              <a href={LINKS.sanctumLst} target="_blank" rel="noreferrer">Stake on Sanctum</a>
-              <a href={LINKS.jupiterSwap} target="_blank" rel="noreferrer">Swap on Jupiter</a>
-              <a href="/institutions">Institutions</a>
-              <a href="/stake">Stake widget</a>
-            </div>
-            <div className="fcol"><h4>Verify</h4>
-              <a href={gdiHref} target="_blank" rel="noreferrer">GDI rank #{rank}/{total}</a>
-              <a href={LINKS.solscanPool} target="_blank" rel="noreferrer">Pool on Solscan</a>
-              <a href={LINKS.solscanMint} target="_blank" rel="noreferrer">Mint on Solscan</a>
-              <a href="/addresses">Addresses</a>
-            </div>
-            <div className="fcol"><h4>Connect</h4>
-              <a href={LINKS.twitter} target="_blank" rel="noreferrer">X / Twitter</a>
-              <a href={LINKS.telegram} target="_blank" rel="noreferrer">Telegram</a>
-              <a href="/faq">FAQ</a>
-            </div>
-          </div>
-          <div className="fbot">
-            <span>© Definity · {POOL.lstName}</span>
-            <span>Non-custodial · Audited Sanctum program · Ranked #{rank} of {total} on the GDI</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
