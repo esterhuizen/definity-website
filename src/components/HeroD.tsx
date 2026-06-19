@@ -40,16 +40,15 @@ export async function HeroD() {
                 <div className="k">Base staking APY</div>
                 <div className="big">
                   <div className="v">{apyStr}<span className="pct">%</span></div>
-                  <svg className="spark" viewBox="0 0 120 36" preserveAspectRatio="none">
-                    <defs><linearGradient id="gg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#37f0b0" /><stop offset="1" stopColor="#37f0b0" stopOpacity="0" /></linearGradient></defs>
-                    <path className="fl" d="M0,28 8,27 16,28 24,24 32,25 40,21 48,22 56,19 64,20 72,16 80,17 88,14 96,15 104,12 112,11 120,9 L120,36 0,36 Z" />
-                    <path className="ln" d="M0,28 8,27 16,28 24,24 32,25 40,21 48,22 56,19 64,20 72,16 80,17 88,14 96,15 104,12 112,11 120,9" />
-                  </svg>
+                  <a className="prank" href={gdiHref} target="_blank" rel="noreferrer">
+                    <span className="rk-k">GDI rank <span className="go">↗</span></span>
+                    <span className="rk-v">#{rank}<i>/{total}</i></span>
+                  </a>
                 </div>
               </div>
               <div className="twocol">
                 <div><div className="k">Looped net APY</div><div className="v" style={{ color: 'var(--teal)' }}>Soon</div><div className="sub">leverage · in development</div></div>
-                <div><div className="k">Total staked</div><div className="v">{tvlK}<span style={{ fontSize: '.42em', fontFamily: 'var(--mono)', color: 'var(--dim)' }}>K SOL</span></div><div className="sub">GDI #{rank} of {total} · top-decentralised</div></div>
+                <div><div className="k">Total staked</div><div className="v">{tvlK}<span style={{ fontSize: '.42em', fontFamily: 'var(--mono)', color: 'var(--dim)' }}>K SOL</span></div><div className="sub">vetted, decentralised set</div></div>
               </div>
               <a className="soon" href={gdiHref} target="_blank" rel="noreferrer">
                 <span>Loop competitiveness</span><span><b>Coming soon</b> · definSOL · bSOL · INF →</span>
