@@ -153,8 +153,22 @@
 .dfy .addr{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 22px;border-bottom:1px solid var(--hair)}
 .dfy .addr:last-child{border-bottom:0}
 .dfy .addr .al{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
-.dfy .addr .av{font-family:var(--mono);font-size:13px;color:#fff;margin-top:6px}
+.dfy .addr .av{font-family:var(--mono);font-size:13px;color:#fff;margin-top:6px;word-break:break-all}
+.dfy .addr .an{font-size:12px;color:var(--dim);margin-top:10px;max-width:540px;line-height:1.62}
 .dfy .addr a{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);text-decoration:none;white-space:nowrap}
 .dfy .addr a:hover{color:#fff}
 @media(max-width:900px){.dfy .ihero{grid-template-columns:1fr;gap:30px}}
 @media(max-width:560px){.dfy .addr{flex-direction:column;align-items:flex-start;gap:10px}}
+
+/* ── FAQ accordion (native <details>, dark) ─────────────── */
+.dfy .faq{margin-top:42px;border:1px solid var(--hair)}
+.dfy .faq details{border-bottom:1px solid var(--hair)}
+.dfy .faq details:last-child{border-bottom:0}
+.dfy .faq summary{list-style:none;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:22px 26px;font-family:var(--serif);font-size:18px;font-weight:500;color:#fff;transition:background .2s}
+.dfy .faq summary::-webkit-details-marker{display:none}
+.dfy .faq summary:hover{background:rgba(8,16,90,.4)}
+.dfy .faq .pm{flex:0 0 auto;margin-top:2px;width:24px;height:24px;border:1px solid var(--hair);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--teal);font-family:var(--mono);font-size:16px;line-height:1;transition:.25s}
+.dfy .faq details[open] .pm{transform:rotate(45deg);border-color:var(--teal)}
+.dfy .faq .ans{padding:0 26px 24px;color:var(--dim);font-size:13.5px;line-height:1.74;max-width:780px}
+.dfy .faq .ans a{color:var(--teal);text-decoration:none;border-bottom:1px solid rgba(55,240,176,.4)}
+.dfy .faq .ans a:hover{border-color:var(--teal)}

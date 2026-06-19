@@ -1,7 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { FAQAccordion } from '@/components/FAQAccordion';
 import { POOL } from '@/config/pool';
 
 export const metadata: Metadata = {
@@ -42,17 +39,9 @@ const FULL_FAQ = [
         mainnet (&lt; 4hr offline / 7d), skip rate below 10% across recent epochs
         (stricter than SFDP), SFDP standing intact, and team based in one of
         Definity&apos;s focus regions (APAC, the Middle East, Africa, or South
-        America). After
-        admission, the size of each validator&apos;s delegation is determined each
+        America). After admission, the size of each validator&apos;s delegation is determined each
         epoch by their composite rarity rank under the{' '}
-        <a
-          href="https://gdindex.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline decoration-ring underline-offset-2 hover:text-ink"
-        >
-          GDI methodology
-        </a>
+        <a href="https://gdindex.app/" target="_blank" rel="noopener noreferrer">GDI methodology</a>
         : operators whose country / city / ASN are underrepresented in Solana
         network stake receive larger delegations than those in already-saturated
         buckets. Validator hosting location is NOT an admission gate: every
@@ -75,9 +64,7 @@ const FULL_FAQ = [
         built on Sanctum&apos;s audited stake-pool program, and its decentralisation is
         independently verified on the GDI. For validator policy, MEV handling, reporting, and
         custody-platform questions, see{' '}
-        <Link className="text-ink underline underline-offset-2" href="/institutions">
-          definSOL for institutions
-        </Link>{' '}
+        <a href="/institutions">definSOL for institutions</a>{' '}
         or get in touch with the team.
       </>
     ),
@@ -94,27 +81,23 @@ const FULL_FAQ = [
 
 export default function FAQPage() {
   return (
-    <div className="container-narrow py-20 md:py-28">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" /> Back home
-      </Link>
+    <section className="sec">
+      <div className="wrap">
+        <div className="chapter">FAQ</div>
+        <div className="sec-head">
+          <h1 className="sec-h">Questions, <em>answered.</em></h1>
+          <p className="sec-lede">Plain-English answers about Definity, definSOL, staking, security and fees. If something&apos;s missing, ping us on Telegram or X.</p>
+        </div>
 
-      <div className="mt-8 max-w-2xl">
-        <span className="eyebrow">FAQ</span>
-        <h1 className="mt-5 font-display text-4xl font-semibold tracking-tight text-balance md:text-5xl">
-          Everything you might want to know about staking with Definity.
-        </h1>
-        <p className="mt-5 text-lg text-ink-muted text-pretty">
-          Plain-English answers. If something&apos;s missing, ping us on Telegram or X.
-        </p>
+        <div className="faq">
+          {FULL_FAQ.map((item) => (
+            <details key={item.q}>
+              <summary>{item.q}<span className="pm" aria-hidden>+</span></summary>
+              <div className="ans">{item.a}</div>
+            </details>
+          ))}
+        </div>
       </div>
-
-      <div className="mt-12">
-        <FAQAccordion items={FULL_FAQ} />
-      </div>
-    </div>
+    </section>
   );
 }
