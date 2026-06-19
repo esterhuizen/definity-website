@@ -2,7 +2,7 @@
 
 import { ImageResponse } from 'next/og';
 import { getBaseApy } from '@/lib/apy';
-import { OG_SIZE, loadOgFonts, OgCard, OgStat, OgEm } from '@/lib/og';
+import { OG_SIZE, loadOgFonts, OgCard, OgStat, OgEm, OgLine } from '@/lib/og';
 
 export const runtime = 'nodejs';
 export const alt = 'Stake SOL for definSOL on Definity';
@@ -24,11 +24,16 @@ export default async function Image() {
     (
       <OgCard
         eyebrow="Liquid staking on Solana"
-        headline={<><span>Stake SOL for&nbsp;</span><OgEm>definSOL.</OgEm></>}
-        headlineSize={88}
+        headline={
+          <>
+            <OgLine>Stake SOL for</OgLine>
+            <OgLine><OgEm>definSOL.</OgEm></OgLine>
+          </>
+        }
+        headlineSize={92}
         stats={
           <>
-            <OgStat label="definSOL base APY" value={`${apyStr}%`} teal />
+            <OgStat label="Base APY" value={`${apyStr}%`} teal />
             <OgStat label="Custody" value="Non-custodial" />
             <OgStat label="Exit" value="Anytime" />
           </>

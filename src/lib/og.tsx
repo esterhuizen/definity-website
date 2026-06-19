@@ -27,15 +27,20 @@ export async function loadOgFonts() {
 
 export function OgStat({ label, value, teal }: { label: string; value: string; teal?: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-      <div style={{ display: 'flex', fontSize: 15, letterSpacing: 2, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginRight: 52 }}>
+      <div style={{ display: 'flex', fontSize: 14, letterSpacing: 2, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>
         {label}
       </div>
-      <div style={{ display: 'flex', fontFamily: 'Bodoni', fontWeight: 900, fontSize: 42, color: teal ? '#37f0b0' : '#ffffff' }}>
+      <div style={{ display: 'flex', fontFamily: 'Bodoni', fontWeight: 900, fontSize: 34, color: teal ? '#37f0b0' : '#ffffff' }}>
         {value}
       </div>
     </div>
   );
+}
+
+// One headline line (a flex row so an inline accent sits beside the text).
+export function OgLine({ children }: { children: ReactNode }) {
+  return <div style={{ display: 'flex' }}>{children}</div>;
 }
 
 // Italic teal accent word for the headline.
@@ -95,14 +100,14 @@ export function OgCard({
           <div style={{ display: 'flex', width: 30, height: 2, backgroundColor: '#37f0b0' }} />
           {eyebrow}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', fontFamily: 'Bodoni', fontWeight: 900, fontSize: headlineSize, lineHeight: 1.0, letterSpacing: -1, textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'Bodoni', fontWeight: 900, fontSize: headlineSize, lineHeight: 0.98, letterSpacing: -1, textTransform: 'uppercase' }}>
           {headline}
         </div>
       </div>
 
       {/* data strip */}
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.16)', paddingTop: 28 }}>
-        <div style={{ display: 'flex', gap: 56 }}>{stats}</div>
+        <div style={{ display: 'flex' }}>{stats}</div>
         <div style={{ display: 'flex', fontSize: 24, color: '#9fb0ff', letterSpacing: 1 }}>{url}</div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 
 import { ImageResponse } from 'next/og';
 import { getGdiStanding } from '@/lib/gdi';
-import { OG_SIZE, loadOgFonts, OgCard, OgStat, OgEm } from '@/lib/og';
+import { OG_SIZE, loadOgFonts, OgCard, OgStat, OgEm, OgLine } from '@/lib/og';
 
 export const runtime = 'nodejs';
 export const alt = 'definSOL for institutions: decentralisation you can verify';
@@ -26,8 +26,13 @@ export default async function Image() {
     (
       <OgCard
         eyebrow="For institutions"
-        headline={<><span>Decentralisation you can&nbsp;</span><OgEm>verify.</OgEm></>}
-        headlineSize={68}
+        headline={
+          <>
+            <OgLine>Decentralisation</OgLine>
+            <OgLine>you can&nbsp;<OgEm>verify.</OgEm></OgLine>
+          </>
+        }
+        headlineSize={66}
         stats={
           <>
             <OgStat label="GDI rank" value={`#${rank} / ${total}`} teal />
