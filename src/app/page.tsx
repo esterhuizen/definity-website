@@ -1,34 +1,10 @@
-import { Hero } from '@/components/Hero';
-import { StatsRow } from '@/components/StatsRow';
-import { GdiBand } from '@/components/GdiBand';
-import { ValidatorMap } from '@/components/ValidatorMap';
+import { HeroD } from '@/components/HeroD';
 
-// Regenerate the homepage every 30 minutes so the live on-chain stats
-// (validators, total staked) stay current. The hourly stats job writes
-// public/stats.json; this ISR window picks it up between refreshes.
+// PHASE 1 preview — the redesigned hero (Concept D) in the real app, wired to the live
+// GDI rank + base APY. The rest of the page (loop, trust, validator map, institutional CTA,
+// footer) rolls out section by section in later phases.
 export const revalidate = 1800;
-import { MissionSection } from '@/components/MissionSection';
-import { HowItWorks } from '@/components/HowItWorks';
-import { TrustSection } from '@/components/TrustSection';
-import { InstitutionsDoorway } from '@/components/InstitutionsDoorway';
-import { RegionsBand } from '@/components/RegionsBand';
-import { HomeFAQ } from '@/components/HomeFAQ';
-import { FinalCTA } from '@/components/FinalCTA';
 
 export default function HomePage() {
-  return (
-    <>
-      <Hero />
-      <StatsRow />
-      <GdiBand />
-      <ValidatorMap />
-      <MissionSection />
-      <HowItWorks />
-      <TrustSection />
-      <InstitutionsDoorway />
-      <RegionsBand />
-      <HomeFAQ />
-      <FinalCTA />
-    </>
-  );
+  return <HeroD />;
 }

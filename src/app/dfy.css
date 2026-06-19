@@ -1,0 +1,78 @@
+/* Definity redesign — Concept D design system. Scoped under .dfy so it never
+   collides with the existing (white-theme) components during the rollout. */
+
+body{
+  background:radial-gradient(135% 100% at 70% -10%, #1430cf 0%, #0d1f9e 58%, #0a1672 100%);
+  color:#fff;
+}
+
+.dfy{
+  --blue:#1430cf; --blue-2:#0d1f9e; --blue-3:#0a1672;
+  --white:#fff; --dim:rgba(255,255,255,.66); --faint:rgba(255,255,255,.40); --hair:rgba(255,255,255,.16);
+  --teal:#37f0b0;
+  --serif:var(--font-display),'Bodoni Moda',serif;
+  --mono:var(--font-mono),ui-monospace,monospace;
+  font-family:var(--mono); color:var(--white); position:relative; overflow-x:hidden;
+}
+.dfy::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.4;z-index:0;
+  background-image:linear-gradient(var(--hair) 1px,transparent 1px),linear-gradient(90deg,var(--hair) 1px,transparent 1px);
+  background-size:72px 72px;-webkit-mask-image:radial-gradient(130% 100% at 50% 0,#000,transparent 78%);mask-image:radial-gradient(130% 100% at 50% 0,#000,transparent 78%)}
+.dfy .wrap{position:relative;max-width:1280px;margin:0 auto;padding:0 40px;z-index:2}
+
+.dfy nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0;font-size:11px;letter-spacing:.22em;text-transform:uppercase}
+.dfy .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.28em}
+.dfy .brand svg{width:34px;height:18px}
+.dfy .navlinks{display:flex;gap:30px;color:var(--dim)}
+.dfy .navlinks a{color:inherit;text-decoration:none;transition:.2s}.dfy .navlinks a:hover{color:#fff}
+.dfy .navcta{display:flex;align-items:center;gap:8px;color:var(--teal);text-decoration:none;letter-spacing:.18em}
+.dfy .live{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal);animation:dfy-bl 2s infinite}
+@keyframes dfy-bl{50%{opacity:.35}}
+
+.dfy .inf-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.dfy .hero-zone{position:relative}
+
+.dfy .hero{display:grid;grid-template-columns:1.04fr .96fr;gap:40px;align-items:center;padding:48px 0 36px;min-height:64vh}
+.dfy .eyebrow{font-size:11px;letter-spacing:.28em;color:var(--faint);text-transform:uppercase;display:flex;align-items:center;gap:12px;border:0;background:none;padding:0;border-radius:0}
+.dfy .eyebrow::before{content:"";width:26px;height:1px;background:var(--faint)}
+.dfy h1{font-family:var(--serif);font-weight:900;text-transform:uppercase;letter-spacing:.005em;
+  font-size:clamp(46px,6.6vw,98px);line-height:.92;margin:22px 0 24px;text-wrap:balance}
+.dfy h1 em{font-style:italic;font-weight:500}
+.dfy .lede{max-width:430px;color:var(--dim);font-size:13.5px;line-height:1.72}
+.dfy .lede b{color:#fff;font-weight:500;border-bottom:1px solid var(--teal);padding-bottom:1px}
+.dfy .cta{display:flex;gap:13px;margin-top:32px;flex-wrap:wrap}
+.dfy .btn{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:15px 26px;border-radius:999px;text-decoration:none;transition:.2s;display:inline-flex;align-items:center;gap:9px;border:0;cursor:pointer}
+.dfy .btn-solid{background:#fff;color:var(--blue);font-weight:700}.dfy .btn-solid:hover{transform:translateY(-2px);box-shadow:0 14px 44px rgba(0,0,0,.3)}
+.dfy .btn-ghost{border:1px solid var(--hair);color:#fff;background:none}.dfy .btn-ghost:hover{border-color:#fff}
+
+.dfy .panel{background:rgba(8,16,90,.34);border:1px solid var(--hair);backdrop-filter:blur(10px) saturate(1.1);box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+.dfy .phead{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--hair);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.dfy .phead .l{display:flex;align-items:center;gap:8px}
+.dfy .prow{padding:18px 20px;border-bottom:1px solid var(--hair)}
+.dfy .prow .k{font-size:10px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase}
+.dfy .big{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px}
+.dfy .big .v{font-family:var(--serif);font-weight:600;font-size:50px;line-height:.86}
+.dfy .big .v .pct{font-family:var(--mono);font-size:18px;color:var(--teal)}
+.dfy .spark{width:120px;height:36px}
+.dfy .spark .ln{fill:none;stroke:var(--teal);stroke-width:1.6;stroke-dasharray:300;stroke-dashoffset:300;animation:dfy-draw 1.8s ease-out .7s forwards}
+.dfy .spark .fl{fill:url(#gg);stroke:none;opacity:.16}
+@keyframes dfy-draw{to{stroke-dashoffset:0}}
+.dfy .twocol{display:grid;grid-template-columns:1fr 1fr}
+.dfy .twocol>div{padding:16px 20px}.dfy .twocol>div:first-child{border-right:1px solid var(--hair)}
+.dfy .twocol .v{font-family:var(--serif);font-weight:600;font-size:26px;margin-top:5px}
+.dfy .twocol .sub{font-size:9.5px;color:var(--faint);margin-top:5px;letter-spacing:.06em}
+.dfy .soon{padding:16px 20px;border-top:1px solid var(--hair);display:flex;align-items:center;justify-content:space-between;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.dfy .soon b{color:var(--teal);font-weight:500}
+
+.dfy .metrics{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--hair);position:relative;z-index:2}
+.dfy .metric{padding:22px 22px 26px;border-right:1px solid var(--hair)}.dfy .metric:last-child{border:none}
+.dfy .metric .k{font-size:10px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+.dfy .metric .v{font-family:var(--serif);font-weight:700;font-size:clamp(26px,2.8vw,38px);margin-top:11px;line-height:1}
+.dfy .metric .v small{font-size:.5em;font-family:var(--mono);color:var(--dim);vertical-align:.4em}
+.dfy .metric .s{font-size:10px;color:var(--faint);margin-top:9px}
+.dfy .trust{padding:20px 0 46px;font-size:10.5px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase;display:flex;gap:16px;flex-wrap:wrap;position:relative;z-index:2}
+.dfy .trust span::after{content:"·";margin-left:16px;color:var(--hair)}.dfy .trust span:last-child::after{content:""}
+
+.dfy .reveal{opacity:0;transform:translateY(16px);animation:dfy-rise .85s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes dfy-rise{to{opacity:1;transform:none}}
+.dfy .d1{animation-delay:.05s}.dfy .d2{animation-delay:.16s}.dfy .d3{animation-delay:.28s}.dfy .d4{animation-delay:.4s}.dfy .d5{animation-delay:.56s}
+@media(max-width:900px){.dfy .hero{grid-template-columns:1fr;min-height:auto}.dfy .panel{order:2}.dfy .metrics{grid-template-columns:repeat(2,1fr)}.dfy .metric:nth-child(2n){border-right:none}.dfy .navlinks{display:none}.dfy .inf-canvas{opacity:.5}}

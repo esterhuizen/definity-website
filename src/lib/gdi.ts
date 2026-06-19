@@ -12,6 +12,7 @@ export type GdiStanding = {
   gdi: number;
   baseline: number | null;
   epoch: number | null;
+  stakeSol: number | null;
 };
 
 const GDI_BASE = 'https://gdindex.app';
@@ -58,6 +59,7 @@ export async function getGdiStanding(): Promise<GdiStanding | null> {
       gdi: pools[idx].gdi as number,
       baseline: lb.network_baseline?.gdi ?? null,
       epoch: lb.epoch ?? null,
+      stakeSol: pools[idx].total_stake_sol ?? null,
     };
   } catch {
     return null;

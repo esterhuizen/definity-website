@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Manrope, JetBrains_Mono } from 'next/font/google';
+import { Inter, Bodoni_Moda, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
+import './dfy.css';
 import { TrackPageView } from '@/components/TrackPageView';
 import { SITE } from '@/config/pool';
 
@@ -12,10 +11,12 @@ const inter = Inter({
   display: 'swap',
 });
 
-const display = Manrope({
+// Redesign display face — high-contrast Didone serif for the manifesto headlines.
+const display = Bodoni_Moda({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['500', '600', '700', '800'],
+  weight: ['500', '700', '900'],
+  style: ['normal', 'italic'],
   display: 'swap',
 });
 
@@ -26,7 +27,7 @@ const mono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#ffffff',
+  themeColor: '#1430cf',
   width: 'device-width',
   initialScale: 1,
 };
@@ -82,9 +83,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-screen flex flex-col">
         <TrackPageView />
-        <Navbar />
         <main className="flex-1">{children}</main>
-        <Footer />
       </body>
     </html>
   );
