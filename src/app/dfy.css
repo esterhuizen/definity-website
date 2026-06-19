@@ -2,7 +2,11 @@
    collides with the existing (white-theme) components during the rollout. */
 
 body{
-  background:radial-gradient(135% 100% at 70% -10%, #1430cf 0%, #0d1f9e 58%, #0a1672 100%);
+  /* viewport-anchored so the bright→deep-navy depth shows on every screen (not stretched
+     flat over the long scroll), with a richer luminous highlight and deeper navy edges. */
+  background:radial-gradient(130% 110% at 72% -14%, #1c3ae6 0%, #1430cf 24%, #0c1c8f 58%, #07114e 100%);
+  background-color:#07114e;
+  background-attachment:fixed;
   color:#fff;
 }
 
