@@ -46,6 +46,16 @@ const nextConfig = {
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
         ],
       },
+      {
+        // Token off-chain metadata + its image are fetched cross-origin by
+        // wallets, explorers and dApps — allow it.
+        source: '/(definity_token_offchain.json|logo.png)',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, OPTIONS' },
+          { key: 'Cache-Control', value: 'public, max-age=3600' },
+        ],
+      },
     ];
   },
 };
