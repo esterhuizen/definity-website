@@ -6,9 +6,12 @@
    Viewport-anchored depth via a COMPOSITED fixed layer (not background-attachment:fixed,
    which repaints the whole gradient on every scroll tick and causes scroll jank). */
 .dfy-root{ color:#fff; min-height:100vh; }
-.dfy-root::before{
-  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:radial-gradient(130% 110% at 72% -14%, #1c3ae6 0%, #1430cf 24%, #0c1c8f 58%, #07114e 100%);
+/* Dedicated element (NOT a ::before — .dfy already uses ::before for the grid, and a single
+   element has only one ::before, so a pseudo here would collide with the grid's mask). */
+.dfy-canvas{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:#07114e;
+  background-image:radial-gradient(130% 110% at 72% -14%, #1c3ae6 0%, #1430cf 24%, #0c1c8f 58%, #07114e 100%);
   transform:translateZ(0);
 }
 

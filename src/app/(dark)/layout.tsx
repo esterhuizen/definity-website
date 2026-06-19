@@ -7,6 +7,7 @@ import { FooterD } from '@/components/FooterD';
 export default function DarkLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="dfy dfy-root">
+      <div className="dfy-canvas" aria-hidden="true" />
       <NavD />
       {children}
       <FooterD />
