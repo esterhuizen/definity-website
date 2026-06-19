@@ -4,7 +4,7 @@
 import { ImageResponse } from 'next/og';
 import { getBaseApy } from '@/lib/apy';
 import { getGdiStanding } from '@/lib/gdi';
-import { OG_SIZE, loadOgFonts, OgCard, OgStat, OgEm, OgLine } from '@/lib/og';
+import { OG_SIZE, loadOgFonts, OgCard, OgStat } from '@/lib/og';
 
 export const runtime = 'nodejs';
 export const alt = 'Definity — stake once, compound forever';
@@ -29,12 +29,8 @@ export default async function Image() {
     (
       <OgCard
         eyebrow="Institutional liquid staking · Solana"
-        headline={
-          <>
-            <OgLine>Stake once.</OgLine>
-            <OgLine>Compound&nbsp;<OgEm>forever.</OgEm></OgLine>
-          </>
-        }
+        headlineText="Stake once. Compound"
+        headlineAccent="forever."
         headlineSize={104}
         stats={
           <>

@@ -3,7 +3,7 @@
 
 import { ImageResponse } from 'next/og';
 import { getGdiStanding } from '@/lib/gdi';
-import { OG_SIZE, loadOgFonts, OgCard, OgStat, OgEm, OgLine } from '@/lib/og';
+import { OG_SIZE, loadOgFonts, OgCard, OgStat } from '@/lib/og';
 
 export const runtime = 'nodejs';
 export const alt = 'definSOL for institutions: decentralisation you can verify';
@@ -26,12 +26,8 @@ export default async function Image() {
     (
       <OgCard
         eyebrow="For institutions"
-        headline={
-          <>
-            <OgLine>Decentralisation</OgLine>
-            <OgLine>you can&nbsp;<OgEm>verify.</OgEm></OgLine>
-          </>
-        }
+        headlineText="Decentralisation you can"
+        headlineAccent="verify."
         headlineSize={66}
         stats={
           <>

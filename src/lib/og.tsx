@@ -38,27 +38,17 @@ export function OgStat({ label, value, teal }: { label: string; value: string; t
   );
 }
 
-// One headline line (a flex row so an inline accent sits beside the text).
-export function OgLine({ children }: { children: ReactNode }) {
-  return <div style={{ display: 'flex' }}>{children}</div>;
-}
-
-// Italic teal accent word for the headline.
-export function OgEm({ children }: { children: ReactNode }) {
-  return (
-    <span style={{ fontFamily: 'Bodoni', fontStyle: 'italic', fontWeight: 600, color: '#37f0b0' }}>{children}</span>
-  );
-}
-
 export function OgCard({
   eyebrow,
-  headline,
+  headlineText,
+  headlineAccent,
   headlineSize = 104,
   stats,
   url,
 }: {
   eyebrow: string;
-  headline: ReactNode;
+  headlineText: string;
+  headlineAccent: string;
   headlineSize?: number;
   stats: ReactNode;
   url: string;
@@ -100,8 +90,13 @@ export function OgCard({
           <div style={{ display: 'flex', width: 30, height: 2, backgroundColor: '#37f0b0' }} />
           {eyebrow}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'Bodoni', fontWeight: 900, fontSize: headlineSize, lineHeight: 0.98, letterSpacing: -1, textTransform: 'uppercase' }}>
-          {headline}
+        {/* Each word is its own flex item so flexWrap wraps cleanly (a single wide
+            item — e.g. the accent — would otherwise overflow instead of wrapping). */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', fontFamily: 'Bodoni', fontWeight: 900, fontSize: headlineSize, lineHeight: 1.0, letterSpacing: -1, textTransform: 'uppercase' }}>
+          {headlineText.split(' ').map((w, i) => (
+            <div key={i} style={{ display: 'flex', marginRight: '0.28em' }}>{w}</div>
+          ))}
+          <div style={{ display: 'flex', fontStyle: 'italic', fontWeight: 600, color: '#37f0b0' }}>{headlineAccent}</div>
         </div>
       </div>
 
