@@ -58,11 +58,11 @@ export async function HomeSections() {
               <div className="cd">A standard SPL liquid staking token whose NAV compounds every epoch.</div>
               <div className="clink">View the mint →</div>
             </a>
-            <a className="cred" href="https://incentive.definity.finance/last24h.json" target="_blank" rel="noreferrer">
-              <div className="ck">Data · published feed</div>
-              <div className="cv">Open API</div>
-              <div className="cd">APY, reserves and looping inputs are published hourly as a public, verifiable feed.</div>
-              <div className="clink">Open the feed →</div>
+            <a className="cred" href="/api/stats" target="_blank" rel="noreferrer">
+              <div className="ck">Data · public stats</div>
+              <div className="cv">Stats API</div>
+              <div className="cd">Live APY, TVL, NAV and the GDI rank — the figures an allocator needs, as clean JSON.</div>
+              <div className="clink">GET /api/stats →</div>
             </a>
           </div>
         </div>

@@ -25,7 +25,7 @@ export function NavD() {
               <Link key={l.href} href={l.href}>{l.label}</Link>
             ))}
           </div>
-          <a className="navcta" href="https://incentive.definity.finance" target="_blank" rel="noreferrer">
+          <a className="navcta" href="/api/stats" target="_blank" rel="noreferrer">
             <span className="live" /> Live data
           </a>
         </nav>
