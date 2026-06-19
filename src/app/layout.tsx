@@ -40,10 +40,8 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   applicationName: 'Definity',
-  icons: {
-    icon: '/favicon.ico',
-    apple: '/logo.png',
-  },
+  // Icons are provided by the file conventions: app/icon.svg, app/favicon.ico,
+  // app/apple-icon.tsx (the ∞-on-Definity-blue mark).
   keywords: [
     'Solana',
     'stake pool',
