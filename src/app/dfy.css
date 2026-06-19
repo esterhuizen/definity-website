@@ -1,13 +1,14 @@
 /* Definity redesign — Concept D design system. Scoped under .dfy so it never
    collides with the existing (white-theme) components during the rollout. */
 
-body{
-  /* viewport-anchored so the bright→deep-navy depth shows on every screen (not stretched
-     flat over the long scroll), with a richer luminous highlight and deeper navy edges. */
+body{ background-color:#07114e; color:#fff; }
+/* Viewport-anchored depth via a COMPOSITED fixed layer (not background-attachment:fixed,
+   which repaints the whole gradient on every scroll tick and causes scroll jank). The
+   browser keeps this on its own GPU layer, so scrolling the content never repaints it. */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:radial-gradient(130% 110% at 72% -14%, #1c3ae6 0%, #1430cf 24%, #0c1c8f 58%, #07114e 100%);
-  background-color:#07114e;
-  background-attachment:fixed;
-  color:#fff;
+  transform:translateZ(0);
 }
 
 .dfy{

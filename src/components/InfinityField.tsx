@@ -18,7 +18,7 @@ export function InfinityField() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     // Match the concept: always animate (the motion is a slow, decorative drift, not a
     // jarring transition), so the ∞ moves for everyone — including reduced-motion users.
-    let w = 0, h = 0, A = 0, cx = 0, cy = 0, raf = 0;
+    let w = 0, h = 0, A = 0, cx = 0, cy = 0, raf = 0, paused = false;
 
     const pt = (t: number) => ({ x: cx + A * Math.cos(t), y: cy + A * 0.82 * Math.sin(2 * t) });
     const trace = () => {
@@ -50,6 +50,7 @@ export function InfinityField() {
     }));
 
     const frame = () => {
+      if (paused) { raf = 0; return; }
       x.globalCompositeOperation = 'destination-out';
       x.fillStyle = 'rgba(0,0,0,0.085)';
       x.fillRect(0, 0, w, h);
@@ -80,11 +81,25 @@ export function InfinityField() {
     requestAnimationFrame(size); // re-measure after fonts/layout settle
     const ro = new ResizeObserver(size);
     ro.observe(parent);
+    // Pause the loop when the hero scrolls off-screen so it doesn't burn frames or
+    // compete with scrolling while the rest of the page is in view.
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          if (paused) { paused = false; raf = requestAnimationFrame(frame); }
+        } else {
+          paused = true;
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(c);
     frame();
 
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      io.disconnect();
     };
   }, []);
 
