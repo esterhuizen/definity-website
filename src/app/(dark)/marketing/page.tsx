@@ -63,12 +63,6 @@ export default function MarketingPage() {
             </div>
             <div className="mk-tile">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <div className="mk-frame"><img src="/marketing/mark-white-on-blue-keyline.svg" alt="∞ mark, white on blue with keyline" style={{ width: 140 }} /></div>
-              <div className="mk-meta"><span className="mk-t">White / blue · keyline</span><Dl name="definity-mark-white-on-blue-keyline" svg="/marketing/mark-white-on-blue-keyline.svg" png="/marketing/asset?v=mark-white-on-blue-keyline" /></div>
-              <div className="mk-cap">Same mark with a hairline keyline. Keeps the tile edge crisp on dark app surfaces and explorers where it would otherwise bleed into the background.</div>
-            </div>
-            <div className="mk-tile">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="mk-frame"><img src="/marketing/mark-blue-on-white.svg" alt="∞ mark, blue on white" style={{ width: 140 }} /></div>
               <div className="mk-meta"><span className="mk-t">Blue / white</span><Dl name="definity-mark-blue-on-white" svg="/marketing/mark-blue-on-white.svg" png="/marketing/asset?v=mark-blue-on-white" /></div>
             </div>
@@ -81,6 +75,12 @@ export default function MarketingPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="mk-frame white"><img src="/marketing/mark-blue.svg" alt="∞ mark, blue" style={{ width: 130 }} /></div>
               <div className="mk-meta"><span className="mk-t">Mono blue</span><Dl name="definity-mark-blue" svg="/marketing/mark-blue.svg" /></div>
+            </div>
+            <div className="mk-tile">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="mk-frame"><img src="/marketing/token-circle.svg" alt="On-chain token icon, circle" style={{ width: 140 }} /></div>
+              <div className="mk-meta"><span className="mk-t">On-chain token icon</span><Dl name="definity-token-circle" svg="/marketing/token-circle.svg" png="/marketing/asset?v=token-circle" /></div>
+              <div className="mk-cap">Circle-native icon for wallets and explorers, which render token logos as circles. Bright fill stays legible on light and dark.</div>
             </div>
           </div>
         </div>

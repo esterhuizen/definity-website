@@ -27,10 +27,9 @@ export async function GET(req: Request) {
   const bg = onBlue ? GRAD : '#ffffff';
   const fonts = [{ name: 'JBMono', data: jb, weight: 700 as const, style: 'normal' as const }];
 
-  if (v.startsWith('mark')) {
-    // The keyline variant adds a hairline outer rim (crisp on dark, ~invisible
-    // on light) so the exported PNG matches mark-white-on-blue-keyline.svg.
-    const keyline = v === 'mark-white-on-blue-keyline';
+  if (v === 'token-circle') {
+    // Circle-native on-chain token icon — matches public/marketing/token-circle.svg
+    // (bright vertical gradient, white ∞, transparent outside the circle).
     return new ImageResponse(
       (
         <div
@@ -40,11 +39,21 @@ export async function GET(req: Request) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: 96,
-            background: bg,
-            ...(keyline ? { border: '8px solid rgba(255,255,255,0.92)' } : {}),
+            borderRadius: 240,
+            background: 'linear-gradient(180deg, #2747f0 0%, #1430cf 100%)',
           }}
         >
+          <Mark stroke="#ffffff" w={300} />
+        </div>
+      ),
+      { width: 480, height: 480, fonts },
+    );
+  }
+
+  if (v.startsWith('mark')) {
+    return new ImageResponse(
+      (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 96, background: bg }}>
           <Mark stroke={fg} w={300} />
         </div>
       ),
