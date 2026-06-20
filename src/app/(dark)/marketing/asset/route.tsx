@@ -50,6 +50,25 @@ export async function GET(req: Request) {
     );
   }
 
+  if (v === 'lockup-teal-white' || v === 'lockup-teal-white-1_5x') {
+    // Teal ∞ + white DEFINITY, transparent. The mark height is a multiple of the
+    // wordmark's cap height (~86px at 118px): 2x (default) or 1.5x.
+    const small = v.endsWith('1_5x');
+    const markW = small ? 234 : 312;
+    const markH = small ? 152 : 203;
+    return new ImageResponse(
+      (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44, fontFamily: 'JBMono' }}>
+          <svg width={markW} height={markH} viewBox="10 2 40 26">
+            <path d={MARK} fill="none" stroke="#37f0b0" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div style={{ display: 'flex', fontWeight: 700, fontSize: 118, letterSpacing: 15, color: '#ffffff' }}>DEFINITY</div>
+        </div>
+      ),
+      { width: small ? 1080 : 1140, height: small ? 220 : 260, fonts },
+    );
+  }
+
   if (v.startsWith('mark')) {
     return new ImageResponse(
       (
