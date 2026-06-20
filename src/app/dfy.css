@@ -69,14 +69,14 @@
 .dfy .spark .ln{fill:none;stroke:var(--teal);stroke-width:1.6;stroke-dasharray:300;stroke-dashoffset:300;animation:dfy-draw 1.8s ease-out .7s forwards}
 .dfy .spark .fl{fill:url(#gg);stroke:none;opacity:.16}
 @keyframes dfy-draw{to{stroke-dashoffset:0}}
-/* GDI rank stat beside the APY (replaces the sparkline); links to definSOL's GDI page */
-.dfy .big .prank{display:flex;flex-direction:column;align-items:flex-end;gap:7px;text-decoration:none;text-align:right;transition:.2s}
-.dfy .big .prank .rk-k{display:flex;align-items:center;gap:5px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
-.dfy .big .prank .go{color:var(--teal);font-style:normal}
-.dfy .big .prank .rk-v{font-family:var(--serif);font-weight:600;font-size:30px;line-height:.86;color:#fff}
-.dfy .big .prank .rk-v i{font-style:normal;font-family:var(--mono);font-size:.42em;color:var(--teal);margin-left:2px}
-.dfy .big .prank:hover .rk-v{color:var(--teal)}
-.dfy .big .prank:hover .go{text-shadow:0 0 9px var(--teal)}
+/* GDI rank as a peer stat in the panel's three-up row (links to definSOL's GDI page) */
+.dfy .twocol.trio{grid-template-columns:1fr 1fr 1fr}
+.dfy .twocol.trio>:not(:last-child){border-right:1px solid var(--hair)}
+.dfy .twocol>a{display:block;padding:16px 20px;text-decoration:none;color:inherit;transition:.2s}
+.dfy .twocol>a:hover{background:rgba(255,255,255,.04)}
+.dfy .twocol>a:hover .v{color:var(--teal)}
+.dfy .twocol .go{color:var(--teal);font-style:normal}
+.dfy .twocol .v i{font-style:normal;font-family:var(--mono);font-size:.42em;color:var(--teal);margin-left:2px;vertical-align:.08em}
 .dfy .twocol{display:grid;grid-template-columns:1fr 1fr}
 .dfy .twocol>div{padding:16px 20px}.dfy .twocol>div:first-child{border-right:1px solid var(--hair)}
 .dfy .twocol .v{font-family:var(--serif);font-weight:600;font-size:26px;margin-top:5px}

@@ -40,14 +40,11 @@ export async function HeroD() {
                 <div className="k">Base staking APY</div>
                 <div className="big">
                   <div className="v">{apyStr}<span className="pct">%</span></div>
-                  <a className="prank" href={gdiHref} target="_blank" rel="noreferrer">
-                    <span className="rk-k">GDI rank <span className="go">↗</span></span>
-                    <span className="rk-v">#{rank}<i>/{total}</i></span>
-                  </a>
                 </div>
               </div>
-              <div className="twocol">
+              <div className="twocol trio">
                 <div><div className="k">Looped net APY</div><div className="v" style={{ color: 'var(--teal)' }}>Soon</div><div className="sub">leverage · in development</div></div>
+                <a href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank <span className="go">↗</span></div><div className="v">#{rank}<i>/{total}</i></div><div className="sub">open · reproducible</div></a>
                 <div><div className="k">Total staked</div><div className="v">{tvlK}<span style={{ fontSize: '.42em', fontFamily: 'var(--mono)', color: 'var(--dim)' }}>K SOL</span></div><div className="sub">vetted, decentralised set</div></div>
               </div>
               <a className="soon" href={gdiHref} target="_blank" rel="noreferrer">
