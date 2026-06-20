@@ -65,6 +65,12 @@
 .dfy .big{display:flex;align-items:flex-end;justify-content:space-between;margin-top:8px}
 .dfy .big .v{font-family:var(--serif);font-weight:600;font-size:50px;line-height:.86}
 .dfy .big .v .pct{font-family:var(--mono);font-size:18px;color:var(--teal)}
+/* Hero panel: a quiet NAV (definSOL→SOL) fills the APY's old sparkline slot with a
+   live, relevant stat — the token's redemption rate — keeping everything left-aligned. */
+.dfy .navrate{text-align:right}
+.dfy .navrate .nr-k{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.dfy .navrate .nr-v{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1;margin-top:6px;color:#fff}
+.dfy .navrate .nr-v small{font-size:.42em;font-family:var(--mono);color:var(--dim);margin-left:4px;vertical-align:.12em}
 .dfy .spark{width:120px;height:36px}
 .dfy .spark .ln{fill:none;stroke:var(--teal);stroke-width:1.6;stroke-dasharray:300;stroke-dashoffset:300;animation:dfy-draw 1.8s ease-out .7s forwards}
 .dfy .spark .fl{fill:url(#gg);stroke:none;opacity:.16}

@@ -15,3 +15,19 @@ export async function getBaseApy(): Promise<number | null> {
     return null;
   }
 }
+
+// definSOL → SOL redemption rate (NAV): how many SOL one definSOL is worth. It only
+// grows (the staking yield accrues into the rate). Same hourly feed; null on failure.
+export async function getNav(): Promise<number | null> {
+  try {
+    const res = await fetch('https://incentive.definity.finance/last24h.json', {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { latest?: { defsol_exch_rate?: number } };
+    const r = j?.latest?.defsol_exch_rate;
+    return typeof r === 'number' && r > 1 && r < 2 ? r : null;
+  } catch {
+    return null;
+  }
+}

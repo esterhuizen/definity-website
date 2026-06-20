@@ -1,14 +1,15 @@
 import { getGdiStanding, GDI_URLS } from '@/lib/gdi';
-import { getBaseApy } from '@/lib/apy';
+import { getBaseApy, getNav } from '@/lib/apy';
 import { InfinityField } from './InfinityField';
 
 // Concept D hero — manifesto serif on Definity blue + a live instrument panel (the proof),
 // wrapped in a generative ∞. Real GDI rank + base APY; looped APY is "coming soon" until
 // the leverage product is locked in.
 export async function HeroD() {
-  const [apy, gdi] = await Promise.all([getBaseApy(), getGdiStanding()]);
+  const [apy, gdi, nav] = await Promise.all([getBaseApy(), getGdiStanding(), getNav()]);
 
   const apyStr = (apy ?? 5.32).toFixed(2);
+  const navStr = nav != null ? nav.toFixed(3) : null;
   const rank = gdi ? gdi.rank : 2;
   const total = gdi ? gdi.total : 23;
   const tvlK = gdi?.stakeSol ? Math.round(gdi.stakeSol / 1000) : 265;
@@ -40,6 +41,12 @@ export async function HeroD() {
                 <div className="k">Base staking APY</div>
                 <div className="big">
                   <div className="v">{apyStr}<span className="pct">%</span></div>
+                  {navStr && (
+                    <div className="navrate">
+                      <div className="nr-k">1 definSOL</div>
+                      <div className="nr-v">{navStr}<small>SOL</small></div>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="twocol trio">
