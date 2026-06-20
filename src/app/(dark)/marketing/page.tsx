@@ -63,6 +63,12 @@ export default function MarketingPage() {
             </div>
             <div className="mk-tile">
               {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="mk-frame"><img src="/marketing/mark-white-on-blue-keyline.svg" alt="∞ mark, white on blue with keyline" style={{ width: 140 }} /></div>
+              <div className="mk-meta"><span className="mk-t">White / blue · keyline</span><Dl name="definity-mark-white-on-blue-keyline" svg="/marketing/mark-white-on-blue-keyline.svg" png="/marketing/asset?v=mark-white-on-blue-keyline" /></div>
+              <div className="mk-cap">Same mark with a hairline keyline. Keeps the tile edge crisp on dark app surfaces and explorers where it would otherwise bleed into the background.</div>
+            </div>
+            <div className="mk-tile">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="mk-frame"><img src="/marketing/mark-blue-on-white.svg" alt="∞ mark, blue on white" style={{ width: 140 }} /></div>
               <div className="mk-meta"><span className="mk-t">Blue / white</span><Dl name="definity-mark-blue-on-white" svg="/marketing/mark-blue-on-white.svg" png="/marketing/asset?v=mark-blue-on-white" /></div>
             </div>

@@ -28,9 +28,23 @@ export async function GET(req: Request) {
   const fonts = [{ name: 'JBMono', data: jb, weight: 700 as const, style: 'normal' as const }];
 
   if (v.startsWith('mark')) {
+    // The keyline variant adds a hairline outer rim (crisp on dark, ~invisible
+    // on light) so the exported PNG matches mark-white-on-blue-keyline.svg.
+    const keyline = v === 'mark-white-on-blue-keyline';
     return new ImageResponse(
       (
-        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 96, background: bg }}>
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 96,
+            background: bg,
+            ...(keyline ? { border: '8px solid rgba(255,255,255,0.92)' } : {}),
+          }}
+        >
           <Mark stroke={fg} w={300} />
         </div>
       ),
