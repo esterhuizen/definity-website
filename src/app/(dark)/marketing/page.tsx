@@ -46,6 +46,16 @@ export default function MarketingPage() {
               <div className="mk-frame"><img src="/marketing/lockup-blue-on-white.svg" alt="Definity logo, blue on white" /></div>
               <div className="mk-meta"><span className="mk-t">Blue on white</span><Dl name="definity-lockup-blue-on-white" svg="/marketing/lockup-blue-on-white.svg" png="/marketing/asset?v=lockup-blue-on-white" /></div>
             </div>
+            <div className="mk-tile">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="mk-frame"><img src="/marketing/lockup-teal-white.png" alt="Definity lockup, teal mark on dark, white wordmark" /></div>
+              <div className="mk-meta"><span className="mk-t">Teal on dark · 2× mark</span><Dl name="definity-lockup-teal-white" svg="/marketing/lockup-teal-white.svg" png="/marketing/asset?v=lockup-teal-white" /></div>
+            </div>
+            <div className="mk-tile">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <div className="mk-frame"><img src="/marketing/lockup-teal-white-1_5x.png" alt="Definity lockup, teal mark on dark, 1.5x mark" /></div>
+              <div className="mk-meta"><span className="mk-t">Teal on dark · 1.5× mark</span><Dl name="definity-lockup-teal-white-1_5x" svg="/marketing/lockup-teal-white-1_5x.svg" png="/marketing/asset?v=lockup-teal-white-1_5x" /></div>
+            </div>
           </div>
         </div>
       </section>
