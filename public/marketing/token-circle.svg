@@ -6,7 +6,7 @@
     </linearGradient>
   </defs>
   <circle cx="120" cy="120" r="118" fill="url(#g)"/>
-  <g transform="translate(36,78) scale(2.8)" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <g transform="translate(-18,51) scale(4.6)" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
     <path d="M30 15 C30 4 12 4 12 15 C12 26 30 26 30 15 C30 4 48 4 48 15 C48 26 30 26 30 15 Z"/>
   </g>
 </svg>

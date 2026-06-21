@@ -43,7 +43,9 @@ export async function GET(req: Request) {
             background: 'linear-gradient(180deg, #2747f0 0%, #1430cf 100%)',
           }}
         >
-          <Mark stroke="#ffffff" w={300} />
+          <svg width={373} height={242} viewBox="10 2 40 26">
+            <path d={MARK} fill="none" stroke="#ffffff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
       ),
       { width: 480, height: 480, fonts },
