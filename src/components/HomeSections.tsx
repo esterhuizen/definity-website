@@ -1,5 +1,6 @@
 import { getGdiStanding, GDI_URLS } from '@/lib/gdi';
 import { POOL, LINKS } from '@/config/pool';
+import { ValidatorDots } from './ValidatorDots';
 
 // Phase 2 — the homepage below the hero, in Concept D's system: the loop (institutional
 // hook, "coming soon"), proof/trust (live GDI + verifiable links), the decentralised
@@ -79,6 +80,7 @@ export async function HomeSections() {
           <div className="mapwrap">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/world-map.svg" alt="" aria-hidden="true" />
+            <ValidatorDots />
             <div className="ov">
               <div className="ovk">#{rank} of {total}<span style={{ fontSize: '.4em', color: 'var(--teal)', fontFamily: 'var(--mono)' }}> · GDI</span></div>
               <div className="ovs">Geographic decentralisation, scored from public on-chain data — and independently reproducible.</div>
