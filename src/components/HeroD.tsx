@@ -31,6 +31,7 @@ export async function HeroD() {
               </p>
               <div className="cta reveal d4">
                 <a className="btn btn-solid" href="/stake">Stake SOL →</a>
+                <a className="btn btn-ghost" href="/direct-staking">Direct staking · Soon →</a>
                 <a className="btn btn-ghost" href="/institutions">Institutional access</a>
               </div>
             </div>
@@ -50,7 +51,7 @@ export async function HeroD() {
                 </div>
               </div>
               <div className="twocol trio">
-                <div><div className="k">Looped net APY</div><div className="v" style={{ color: 'var(--teal)' }}>Soon</div><div className="sub">leverage · in development</div></div>
+                <div><div className="k">Direct staking + looping</div><div className="v" style={{ color: 'var(--teal)' }}>Soon</div><div className="sub">up to 3.5× matched · leverage</div></div>
                 <a href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank <span className="go">↗</span></div><div className="v">#{rank}<i>/{total}</i></div><div className="sub">open · reproducible</div></a>
                 <div><div className="k">Total staked</div><div className="v">{tvlK}<span style={{ fontSize: '.42em', fontFamily: 'var(--mono)', color: 'var(--dim)' }}>K SOL</span></div><div className="sub">vetted, decentralised set</div></div>
               </div>
@@ -62,7 +63,7 @@ export async function HeroD() {
 
           <section className="metrics reveal d5">
             <div className="metric"><div className="k">definSOL base APY</div><div className="v">{apyStr}<small>%</small></div><div className="s">on-chain · net of fees</div></div>
-            <div className="metric"><div className="k">Looped net APY</div><div className="v">Soon</div><div className="s">leverage product · in development</div></div>
+            <div className="metric"><div className="k">Direct staking + looping</div><div className="v">Soon</div><div className="s">up to 3.5× matched stake · leverage · soon</div></div>
             <div className="metric"><div className="k">Total value staked</div><div className="v">{tvlK}<small>K SOL</small></div><div className="s">across the pool</div></div>
             <a className="metric metric-link" href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank · decentralisation</div><div className="v">#{rank}<small>/{total}</small></div><div className="s">{gdiScore} vs {baseline} baseline <span className="go">↗</span></div></a>
           </section>

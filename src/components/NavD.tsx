@@ -5,7 +5,8 @@ import { LogoMark } from './LogoMark';
 // reads over the hero canvas and over content as you scroll. Links are real destinations
 // (legacy pages still resolve at the same URLs during the rollout).
 const NAV = [
-  { label: 'Stake', href: '/stake' },
+  { label: 'Liquid staking', href: '/stake' },
+  { label: 'Direct staking', href: '/direct-staking' },
   { label: 'Institutions', href: '/institutions' },
   { label: 'Validators', href: '/validators' },
   { label: 'Verify', href: '/addresses' },
