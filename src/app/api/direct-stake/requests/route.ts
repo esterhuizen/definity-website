@@ -7,7 +7,7 @@ import { readFile } from 'node:fs/promises';
 //   • depositor's current definSOL × NAV = the "still in place" check;
 //   • PLANNED matching = retailMultiple × holdings-capped deposit (the target);
 //   • DEPLOYED matching = directed pool stake actually placed, read from the
-//     optimiser's deployments log (empty until the DSP goes live → 0/pending);
+//     optimiser's deployments log (0/pending until the first approved cycle lands);
 //   • the validator's current pool stake, for context.
 // Read-only.
 
@@ -186,12 +186,11 @@ export async function GET() {
   ]);
   const holdings = new Map(wallets.map((w, i) => [w, holdingsArr[i] as number]));
 
-  // Anti-gaming maturity (spec §Matching basis): a deposit earns no match until
-  // it has survived >= 1 full epoch boundary. This is a display estimate from
-  // deposit age + current holdings; the optimiser applies the exact trailing
-  // minimum reconstructed from on-chain events.
-  // Eligibility matches the optimiser's sliding trailing-min window: a deposit is
-  // credited once held for slotsInEpoch slots (~1 epoch of duration), not at a boundary.
+  // Anti-gaming maturity (spec §Matching basis): a deposit earns no match until it
+  // has been held continuously for a full epoch-DURATION sliding window — the
+  // optimiser's trailing-minimum basis, NOT an epoch boundary. Display estimate from
+  // deposit age + current holdings; the optimiser applies the exact trailing minimum
+  // reconstructed from on-chain events. Credited once held for slotsInEpoch slots.
   const windowStartSlot = epochInfo.absoluteSlot - epochInfo.slotsInEpoch;
   const isMatured = (slot: number) => slot > 0 && slot < windowStartSlot;
   const maturesInHours = (slot: number) =>
@@ -265,7 +264,9 @@ export async function GET() {
       perValidatorCapSol: PER_VALIDATOR_CAP_SOL,
       sleeveCapSol: SLEEVE_CAP_SOL,
       deployment: {
-        live: deployedSol > 1e-9,
+        // The DSP is live in production (optimiser wired + directing); deployedSol
+        // stays 0 only until the first operator-approved cycle lands on-chain.
+        live: process.env.DSP_LIVE === '1' || deployedSol > 1e-9,
         plannedSol: r6(plannedSol),
         deployedSol: r6(deployedSol),
         deployedPct: plannedSol > 0 ? Math.round((deployedSol / plannedSol) * 1000) / 10 : 0,

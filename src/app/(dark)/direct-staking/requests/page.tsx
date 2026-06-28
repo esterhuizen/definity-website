@@ -113,9 +113,9 @@ export default function DirectStakeRequestsPage() {
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">Direct-stake requests</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-muted">
             On-chain <span className="font-mono">direct:</span> deposits into definSOL, with live holdings.{' '}
-            <span className="text-ink">Planned</span> matching = {data?.retailMultiple ?? 2}× the deposit — but only once it has
-            survived ≥1 epoch (the trailing-minimum anti-gaming basis: a deposit that doesn&apos;t persist across the boundary earns
-            nothing). <span className="text-ink">Deployed</span> = matching pool stake actually placed on-chain.
+            <span className="text-ink">Planned</span> matching = {data?.retailMultiple ?? 3.5}× the deposit — but only once it has
+            been held continuously for a full epoch (the trailing-minimum anti-gaming basis: a deposit that doesn&apos;t stay in place
+            earns nothing). <span className="text-ink">Deployed</span> = matching pool stake actually placed on-chain.
           </p>
         </div>
         <button
@@ -154,10 +154,14 @@ export default function DirectStakeRequestsPage() {
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-ring/40">
           <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pct}%` }} />
         </div>
-        {!dep?.live ? (
+        {dep?.live && dep.deployedSol < 1e-9 ? (
           <p className="mt-3 text-xs text-ink-dim">
-            Matching is computed but <span className="text-ink-muted">not yet deployed</span> — the directed-stake program is in
-            dry-run, so the staker hasn&apos;t directed the matching pool stake yet. This fills in once the program goes live.
+            The directed-stake program is <span className="text-success">live</span>. Eligible matching deploys on the next optimiser
+            cycle — each cycle is operator-approved before any pool stake is directed, so this fills in right after the first approval.
+          </p>
+        ) : !dep?.live ? (
+          <p className="mt-3 text-xs text-ink-dim">
+            Matching is computed but <span className="text-ink-muted">not yet deployed</span>.
           </p>
         ) : null}
       </div>
@@ -241,7 +245,7 @@ export default function DirectStakeRequestsPage() {
       </div>
 
       <p className="mt-4 text-center text-[11px] text-ink-dim">
-        Source of truth is on-chain. Planned = registry × {data?.retailMultiple ?? 2}× (holdings-capped). Deployed = the optimiser&apos;s
+        Source of truth is on-chain. Planned = registry × {data?.retailMultiple ?? 3.5}× (holdings-capped). Deployed = the optimiser&apos;s
         directed deployments. Auto-refreshes every 15s.
       </p>
     </div>
