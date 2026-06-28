@@ -28,7 +28,7 @@ export async function HomeSections() {
             <div className="step"><div className="si">02</div><div className="st">Borrow</div><div className="sd">Post definSOL as collateral and borrow SOL against it in a lending market.</div></div>
             <div className="step"><div className="si">03</div><div className="st">Re-stake</div><div className="sd">Stake the borrowed SOL back into definSOL and repeat — looping the yield.</div></div>
           </div>
-          <div className="loopnote"><span>Direct staking + looping</span><b>Coming soon →</b><span>stake direct to your validators · loop for leverage</span></div>
+          <a className="loopnote" href="/direct-staking"><span>Direct staking</span><b>Live →</b><span>stake direct to your validators · looping for leverage soon</span></a>
         </div>
       </section>
 
