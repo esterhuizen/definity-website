@@ -14,7 +14,7 @@ type Req = {
   plannedMatchSol: number;
   deployedMatchSol: number;
   validatorPoolStakeSol: number;
-  status: 'in_place' | 'partial' | 'maturing' | 'exited';
+  status: 'maturing' | 'awaiting' | 'matched' | 'reduced' | 'withdrawn';
   matured: boolean;
   maturesInHours: number;
   blockTime: number | null;
@@ -33,10 +33,11 @@ type Data = {
     plannedSol: number;
     deployedSol: number;
     sleeveUsedPct: number;
-    inPlace: number;
-    partial: number;
+    matched: number;
+    awaiting: number;
     maturing: number;
-    exited: number;
+    reduced: number;
+    withdrawn: number;
   };
   requests: Req[];
 };
@@ -54,10 +55,11 @@ function ago(t: number | null): string {
 }
 
 const STATUS: Record<Req['status'], { label: string; cls: string }> = {
-  in_place: { label: 'In place', cls: 'bg-success/15 text-success' },
-  partial: { label: 'Partial', cls: 'bg-sunrise-300/20 text-sunrise-300' },
   maturing: { label: 'Maturing', cls: 'bg-sunrise-300/15 text-sunrise-300' },
-  exited: { label: 'Exited', cls: 'bg-ring/40 text-ink-dim' },
+  awaiting: { label: 'Awaiting match', cls: 'bg-ink/10 text-ink' },
+  matched: { label: 'Matched', cls: 'bg-success/15 text-success' },
+  reduced: { label: 'Reduced', cls: 'bg-ring/40 text-ink-muted' },
+  withdrawn: { label: 'Withdrawn', cls: 'bg-ring/40 text-ink-dim' },
 };
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -100,6 +102,16 @@ export default function DirectStakeRequestsPage() {
   const t = data?.totals;
   const dep = data?.deployment;
   const pct = dep ? Math.min(100, dep.deployedPct) : 0;
+  const planSub = t
+    ? [
+        t.matched ? `${t.matched} matched` : '',
+        t.awaiting ? `${t.awaiting} awaiting` : '',
+        t.maturing ? `${t.maturing} maturing` : '',
+        t.reduced ? `${t.reduced} reduced` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ') || undefined
+    : undefined;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-10 md:py-14">
@@ -170,7 +182,7 @@ export default function DirectStakeRequestsPage() {
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Requests" value={t ? String(t.requests) : '—'} sub={t ? `${t.wallets} wallet${t.wallets === 1 ? '' : 's'}` : undefined} />
         <Stat label="Deposited" value={t ? `${fmt(t.depositedSol)} ◎` : '—'} sub={data ? `NAV ${data.nav}` : undefined} />
-        <Stat label="Planned matching" value={t ? `${fmt(t.plannedSol)} ◎` : '—'} sub={t ? `${t.inPlace} eligible · ${t.maturing} maturing` : undefined} />
+        <Stat label="Planned matching" value={t ? `${fmt(t.plannedSol)} ◎` : '—'} sub={planSub} />
         <Stat label="Sleeve used" value={t ? `${t.sleeveUsedPct}%` : '—'} sub={data ? `${fmt(t?.plannedSol ?? 0)} / ${fmt(data.sleeveCapSol, 0)} ◎` : undefined} />
       </div>
 

@@ -222,7 +222,18 @@ export async function GET() {
       const valDeployed = deployed.get(vote) ?? 0;
       // This request's share of its validator's deployed directed stake.
       const deployedMatchSol = valPlanned > 0 ? valDeployed * (plannedMatchSol / valPlanned) : 0;
-      const status = scale <= 0 ? 'exited' : !matured ? 'maturing' : scale >= 0.999 ? 'in_place' : 'partial';
+      // Status from the direct staker's POV — where their MATCH is in its journey:
+      //   maturing  → still in the anti-gaming hold window
+      //   awaiting  → cleared the window, match directs on the next optimiser cycle
+      //   matched   → matching pool stake actually directed onto the validator
+      //   reduced   → they pulled some definSOL out; the match scales down with it
+      //   withdrawn → they exited; no match
+      const status =
+        scale <= 0 ? 'withdrawn'
+          : !matured ? 'maturing'
+          : scale < 0.999 ? 'reduced'
+          : deployedMatchSol > 1e-9 ? 'matched'
+          : 'awaiting';
       const vn = names.get(vote);
       return {
         signature: e.signature,
@@ -278,10 +289,11 @@ export async function GET() {
         plannedSol: r6(plannedSol),
         deployedSol: r6(deployedSol),
         sleeveUsedPct: Math.round((plannedSol / SLEEVE_CAP_SOL) * 1000) / 10,
-        inPlace: requests.filter((r) => r.status === 'in_place').length,
-        partial: requests.filter((r) => r.status === 'partial').length,
+        matched: requests.filter((r) => r.status === 'matched').length,
+        awaiting: requests.filter((r) => r.status === 'awaiting').length,
         maturing: requests.filter((r) => r.status === 'maturing').length,
-        exited: requests.filter((r) => r.status === 'exited').length,
+        reduced: requests.filter((r) => r.status === 'reduced').length,
+        withdrawn: requests.filter((r) => r.status === 'withdrawn').length,
       },
       perValidator,
       requests,
