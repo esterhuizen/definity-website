@@ -33,7 +33,7 @@ export const DIRECT_STAKING_FAQ: QA[] = [
   },
   {
     q: 'How much does Definity match?',
-    a: `For every 1 SOL you direct-stake, Definity directs up to 3.5× that amount of pool stake onto your validator — subject to pool liquidity and capped at 20,000 SOL per validator. If your validator is also in the Solana Foundation Delegation Program (SFDP), the Foundation matches again on top, taking the total beyond 3.5×.`,
+    a: `Two parts. Your own stake is directed onto your validator at the next optimiser cycle. On top of that, Definity directs up to 3.5× matching once your deposit has been held a full epoch — so your validator receives up to 4.5× in total (your 1× plus up to 3.5× matching), subject to pool liquidity and capped at 20,000 SOL per validator. If your validator is also in the Solana Foundation Delegation Program (SFDP), the Foundation matches again on top, beyond 4.5×.`,
   },
   {
     q: 'When does the matching go live?',

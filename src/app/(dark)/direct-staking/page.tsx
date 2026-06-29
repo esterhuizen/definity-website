@@ -63,8 +63,8 @@ export default async function DirectStakingPage() {
             <h1 className="sec-h" style={{ margin: '0 auto', maxWidth: 'none' }}>Pick a validator. <em>Stake.</em></h1>
             <p className="sec-lede" style={{ margin: '18px auto 0' }}>
               Search the pool’s vetted set and choose an amount; your wallet deposits SOL and receives definSOL
-              in one transaction, tagged for that validator. Definity then directs up to 3.5× your deposit as pool
-              stake onto it on the next optimiser cycle.
+              in one transaction, tagged for that validator. Definity directs your stake onto it at the next
+              optimiser cycle, then adds up to 3.5× matching on top — up to 4.5× in total.
             </p>
             <p style={{ margin: '14px auto 0' }}>
               <a className="morelink" href="#faq">New to direct staking? Read the FAQ →</a>
@@ -84,13 +84,13 @@ export default async function DirectStakingPage() {
         <div className="wrap">
           <div className="chapter"><span className="n">01</span>&nbsp; Matching</div>
           <div className="sec-head">
-            <h1 className="sec-h">Up to <em>3.5×</em> the stake.</h1>
-            <p className="sec-lede">Direct staking amplifies what you delegate. Definity directs pool stake worth up to 3.5× your deposit onto your validator. If your validator is in the Solana Foundation Delegation Program, the Foundation matches again on top — taking it beyond 3.5×.</p>
+            <h1 className="sec-h">Up to <em>4.5×</em> the stake.</h1>
+            <p className="sec-lede">Direct staking amplifies what you delegate. Your own stake is directed onto your validator at the next cycle, and Definity adds up to 3.5× matching on top — up to 4.5× in total. If your validator is in the Solana Foundation Delegation Program, the Foundation matches again, beyond that.</p>
           </div>
           <div className="creds">
-            <div className="cred"><div className="ck">1 · Your direct stake</div><div className="cv">1×</div><div className="cd">Deposit SOL and receive definSOL, tagged for the validator you choose — including leveraged delegations, once looping is live.</div></div>
-            <div className="cred"><div className="ck">2 · Definity matches</div><div className="cv">→ up to 3.5×</div><div className="cd">Definity directs pool stake worth up to 3.5× your deposit onto your validator — subject to pool liquidity and capped at 20,000 SOL per validator.</div></div>
-            <div className="cred"><div className="ck">3 · SFDP matches</div><div className="cv">+ more</div><div className="cd">If your validator is in the Solana Foundation Delegation Program, the Foundation matches again on top — taking your validator beyond 3.5×.</div></div>
+            <div className="cred"><div className="ck">1 · Your direct stake</div><div className="cv">1×</div><div className="cd">Deposit SOL and receive definSOL; your own stake is directed onto the validator you choose at the next optimiser cycle.</div></div>
+            <div className="cred"><div className="ck">2 · Definity matches</div><div className="cv">+ up to 3.5×</div><div className="cd">On top of your stake, Definity directs up to 3.5× your deposit onto your validator once it has been held a full epoch — subject to pool liquidity and capped at 20,000 SOL per validator.</div></div>
+            <div className="cred"><div className="ck">3 · SFDP matches</div><div className="cv">+ more</div><div className="cd">If your validator is in the Solana Foundation Delegation Program, the Foundation matches again on top — taking your validator beyond 4.5×.</div></div>
           </div>
         </div>
       </section>

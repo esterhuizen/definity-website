@@ -125,9 +125,9 @@ export default function DirectStakeRequestsPage() {
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">Direct-stake requests</h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-muted">
             On-chain <span className="font-mono">direct:</span> deposits into definSOL, with live holdings.{' '}
-            <span className="text-ink">Planned</span> matching = {data?.retailMultiple ?? 3.5}× the deposit — but only once it has
-            been held continuously for a full epoch (the trailing-minimum anti-gaming basis: a deposit that doesn&apos;t stay in place
-            earns nothing). <span className="text-ink">Deployed</span> = matching pool stake actually placed on-chain.
+            <span className="text-ink">Planned</span> = the directed target: the staker&apos;s own 1× stake (directed next cycle) plus up to{' '}
+            {data?.retailMultiple ?? 3.5}× matching once a deposit has been held a full epoch (the trailing-minimum anti-gaming basis) — up
+            to 4.5× total. <span className="text-ink">Deployed</span> = pool stake actually placed on-chain.
           </p>
         </div>
         <button
@@ -149,7 +149,7 @@ export default function DirectStakeRequestsPage() {
       {/* Deployment status bar — PLANNED vs DEPLOYED */}
       <div className="surface mt-6 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-ink-dim">Matching stake · planned vs deployed</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-ink-dim">Directed stake · planned vs deployed</div>
           <span
             className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
               dep?.live ? 'bg-success/15 text-success' : 'bg-sunrise-300/20 text-sunrise-300'
@@ -182,7 +182,7 @@ export default function DirectStakeRequestsPage() {
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Requests" value={t ? String(t.requests) : '—'} sub={t ? `${t.wallets} wallet${t.wallets === 1 ? '' : 's'}` : undefined} />
         <Stat label="Deposited" value={t ? `${fmt(t.depositedSol)} ◎` : '—'} sub={data ? `NAV ${data.nav}` : undefined} />
-        <Stat label="Planned matching" value={t ? `${fmt(t.plannedSol)} ◎` : '—'} sub={planSub} />
+        <Stat label="Planned directed" value={t ? `${fmt(t.plannedSol)} ◎` : '—'} sub={planSub} />
         <Stat label="Sleeve used" value={t ? `${t.sleeveUsedPct}%` : '—'} sub={data ? `${fmt(t?.plannedSol ?? 0)} / ${fmt(data.sleeveCapSol, 0)} ◎` : undefined} />
       </div>
 
@@ -257,8 +257,8 @@ export default function DirectStakeRequestsPage() {
       </div>
 
       <p className="mt-4 text-center text-[11px] text-ink-dim">
-        Source of truth is on-chain. Planned = registry × {data?.retailMultiple ?? 3.5}× (holdings-capped). Deployed = the optimiser&apos;s
-        directed deployments. Auto-refreshes every 15s.
+        Source of truth is on-chain. Planned = 1× principal + up to {data?.retailMultiple ?? 3.5}× matching (holdings-capped, up to 4.5×).
+        Deployed = the optimiser&apos;s directed deployments. Auto-refreshes every 15s.
       </p>
     </div>
   );

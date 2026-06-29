@@ -179,7 +179,7 @@ export async function GET(req: Request) {
   type Pos = {
     vote: string; name: string | null; city: string | null;
     directedDefinsol: number; directedSol: number; mintedDefinsol: number;
-    matchedPlannedSol: number; pendingMatchSol: number; matchedDeployedSol: number;
+    principalSol: number; matchedPlannedSol: number; pendingMatchSol: number; matchedDeployedSol: number;
     deposits: number; allMatured: boolean; pendingByHour: Map<number, number>;
   };
   const byVote = new Map<string, Pos>();
@@ -188,7 +188,7 @@ export async function GET(req: Request) {
     const p = byVote.get(vote) ?? {
       vote, name: names.get(vote)?.name ?? null, city: names.get(vote)?.city ?? null,
       directedDefinsol: 0, directedSol: 0, mintedDefinsol: 0,
-      matchedPlannedSol: 0, pendingMatchSol: 0, matchedDeployedSol: 0, deposits: 0, allMatured: true, pendingByHour: new Map<number, number>(),
+      principalSol: 0, matchedPlannedSol: 0, pendingMatchSol: 0, matchedDeployedSol: 0, deposits: 0, allMatured: true, pendingByHour: new Map<number, number>(),
     };
     const m = minted[i];
     // Prefer the true minted amount; fall back to depositSol/nav if the tx read failed.
@@ -196,6 +196,10 @@ export async function GET(req: Request) {
     p.mintedDefinsol += mintedAmt;
     p.directedSol += e.depositSol ?? 0;
     p.deposits += 1;
+    // Principal: the user's own 1× stake — directed to their validator at the NEXT
+    // cycle regardless of maturity (self-funded, claws back on withdrawal).
+    p.principalSol += (e.depositSol ?? 0) * heldScale;
+    // Matching uplift: RETAIL_MULTIPLE×, gated by the anti-gaming maturity window.
     const match = RETAIL_MULTIPLE * (e.depositSol ?? 0) * heldScale;
     if (isMatured(e.slot)) {
       // held a full lookback window → eligible (directs on the next optimiser cycle)
@@ -216,7 +220,7 @@ export async function GET(req: Request) {
     // The staker's share of the validator's deployed directed stake = their planned
     // match ÷ the validator's total target (materialised in the ledger), applied to
     // what's actually deployed — no full-registry scan needed.
-    const share = dep && dep.target > 0 ? Math.min(1, p.matchedPlannedSol / dep.target) : 0;
+    const share = dep && dep.target > 0 ? Math.min(1, (p.principalSol + p.matchedPlannedSol) / dep.target) : 0;
     // directed definSOL the staker holds for this validator (capped at what they still hold)
     p.directedDefinsol = p.mintedDefinsol * heldScale;
     return {
@@ -229,8 +233,11 @@ export async function GET(req: Request) {
       unstakableDefinsol: r6(p.directedDefinsol),
       unstakableValueSol: r6(p.directedDefinsol * nav),
       mintedDefinsol: r6(p.mintedDefinsol),
+      principalSol: r6(p.principalSol),
       matchedPlannedSol: r6(p.matchedPlannedSol),
       pendingMatchSol: r6(p.pendingMatchSol),
+      // total stake the validator receives: your 1× principal + up to RETAIL_MULTIPLE× matching
+      directedTotalSol: r6(p.principalSol + p.matchedPlannedSol + p.pendingMatchSol),
       // each distinct maturity time (deposits at different slots vest at different times)
       pendingWaves: [...p.pendingByHour.entries()]
         .map(([hours, matchSol]) => ({ hours, matchSol: r6(matchSol) }))
@@ -244,8 +251,10 @@ export async function GET(req: Request) {
   const totals = {
     directedDefinsol: r6(positions.reduce((a, p) => a + p.directedDefinsol, 0)),
     directedValueSol: r6(positions.reduce((a, p) => a + p.directedValueSol, 0)),
+    principalSol: r6(positions.reduce((a, p) => a + p.principalSol, 0)),
     matchedPlannedSol: r6(positions.reduce((a, p) => a + p.matchedPlannedSol, 0)),
     pendingMatchSol: r6(positions.reduce((a, p) => a + p.pendingMatchSol, 0)),
+    directedTotalSol: r6(positions.reduce((a, p) => a + p.directedTotalSol, 0)),
     matchedDeployedSol: r6(positions.reduce((a, p) => a + p.matchedDeployedSol, 0)),
     holdingDefinsol: r6(holding),
   };

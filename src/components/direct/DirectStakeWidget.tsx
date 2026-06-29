@@ -102,8 +102,9 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
         </div>
         <p className="font-display text-lg font-semibold text-ink">Directed to {picked?.name || short(picked!.vote)}</p>
         <p className="text-sm text-ink-muted">
-          You deposited {amt} SOL and now hold definSOL. Definity directs up to 3.5× your deposit as pool stake onto your
-          chosen validator (capped 20,000 SOL/validator) on the next optimiser cycle.
+          You deposited {amt} SOL and now hold definSOL. Definity directs your stake onto your chosen validator at the
+          next optimiser cycle, then up to 3.5× matching on top once it has been held a full epoch — up to 4.5× in total
+          (capped 20,000 SOL/validator).
         </p>
         <a
           className="inline-flex items-center gap-1 text-sm text-ink underline underline-offset-2"
@@ -247,9 +248,9 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
           <span className="shrink-0 font-medium text-ink-muted">SOL</span>
         </div>
         <p className="mt-2 text-xs text-ink-dim">
-          You deposit SOL and receive definSOL. Definity directs up to 3.5× your deposit as pool stake onto your
-          chosen validator, capped at 20,000 SOL per validator and 60,000 total. Decentralisation is disclosed,
-          never used to block your choice.
+          You deposit SOL and receive definSOL. Definity directs your stake onto your chosen validator at the next cycle,
+          then up to 3.5× matching on top — up to 4.5× in total, capped at 20,000 SOL per validator and 60,000 total.
+          Decentralisation is disclosed, never used to block your choice.
         </p>
       </div>
 

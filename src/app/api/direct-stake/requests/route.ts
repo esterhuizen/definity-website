@@ -199,15 +199,16 @@ export async function GET() {
   const walletTotals = new Map<string, number>();
   for (const e of retail) walletTotals.set(e.depositor, (walletTotals.get(e.depositor) ?? 0) + e.depositSol!);
 
-  // Planned directed per validator (basis-capped × multiple, matured only).
+  // Directed target per validator (mirrors the optimiser's composeDirected):
+  // 1× PRINCIPAL on every held deposit (directed next cycle) + RETAIL_MULTIPLE×
+  // MATCHING uplift on matured deposits only. Holdings-capped.
   const plannedByValidator = new Map<string, number>();
   for (const e of retail) {
-    if (!isMatured(e.slot)) continue; // not yet survived the lookback window → no match
     const holdingsSol = (holdings.get(e.depositor) ?? 0) * nav;
     const wt = walletTotals.get(e.depositor) ?? 0;
     const scale = wt > 0 ? Math.min(1, holdingsSol / wt) : 0;
-    const planned = RETAIL_MULTIPLE * e.depositSol! * scale;
-    plannedByValidator.set(e.validatorVote!, (plannedByValidator.get(e.validatorVote!) ?? 0) + planned);
+    const directed = (1 + (isMatured(e.slot) ? RETAIL_MULTIPLE : 0)) * e.depositSol! * scale;
+    plannedByValidator.set(e.validatorVote!, (plannedByValidator.get(e.validatorVote!) ?? 0) + directed);
   }
 
   const requests = retail
@@ -216,7 +217,8 @@ export async function GET() {
       const wt = walletTotals.get(e.depositor) ?? 0;
       const scale = wt > 0 ? Math.min(1, holdingsSol / wt) : 0;
       const matured = isMatured(e.slot);
-      const plannedMatchSol = matured ? RETAIL_MULTIPLE * e.depositSol! * scale : 0;
+      // directed total: 1× principal (next cycle) + RETAIL_MULTIPLE× matching (matured only)
+      const plannedMatchSol = (1 + (matured ? RETAIL_MULTIPLE : 0)) * e.depositSol! * scale;
       const vote = e.validatorVote!;
       const valPlanned = plannedByValidator.get(vote) ?? 0;
       const valDeployed = deployed.get(vote) ?? 0;

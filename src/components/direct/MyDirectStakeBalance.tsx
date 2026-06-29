@@ -22,15 +22,17 @@ type Position = {
   directedValueSol: number;
   unstakableDefinsol: number;
   unstakableValueSol: number;
+  principalSol: number;
   matchedPlannedSol: number;
   pendingMatchSol: number;
   pendingWaves: { hours: number; matchSol: number }[];
+  directedTotalSol: number;
   matchedDeployedSol: number;
   allMatured: boolean;
 };
 type Balance = {
   positions: Position[];
-  totals: { directedDefinsol: number; directedValueSol: number; matchedPlannedSol: number; pendingMatchSol: number; matchedDeployedSol: number };
+  totals: { directedDefinsol: number; directedValueSol: number; principalSol: number; matchedPlannedSol: number; pendingMatchSol: number; directedTotalSol: number; matchedDeployedSol: number };
   matchingLive: boolean;
 };
 type Meta = { vote: string; image: string | null; country: string | null; city: string | null; name: string | null };
@@ -150,37 +152,32 @@ export function MyDirectStakeBalance() {
                   </a>
                 </div>
 
-                {/* matched-by-Definity — each tranche vests when IT has been held a full
-                    lookback window (~1 epoch of duration), so different deposits show
-                    different countdowns. */}
+                {/* Directed to this validator: the user's own 1× principal (next cycle)
+                    plus the matching uplift, which vests per-tranche after each deposit
+                    has been held a full lookback window (~1 epoch of duration). */}
                 <div className="mt-3 space-y-1 rounded-lg bg-success/10 px-3 py-2 text-xs leading-relaxed">
+                  <div className="text-ink">Up to <b>{fmt(p.directedTotalSol, 2)} SOL</b> to your validator <span className="text-ink-dim">— your 1× + up to 3.5× matching</span></div>
+                  {p.principalSol > 0 ? (
+                    <div className="text-ink-dim">• <b className="text-ink">{fmt(p.principalSol, 2)} SOL</b> your stake — directs on the next cycle</div>
+                  ) : null}
                   {p.matchedDeployedSol > 0 ? (
-                    <div className="text-success">✓ <b>{fmt(p.matchedDeployedSol, 2)} SOL</b> matched &amp; directed by Definity.</div>
+                    <div className="text-success">• ✓ <b>{fmt(p.matchedDeployedSol, 2)} SOL</b> matching directed by Definity</div>
                   ) : p.matchedPlannedSol > 0 ? (
-                    <div className="text-ink-dim"><b className="text-ink">{fmt(p.matchedPlannedSol, 2)} SOL</b> eligible — directs on the next optimiser cycle.</div>
+                    <div className="text-ink-dim">• <b className="text-ink">{fmt(p.matchedPlannedSol, 2)} SOL</b> matching — directs on the next cycle</div>
                   ) : null}
                   {p.pendingWaves.map((w) => (
-                    <div key={w.hours} className="text-ink-dim">
-                      <b className="text-ink">{fmt(w.matchSol, 2)} SOL</b> — eligible once that stake completes a full epoch (~{w.hours}h).
-                    </div>
+                    <div key={w.hours} className="text-ink-dim">• <b className="text-ink">{fmt(w.matchSol, 2)} SOL</b> matching — after a full epoch (~{w.hours}h)</div>
                   ))}
-                  {p.matchedDeployedSol <= 0 && p.matchedPlannedSol <= 0 && p.pendingWaves.length === 0 ? (
-                    <div className="text-ink-dim">Matching begins once this deposit completes a full epoch.</div>
-                  ) : null}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {(t.matchedPlannedSol > 0 || t.pendingMatchSol > 0) && (
+        {t.directedTotalSol > 0 && (
           <div className="mt-4 flex items-center justify-between px-1 text-xs text-ink-dim">
-            <span>Matched by Definity</span>
-            <span className="font-mono">
-              {t.matchedPlannedSol > 0 || data.matchingLive
-                ? `${fmt(data.matchingLive ? t.matchedDeployedSol : t.matchedPlannedSol, 2)} SOL${t.pendingMatchSol > 0 ? ` (+${fmt(t.pendingMatchSol, 2)} maturing)` : ''}`
-                : `${fmt(t.pendingMatchSol, 2)} SOL maturing`}
-            </span>
+            <span>Directed to your validators</span>
+            <span className="font-mono">up to {fmt(t.directedTotalSol, 2)} SOL <span className="text-ink-dim">(1× + up to 3.5× match)</span></span>
           </div>
         )}
       </div>
