@@ -31,4 +31,11 @@ export const EMBED_CSS = `
 .dfy-ok { text-align: center; padding-top: 6px; }
 .dfy-oki { width: 46px; height: 46px; border-radius: 50%; background: rgba(52,211,153,.15); color: #34d399; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 10px; }
 .dfy-err { color: #fb7185; font-size: 13px; text-align: center; margin-top: 10px; word-break: break-word; }
+.dfy-tabs { display: flex; gap: 4px; background: #060a14; border: 1px solid #1d2942; border-radius: 10px; padding: 3px; margin-top: 14px; }
+.dfy-tab { flex: 1; padding: 7px; border-radius: 7px; border: none; background: transparent; color: #9aa6bf; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.dfy-tab-on { background: #17223d; color: #e7ecf6; }
+.dfy-out { font-size: 13px; color: #9aa6bf; margin-top: 10px; min-height: 17px; }
+.dfy-max { background: none; border: none; color: #8aa3ff; font-size: 12px; cursor: pointer; font-family: inherit; padding: 0; }
+.dfy-lblrow { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 6px; }
+.dfy-lblrow .dfy-label { margin: 0; }
 `;
