@@ -39,7 +39,26 @@ const ALLOWED_METHODS = new Set([
   'isBlockhashValid',
 ]);
 
+const CORS_HEADERS: Record<string, string> = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+  'access-control-max-age': '86400',
+};
+
+// Embeds on validator domains call this proxy cross-origin (read-only methods
+// only — the wallet submits the signed tx itself), so allow CORS.
+export function OPTIONS(): Response {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(req: Request): Promise<Response> {
+  const res = await handlePost(req);
+  for (const [k, v] of Object.entries(CORS_HEADERS)) res.headers.set(k, v);
+  return res;
+}
+
+async function handlePost(req: Request): Promise<Response> {
   if (!UPSTREAM) {
     return NextResponse.json({ error: 'RPC not configured' }, { status: 503 });
   }

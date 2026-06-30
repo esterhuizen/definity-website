@@ -6,9 +6,20 @@ import { RPC_PROXY_PATH, SOL_DECIMALS, DEFINSOL_MINT, DEFINSOL_DECIMALS } from '
 // Kit RPC pointed at the same-origin proxy. createSolanaRpc needs an absolute
 // URL (it uses fetch), so we resolve against the current origin in the browser.
 let _rpc: ReturnType<typeof createSolanaRpc> | null = null;
+let _baseOrigin: string | null = null;
+
+// Embeds run on a third-party origin, so the proxy must be addressed absolutely
+// (e.g. https://definity.finance) instead of same-origin. The main dapp leaves
+// this unset and stays same-origin. Only read-only calls go through here — the
+// wallet submits the signed tx via its own RPC.
+export function setRpcBaseOrigin(origin: string) {
+  _baseOrigin = origin.replace(/\/$/, '');
+  _rpc = null;
+}
+
 export function getRpc() {
   if (_rpc) return _rpc;
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const origin = _baseOrigin ?? (typeof window !== 'undefined' ? window.location.origin : '');
   _rpc = createSolanaRpc(`${origin}${RPC_PROXY_PATH}`);
   return _rpc;
 }

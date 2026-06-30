@@ -157,8 +157,11 @@ export default async function DirectStakingPage() {
           <p>Stake to the validators you choose, amplified by matching. Operators and partners who want a dedicated allocation — talk to us about partner matching.</p>
           <div className="cta" style={{ justifyContent: 'center' }}>
             <a className="btn btn-solid" href="#direct-stake">Direct-stake now →</a>
-            <a className="btn btn-ghost" href={LINKS.telegram} target="_blank" rel="noreferrer">Talk to us about partners</a>
+            <a className="btn btn-ghost" href="/direct-staking/embed">Run a validator? Embed it →</a>
           </div>
+          <p style={{ marginTop: '14px', fontSize: '13px' }}>
+            <a className="morelink" href={LINKS.telegram} target="_blank" rel="noreferrer">Operators &amp; partners — talk to us about a dedicated allocation →</a>
+          </p>
         </div>
       </section>
     </>

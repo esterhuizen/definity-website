@@ -141,7 +141,25 @@ async function rpc<T>(method: string, params: unknown[]): Promise<T> {
   return j.result as T;
 }
 
+const CORS_HEADERS: Record<string, string> = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+  'access-control-max-age': '86400',
+};
+
+// The embeddable widget POSTs cross-origin from validator sites.
+export function OPTIONS(): Response {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 export async function POST(req: Request) {
+  const res = await handlePost(req);
+  for (const [k, v] of Object.entries(CORS_HEADERS)) res.headers.set(k, v);
+  return res;
+}
+
+async function handlePost(req: Request) {
   if (!UPSTREAM) return NextResponse.json({ ok: false, error: 'RPC not configured' }, { status: 503 });
   let signature: string | undefined;
   try {
