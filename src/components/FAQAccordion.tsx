@@ -41,7 +41,7 @@ export const DIRECT_STAKING_FAQ: QA[] = [
   },
   {
     q: 'Do I keep my liquidity?',
-    a: `Yes. You hold ${POOL.lstSymbol} — the same liquid staking token as regular Definity staking — in your own wallet. It keeps earning the pool's yield and you can move or redeem it any time. Directing it to a validator is an attribution that drives the matching; it never locks your tokens.`,
+    a: `Yes. You hold ${POOL.lstSymbol} — the same liquid staking token as regular Definity staking — in your own wallet. It keeps earning the pool's yield and you can redeem it any time; directing it to a validator is an attribution that drives the matching, never a lock on your tokens. You can move it between wallets too — that simply ends the directed attribution from the original wallet.`,
   },
   {
     q: 'How do I unstake?',
@@ -50,6 +50,10 @@ export const DIRECT_STAKING_FAQ: QA[] = [
   {
     q: 'What happens to my matching if I reduce my direct stake?',
     a: `It follows your balance down. The match is based on the MINIMUM ${POOL.lstSymbol} you have held over the trailing epoch, so reducing your direct-staked balance immediately lowers your matching basis, and the next optimiser cycle scales the directed stake down to match. There is no grace period on the old, higher balance — you are matched on what you keep continuously in place, not a past peak. (One consequence of the same rule: even a brief dip lowers your basis until the trailing window passes it, about an epoch — and it is what stops anyone gaming the match by depositing then pulling out.)`,
+  },
+  {
+    q: `What if I move my ${POOL.lstSymbol} to another wallet?`,
+    a: `Your directed status stays with the wallet that made the deposit, not with the token. So if you move your ${POOL.lstSymbol} to a different wallet — even one you own — that position stops being directed, and both your 1× principal and any matching are pulled back at the next optimiser cycle, exactly as if you had unstaked. The tokens themselves keep earning the pool's yield wherever they sit; they just aren't directed anymore. To direct from the new wallet, make a fresh direct-stake deposit from it. (Intent can't ride a transferable token — it is the same anti-gaming rule that ties matching to a balance you hold continuously in one place.)`,
   },
   {
     q: 'Which validators can I direct-stake to?',
