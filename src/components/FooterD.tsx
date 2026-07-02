@@ -40,6 +40,9 @@ export async function FooterD() {
           <span>© Definity · {POOL.lstName}</span>
           <span>Non-custodial · Audited Sanctum program · Ranked #{rank} of {total} on the GDI</span>
         </div>
+        <p className="ftag" style={{ marginTop: 10, opacity: 0.75 }}>
+          Definity is a Solana staking protocol. Not affiliated with Definity Financial Corporation.
+        </p>
       </div>
     </footer>
   );
