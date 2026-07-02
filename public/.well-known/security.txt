@@ -1,4 +1,4 @@
-Contact: mailto:t@esterhuizens.org
+Contact: mailto:tielman@definity.finance
 Expires: 2027-07-01T00:00:00.000Z
 Preferred-Languages: en
 Canonical: https://definity.finance/.well-known/security.txt
