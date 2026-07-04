@@ -50,16 +50,16 @@ const PERSONAS = [
 
 const YIELD_AT_SIZE = [
   {
-    t: 'Validator revenue-sharing',
-    d: 'At size, we negotiate revenue-share agreements with specific validators: your stake is directed to them through the direct-stake program, and a share of the commission and MEV revenue it generates comes back to you as additional yield on top of the base rate.',
+    t: 'No validator relationship required',
+    d: 'We negotiate revenue-share agreements with specific validators on your behalf: your stake is directed to them through the direct-stake program, and a share of the commission and MEV revenue it generates flows back to you as yield above the base rate. You bring the allocation — the relationships are ours.',
+  },
+  {
+    t: 'We handle the complexity',
+    d: 'Sourcing eligible validators, negotiating terms, directing the stake, verifying every placement landed — end to end, by us. Your side of the arrangement is holding definSOL in your own custody. Nothing else changes about your position.',
   },
   {
     t: 'Same bar, same ledger',
     d: 'Negotiated placements run inside the ring-fenced directed sleeve — only validators that clear the epoch-checked eligibility thresholds, capped per validator, never permitted to degrade the pool’s decentralisation mandate. Every placement is recorded in the delegation ledger like any other move.',
-  },
-  {
-    t: 'Talk to us early',
-    d: 'Terms depend on allocation size, duration, and validator appetite. Bring your target size and we’ll come back with indicative numbers and the validators we’d propose — with their eligibility record.',
   },
 ];
 
@@ -103,12 +103,13 @@ export default async function InstitutionsPage() {
           <div className="chapter">For institutions</div>
           <div className="ihero">
             <div>
-              <h1>Stake the treasury.<br />Add <em>no counterparty.</em></h1>
+              <h1>Bring the stake.<br />We bring <em>the yield.</em></h1>
               <p className="lede">
-                <b>definSOL</b> is non-custodial staked SOL on Sanctum’s audited stake-pool program.
-                It fits the custody stack you already run, books like a single appreciating position,
-                and every claim we make — decentralisation, validator policy, every stake movement —
-                is verifiable on-chain or recorded in an auditable ledger.
+                <b>definSOL</b> is non-custodial staked SOL — it fits the custody stack you already run,
+                books like a single appreciating position, and adds no counterparty to your risk register.
+                At size, we do what a treasury can’t do alone: our revenue-share relationships with
+                validators earn you yield above the base rate, handled end-to-end.
+                No validator relationship required.
               </p>
               <div className="cta">
                 <a className="btn btn-solid" href={LINKS.telegram} target="_blank" rel="noreferrer">Talk to our team →</a>
@@ -135,9 +136,32 @@ export default async function InstitutionsPage() {
 
           <div className="metrics" style={{ marginTop: '50px' }}>
             <div className="metric"><div className="k">Custody</div><div className="v">Yours</div><div className="s">SPL token in your own stack</div></div>
-            <div className="metric"><div className="k">Program</div><div className="v">Audited</div><div className="s">Sanctum stake-pool</div></div>
+            <div className="metric"><div className="k">Yield at size</div><div className="v">Base +</div><div className="s">negotiated rev-share on top</div></div>
             <div className="metric"><div className="k">Decentralisation</div><div className="v">#{rank}<small>/{total}</small></div><div className="s">independently verified</div></div>
             <div className="metric"><div className="k">Audit trail</div><div className="v">Ledger</div><div className="s">every move, with its reason</div></div>
+          </div>
+        </div>
+      </section>
+
+      {/* yield at size */}
+      <section className="sec">
+        <div className="wrap">
+          <div className="chapter"><span className="n">01</span>&nbsp; Yield at size</div>
+          <div className="sec-head">
+            <h1 className="sec-h">Extra yield, <em>done for you.</em></h1>
+            <p className="sec-lede">Base staking yield is table stakes — every pool compounds validator rewards and MEV. What sets an allocation apart at size is what your provider negotiates for you. We maintain the validator relationships so you don’t have to — and we’re open about exactly where the extra yield comes from.</p>
+          </div>
+          <div className="steps">
+            {YIELD_AT_SIZE.map((c, i) => (
+              <div className="step" key={c.t}>
+                <div className="si">{String(i + 1).padStart(2, '0')}</div>
+                <div className="st">{c.t}</div>
+                <div className="sd">{c.d}</div>
+              </div>
+            ))}
+          </div>
+          <div className="cta">
+            <a className="btn btn-solid" href={LINKS.telegram} target="_blank" rel="noreferrer">Enquire about size →</a>
           </div>
         </div>
       </section>
@@ -145,7 +169,7 @@ export default async function InstitutionsPage() {
       {/* the checklist */}
       <section className="sec">
         <div className="wrap">
-          <div className="chapter"><span className="n">01</span>&nbsp; The checklist</div>
+          <div className="chapter"><span className="n">02</span>&nbsp; The checklist</div>
           <div className="sec-head">
             <h1 className="sec-h">Your due-diligence list, <em>answered.</em></h1>
             <p className="sec-lede">Treasuries evaluate staking on counterparty risk, custody fit, accounting treatment, and exit terms. Here is where definSOL lands on each — and why most of the standard checklist simply doesn’t apply to a non-custodial position.</p>
@@ -165,7 +189,7 @@ export default async function InstitutionsPage() {
       {/* who it's for */}
       <section className="sec">
         <div className="wrap">
-          <div className="chapter"><span className="n">02</span>&nbsp; Built for</div>
+          <div className="chapter"><span className="n">03</span>&nbsp; Built for</div>
           <div className="sec-head">
             <h1 className="sec-h">Three kinds of treasury, <em>one position.</em></h1>
           </div>
@@ -179,29 +203,6 @@ export default async function InstitutionsPage() {
             ))}
           </div>
           <a className="morelink" href="/direct-staking">Validator relationship? See directed staking &amp; matching →</a>
-        </div>
-      </section>
-
-      {/* yield at size */}
-      <section className="sec">
-        <div className="wrap">
-          <div className="chapter"><span className="n">03</span>&nbsp; Yield at size</div>
-          <div className="sec-head">
-            <h1 className="sec-h">Size negotiates. <em>Transparently.</em></h1>
-            <p className="sec-lede">The base rate is the same for every definSOL holder — validator rewards and MEV compounding into the token. Larger allocations can add negotiated yield on top, and we are open about exactly where it comes from.</p>
-          </div>
-          <div className="steps">
-            {YIELD_AT_SIZE.map((c, i) => (
-              <div className="step" key={c.t}>
-                <div className="si">{String(i + 1).padStart(2, '0')}</div>
-                <div className="st">{c.t}</div>
-                <div className="sd">{c.d}</div>
-              </div>
-            ))}
-          </div>
-          <div className="cta">
-            <a className="btn btn-solid" href={LINKS.telegram} target="_blank" rel="noreferrer">Enquire about size →</a>
-          </div>
         </div>
       </section>
 
