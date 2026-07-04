@@ -2,6 +2,26 @@
 
 This file is read automatically when Claude Code is invoked in this repo. It exists so that a future Claude session (yours, picking up cold) can come up to speed in minutes without re-reading every other doc.
 
+---
+
+## ⚡ CURRENT WORKFLOW (2026-07) — supersedes anything below that conflicts
+
+The sections below this block date from the original definity-website era and are partially stale. What is true NOW:
+
+- **You edit in THIS worktree** (`/home/ubuntu/build/definity-redesign`, branch `redesign/concept-d`), a git worktree of `esterhuizen/definity-website`.
+- **The release cycle (enforced by a guard in `deploy/deploy.sh` — do not work around it):**
+  1. Discuss the change; implement it here.
+  2. `sudo WORKTREE_DIR=/home/ubuntu/build/definity-redesign bash deploy/deploy.sh staging` — bundles the dirty worktree. Test on staging (localhost:5100 + the public staging URL).
+  3. Iterate on staging until the user says it's right. Prod is untouched throughout.
+  4. On the user's explicit confirmation only: ONE focused clean commit → `git branch -f main HEAD` → `git push origin main redesign/concept-d` → `sudo bash deploy/deploy.sh prod` → verify live with curl.
+  - Prod builds from **GitHub `origin/main`** (the bare repo at `/var/www/definity/repo.git` points at GitHub). The guard refuses a prod deploy if tracked changes are uncommitted, main isn't pushed, or staging isn't running the sha being promoted. `FORCE_PROD=1` exists for emergency rollback/hotfix only.
+- **Staging-only content:** `src/app/(dark)/direct-staking/comparison/` + `src/app/api/direct-stake/comparison/` are **deliberately untracked** staging-only pages and must never be committed (this repo is public). They reach staging via the worktree bundle; staging release names carry a `-dirty` suffix because of them — that exact dirt is expected, any other is not.
+- **test.definity.finance** is Cloudflare-proxied (orange cloud) — never point it (or any subdomain) at the bare AWS IP: bare-IP hosting is what got the domain flagged by AV vendors in 2026-06. Basic auth on staging did NOT prevent reputation flagging (creds live on the box, not here).
+- **AV-reputation context:** definity.finance was flagged "malicious/phishing" by ~11 vendors (name collision with Definity Financial Corp + .finance TLD + young domain). A delisting campaign is active; the footer disambiguation line in `FooterD.tsx` and `public/.well-known/security.txt` are part of it — do not remove either.
+- **Embed widget:** `src/embed/` builds to `public/embed/v1/widget.js` via `scripts/build-embed.mjs` (runs inside `npm run build`). Partners hotlink it — treat its URL as a public API.
+- **Commit trailer:** `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>` (the trailer named below is outdated).
+- **Verification is part of every deploy** — after `deploy.sh prod`, curl the affected page(s) through Cloudflare and confirm the change string is present, and check `stats:fetch` didn't ship an empty `validators.json` (if Stakewiz was down, seed from the prior release and restart).
+
 **Doc map** — read in this order if you're starting fresh:
 1. **This file (CLAUDE.md)** — operational cheat sheet, run-this-first commands
 2. **[SERVER-PROVISIONING.md](./SERVER-PROVISIONING.md)** — what's been done to the live box that is NOT in DEPLOY.md (swap, sudoers, ACLs, MDWE removal, staging env, basic-auth credentials location)

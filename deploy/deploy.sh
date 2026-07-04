@@ -63,6 +63,35 @@ esac
 
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
 
+# ─── Prod pipeline guard ────────────────────────────────────────────────────
+# Prod is a PROMOTION of a sha already proven on staging, built from pushed
+# main on GitHub. Anything else is refused. Emergency escape hatch: FORCE_PROD=1
+# (use it only for a rollback/hotfix and say so out loud).
+if [ "$TARGET" = "prod" ] && [ "${FORCE_PROD:-0}" != "1" ]; then
+  GUARD_WT="${GUARD_WORKTREE:-/home/ubuntu/build/definity-redesign}"
+  # 1. No uncommitted tracked changes (deliberately-untracked staging-only files are fine).
+  if [ -n "$(git -C "$GUARD_WT" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+    echo "PROD GUARD: tracked changes in $GUARD_WT are not committed." >&2
+    echo "            The cycle is: iterate on staging -> ONE clean commit -> push -> promote." >&2
+    exit 1
+  fi
+  # 2. main must actually be on GitHub.
+  git -C "$GUARD_WT" fetch -q origin main 2>/dev/null || true
+  LOCAL_MAIN="$(git -C "$GUARD_WT" rev-parse --short=7 main 2>/dev/null)"
+  REMOTE_MAIN="$(git -C "$GUARD_WT" rev-parse --short=7 origin/main 2>/dev/null)"
+  if [ -z "$REMOTE_MAIN" ] || [ "$LOCAL_MAIN" != "$REMOTE_MAIN" ]; then
+    echo "PROD GUARD: local main ($LOCAL_MAIN) != origin/main ($REMOTE_MAIN) — push first; GitHub drives prod." >&2
+    exit 1
+  fi
+  # 3. Promote only what staging is running right now.
+  STAGING_SHA="$(basename "$(readlink /var/www/definity-staging/current 2>/dev/null)" | sed 's/-dirty$//' | grep -oE '[0-9a-f]{7}$')"
+  if [ -n "$STAGING_SHA" ] && [ "$STAGING_SHA" != "$REMOTE_MAIN" ]; then
+    echo "PROD GUARD: staging runs $STAGING_SHA but main is $REMOTE_MAIN — deploy + verify staging first." >&2
+    exit 1
+  fi
+  echo "==> [prod] guard ok: promoting $REMOTE_MAIN (clean tree, pushed, staging-verified)"
+fi
+
 mkdir -p "$APP_ROOT/releases"
 
 # ─── Stage source into a fresh release dir ──────────────────────────────────
