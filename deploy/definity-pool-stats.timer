@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly refresh of definity.finance on-chain stats
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

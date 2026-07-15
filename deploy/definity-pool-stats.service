@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh definity.finance stats.json (on-chain rate/TVL) in the live prod release
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/definity/current
+ExecStart=/usr/bin/node scripts/fetch-pool-stats.mjs public/stats.json

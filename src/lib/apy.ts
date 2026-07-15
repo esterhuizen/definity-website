@@ -17,8 +17,25 @@ export async function getBaseApy(): Promise<number | null> {
 }
 
 // definSOL → SOL redemption rate (NAV): how many SOL one definSOL is worth. It only
-// grows (the staking yield accrues into the rate). Same hourly feed; null on failure.
+// grows (the staking yield accrues into the rate).
+//
+// Primary source: our own public/stats.json — written hourly by the
+// definity-pool-stats timer straight from the on-chain pool account
+// (totalLamports / poolTokenSupply), the authoritative rate. The incentives
+// feed is fallback only: it relays Sanctum's sol-value API, which was observed
+// frozen for weeks (2026-07: 1.0797 vs 1.0914 on-chain).
 export async function getNav(): Promise<number | null> {
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const raw = await readFile(join(process.cwd(), 'public/stats.json'), 'utf8');
+    const j = JSON.parse(raw) as { exchangeRate?: number; updatedAt?: string };
+    const r = j?.exchangeRate;
+    const ageOk = j?.updatedAt ? Date.now() - Date.parse(j.updatedAt) < 26 * 3600 * 1000 : false;
+    if (typeof r === 'number' && r > 1 && r < 2 && ageOk) return r;
+  } catch {
+    /* fall through to the feed */
+  }
   try {
     const res = await fetch('https://incentive.definity.finance/last24h.json', {
       next: { revalidate: 3600 },
