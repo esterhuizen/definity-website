@@ -61,7 +61,7 @@ export const DIRECT_STAKING_FAQ: QA[] = [
   },
   {
     q: 'Is there a cap on how much can be directed?',
-    a: `Yes. Matching is capped at 20,000 SOL per validator, and the whole directed sleeve is bounded and ring-fenced. It is the only stake in the pool allowed to deviate from the decentralisation formula — everything else stays decentralisation-allocated.`,
+    a: `Yes, two. Per validator, directed stake is capped at 20,000 SOL. Program-wide, Definity grants at most 60,000 SOL of matching stake in total — if aggregate matching demand ever exceeds that budget, every participant's matching scales down pro-rata (your own directed principal is never scaled; it always directs in full). The directed sleeve is ring-fenced: it is the only stake in the pool allowed to deviate from the decentralisation formula — everything else stays decentralisation-allocated.`,
   },
   {
     q: 'Can someone game the matching by depositing then withdrawing?',
