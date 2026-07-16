@@ -166,10 +166,18 @@ async function maybeRefreshValidators(votePubkeys) {
   const lastMs = existing?.lastFetchedAt ? new Date(existing.lastFetchedAt).getTime() : 0;
   const ageMs  = Date.now() - lastMs;
 
-  if (existing && ageMs < VALIDATORS_TTL_MS) {
+  // The daily TTL is Stakewiz courtesy, not correctness — a MEMBERSHIP change
+  // must refresh immediately, or a newly added validator is invisible to the
+  // direct-stake search for up to 24h (live incident: StakeCraft, 2026-07-16).
+  const existingVotes = new Set((existing?.validators ?? []).map((v) => v?.vote).filter(Boolean));
+  const setChanged = existing
+    && (votePubkeys.some((v) => !existingVotes.has(v)) || existingVotes.size !== votePubkeys.length);
+
+  if (existing && ageMs < VALIDATORS_TTL_MS && !setChanged) {
     console.log(`validators.json is ${(ageMs / 3600_000).toFixed(1)}h old, skipping geo refresh`);
     return;
   }
+  if (setChanged) console.log('pool membership changed since last refresh — refreshing geo now');
 
   console.log(`refreshing validator geo from ${new URL(STAKEWIZ_URL).host}...`);
 
@@ -209,6 +217,21 @@ async function maybeRefreshValidators(votePubkeys) {
     website:           v.website || null,
     image:             v.image   || null,
   }));
+
+  // Pool members Stakewiz doesn't know still belong in the file — a validator
+  // must never be invisible to the direct-stake search just because a third
+  // party hasn't indexed it. Geo fields stay null; the UI already guards.
+  const matchedVotes = new Set(validators.map((v) => v.vote));
+  for (const vote of votePubkeys) {
+    if (!matchedVotes.has(vote)) {
+      console.log(`  (no Stakewiz record for ${vote} — including without geo)`);
+      validators.push({
+        vote, identity: null, name: null, country: null, city: null,
+        lat: null, lng: null, asn: null, activatedStakeSol: null,
+        commission: null, website: null, image: null,
+      });
+    }
+  }
 
   const out = {
     lastFetchedAt: new Date().toISOString(),
