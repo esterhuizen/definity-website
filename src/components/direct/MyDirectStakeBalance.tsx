@@ -1,15 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useSelectedWalletAccount } from '@solana/react';
-import { Copy, Check, ArrowUpRight } from 'lucide-react';
-
-const DEFINSOL_MINT = 'DEF1NXSZ8Th9n28hYBayrFtx9bj1EwwTiy3mhHEB9oyA';
-const WSOL_MINT = 'So11111111111111111111111111111111111111112';
-// Memo-model LST is liquid and not locked to the validator, so "unstake" = redeem
-// definSOL, which already exists via the ecosystem (item 4) — route there rather
-// than build a native unstake.
-const redeemHref = `https://jup.ag/swap/${DEFINSOL_MINT}-${WSOL_MINT}`;
+import { useSelectedWalletAccount, useSignAndSendTransaction } from '@solana/react';
+import { Copy, Check } from 'lucide-react';
+import { SOLANA_CHAIN } from '@/lib/solana/constants';
+import { quoteUnstake, buildUnstakeSwap, sigToBase58 } from '@/lib/solana/unstake';
+import { waitForConfirmation } from '@/lib/solana/rpc';
 
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
 const fmt = (n: number, d = 5) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -60,12 +56,106 @@ function Amount({ definsol, sol }: { definsol: number; sol: number }) {
   );
 }
 
+// On-site unstake: redeem definSOL → SOL, signed in the user's own wallet, right
+// here — no redirect to jup.ag. Same Jupiter routing under the hood as the embed
+// widget (buildUnstakeSwap), presented in our own UI. Prefilled with this
+// position's unstakable amount.
+type USub = { k: 'idle' } | { k: 'signing' } | { k: 'done'; sig: string } | { k: 'error'; m: string };
+
+function UnstakeInline({
+  account, maxDefinsol, onDone,
+}: {
+  account: { address: string };
+  maxDefinsol: number;
+  onDone: () => void;
+}) {
+  const signAndSend = useSignAndSendTransaction(account as never, SOLANA_CHAIN);
+  const [amount, setAmount] = useState(maxDefinsol > 0 ? String(Number(maxDefinsol.toFixed(6))) : '');
+  const [out, setOut] = useState<number | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [sub, setSub] = useState<USub>({ k: 'idle' });
+  const amt = Number(amount);
+
+  useEffect(() => {
+    if (!(amt > 0)) { setOut(null); setQuoting(false); return; }
+    let alive = true;
+    setQuoting(true);
+    const t = setTimeout(() => {
+      quoteUnstake(amt)
+        .then((q) => { if (alive) { setOut(q?.outSol ?? null); setQuoting(false); } })
+        .catch(() => { if (alive) setQuoting(false); });
+    }, 400);
+    return () => { alive = false; clearTimeout(t); };
+  }, [amt]);
+
+  const can = amt > 0 && amt <= maxDefinsol + 1e-9 && sub.k !== 'signing';
+
+  async function submit() {
+    if (!(amt > 0)) return;
+    try {
+      setSub({ k: 'signing' });
+      const bytes = await buildUnstakeSwap(account.address, amt);
+      const { signature } = await signAndSend({ transaction: bytes });
+      const sig = sigToBase58(signature);
+      setSub({ k: 'done', sig });
+      void waitForConfirmation(sig).then(onDone).catch(() => {});
+    } catch (e) {
+      setSub({ k: 'error', m: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
+  if (sub.k === 'done') {
+    return (
+      <div className="mt-3 rounded-lg border border-success/40 bg-success/10 px-3 py-3 text-xs">
+        <div className="font-medium text-ink">✓ Unstaked {fmt(amt, 4)} definSOL → SOL</div>
+        <a href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-ink-dim underline hover:text-ink">
+          View transaction →
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-ring bg-bg-muted/40 p-3">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-xs text-ink-dim">Amount to unstake</span>
+        <button type="button" className="text-xs text-sunrise-500 hover:underline" onClick={() => setAmount(String(Number(maxDefinsol.toFixed(6))))}>
+          Max {fmt(maxDefinsol, 4)}
+        </button>
+      </div>
+      <div className="flex items-center gap-2 rounded-lg border border-ring bg-bg px-3 py-2">
+        <input
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+          placeholder="0.0"
+          className="w-full bg-transparent font-mono text-sm text-ink outline-none placeholder:text-ink-dim"
+        />
+        <span className="shrink-0 text-xs text-ink-dim">definSOL</span>
+      </div>
+      <div className="mt-1 min-h-4 text-xs text-ink-dim">
+        {quoting ? 'Fetching rate…' : out != null ? `≈ ${fmt(out, 4)} SOL` : 'Redeemed at the best market rate, into your wallet.'}
+      </div>
+      <button
+        type="button"
+        disabled={!can}
+        onClick={submit}
+        className="btn-primary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {sub.k === 'signing' ? 'Confirm in your wallet…' : 'Unstake to SOL'}
+      </button>
+      {sub.k === 'error' ? <div className="mt-2 break-words text-xs text-fuchsia-600">Failed: {sub.m}</div> : null}
+    </div>
+  );
+}
+
 export function MyDirectStakeBalance() {
   const [selected] = useSelectedWalletAccount();
   const wallet = selected?.address;
   const [data, setData] = useState<Balance | null>(null);
   const [meta, setMeta] = useState<Map<string, Meta>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [unstakingVote, setUnstakingVote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!wallet) { setData(null); return; }
@@ -142,15 +232,23 @@ export function MyDirectStakeBalance() {
                       <Amount definsol={p.unstakableDefinsol} sol={p.unstakableValueSol} />
                     </div>
                   </div>
-                  <a
-                    href={redeemHref}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-full border border-ring bg-bg px-4 py-2 text-sm font-medium text-ink transition hover:border-ink-dim hover:bg-bg-muted"
+                  <button
+                    type="button"
+                    disabled={p.unstakableDefinsol <= 0}
+                    onClick={() => setUnstakingVote((v) => (v === p.vote ? null : p.vote))}
+                    className="shrink-0 rounded-full border border-ring bg-bg px-4 py-2 text-sm font-medium text-ink transition hover:border-ink-dim hover:bg-bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Unstake
-                  </a>
+                    {unstakingVote === p.vote ? 'Close' : 'Unstake'}
+                  </button>
                 </div>
+
+                {unstakingVote === p.vote && selected ? (
+                  <UnstakeInline
+                    account={selected}
+                    maxDefinsol={p.unstakableDefinsol}
+                    onDone={() => { setUnstakingVote(null); load(); }}
+                  />
+                ) : null}
 
                 {/* Directed to this validator: the user's own 1× principal (next cycle)
                     plus the matching uplift, which vests per-tranche after each deposit
@@ -182,9 +280,9 @@ export function MyDirectStakeBalance() {
         )}
       </div>
 
-      <a href={redeemHref} target="_blank" rel="noreferrer" className="mt-3 flex items-center justify-center gap-1 font-mono text-xs text-ink-dim transition hover:text-ink">
-        Unstake routes via the Sanctum/Jupiter ecosystem <ArrowUpRight className="h-3 w-3" />
-      </a>
+      <p className="mt-3 text-center font-mono text-xs text-ink-dim">
+        Unstake redeems definSOL → SOL at the best market rate, signed in your own wallet.
+      </p>
     </div>
   );
 }
