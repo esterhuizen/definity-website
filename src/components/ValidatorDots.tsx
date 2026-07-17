@@ -39,7 +39,9 @@ export function ValidatorDots() {
         if (!alive || !d?.validators) return;
         setDots(
           d.validators.filter(
-            (v: V) => v.lat != null && v.lng != null && Number.isFinite(v.lat) && Number.isFinite(v.lng),
+            // pending members (approved, seat not on-chain yet) stay off the map
+            (v: V & { pending?: boolean }) =>
+              !v.pending && v.lat != null && v.lng != null && Number.isFinite(v.lat) && Number.isFinite(v.lng),
           ),
         );
       })

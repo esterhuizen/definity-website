@@ -16,6 +16,10 @@ type V = {
   country: string | null;
   image: string | null;
   activatedStakeSol: number | null;
+  /** Approved to join (Notion-Active) but the on-chain seat lands at the next
+   *  optimiser cycle. Directable immediately — the maturity clock is
+   *  wallet-bound and starts at deposit, not at seat creation. */
+  pending?: boolean;
 };
 
 type SubState =
@@ -167,6 +171,11 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
                 {picked.city ? ` · ${picked.city}` : ''}
                 {picked.country ? `, ${picked.country}` : ''}
               </span>
+              {picked.pending ? (
+                <span className="block text-xs text-sunrise-300">
+                  Joining the pool — you can direct now; your stake matures from deposit and directs once the validator is added.
+                </span>
+              ) : null}
             </span>
             <button
               type="button"
@@ -207,7 +216,14 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
                         <span className="h-6 w-6 rounded-full bg-ring" aria-hidden="true" />
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-ink">{v.name || short(v.vote)}</span>
+                        <span className="block truncate text-sm text-ink">
+                          {v.name || short(v.vote)}
+                          {v.pending ? (
+                            <span className="ml-2 rounded bg-sunrise-300/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sunrise-300">
+                              joining
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="block truncate font-mono text-[11px] text-ink-dim">
                           {short(v.vote)}
                           {v.city ? ` · ${v.city}` : ''}

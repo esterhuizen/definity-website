@@ -155,7 +155,48 @@ async function atomicWriteJson(path, obj) {
 // from Stakewiz in one shot, filters to our pool's vote pubkeys, writes a
 // slim public/validators.json that the website reads at render time.
 // ---------------------------------------------------------------------------
-async function maybeRefreshValidators(votePubkeys) {
+// Notion "Active in pool = Active" votes that are NOT yet in the on-chain
+// list: validators approved to join (e.g. fast-track acceptors) whose seat
+// lands at the next optimiser approval. Including them (flagged pending) lets
+// direct-stakers find them in the widget IMMEDIATELY — the deposit-maturity
+// clock is wallet-bound and starts ticking before the seat exists. Fail-soft:
+// no token / Notion error → empty list, the site simply shows pool members.
+async function fetchPendingVotes(poolVotes) {
+  const token = process.env.NOTION_TOKEN;
+  if (!token) return [];
+  try {
+    const res = await fetch(
+      'https://api.notion.com/v1/data_sources/c5bf5bae-c249-4503-a4d9-c6a4ca989834/query',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Notion-Version': '2025-09-03',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ page_size: 100, filter: { property: 'Active in pool', status: { equals: 'Active' } } }),
+        signal: AbortSignal.timeout(20_000),
+      },
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const d = await res.json();
+    const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+    const inPool = new Set(poolVotes);
+    const pending = [];
+    for (const r of d.results ?? []) {
+      const t = (r.properties?.['Operator / Vote ID']?.title ?? []).map((x) => x.plain_text).join('').trim();
+      const v = (r.properties?.['Vote ID']?.rich_text ?? []).map((x) => x.plain_text).join('').trim();
+      const vote = B58.test(t) ? t : B58.test(v) ? v : null;
+      if (vote && !inPool.has(vote)) pending.push(vote);
+    }
+    return pending;
+  } catch (e) {
+    console.log(`WARN: pending-validator lookup failed (${e.message}) — pool members only`);
+    return [];
+  }
+}
+
+async function maybeRefreshValidators(votePubkeys, pendingVotes = []) {
   let existing = null;
   try {
     existing = JSON.parse(await readFile(VALIDATORS_PATH, 'utf8'));
@@ -169,9 +210,10 @@ async function maybeRefreshValidators(votePubkeys) {
   // The daily TTL is Stakewiz courtesy, not correctness — a MEMBERSHIP change
   // must refresh immediately, or a newly added validator is invisible to the
   // direct-stake search for up to 24h (live incident: StakeCraft, 2026-07-16).
+  const allVotes = [...votePubkeys, ...pendingVotes];
   const existingVotes = new Set((existing?.validators ?? []).map((v) => v?.vote).filter(Boolean));
   const setChanged = existing
-    && (votePubkeys.some((v) => !existingVotes.has(v)) || existingVotes.size !== votePubkeys.length);
+    && (allVotes.some((v) => !existingVotes.has(v)) || existingVotes.size !== allVotes.length);
 
   if (existing && ageMs < VALIDATORS_TTL_MS && !setChanged) {
     console.log(`validators.json is ${(ageMs / 3600_000).toFixed(1)}h old, skipping geo refresh`);
@@ -189,7 +231,8 @@ async function maybeRefreshValidators(votePubkeys) {
   const all = await r.json();
   if (!Array.isArray(all)) throw new Error(`Stakewiz returned non-array (got ${typeof all})`);
 
-  const want = new Set(votePubkeys);
+  const pendingSet = new Set(pendingVotes);
+  const want = new Set(allVotes);
   const matched = all.filter((v) => v && typeof v.vote_identity === 'string' && want.has(v.vote_identity));
 
   // Country tally
@@ -216,27 +259,30 @@ async function maybeRefreshValidators(votePubkeys) {
     commission:        v.commission     != null ? Number(v.commission)      : null,
     website:           v.website || null,
     image:             v.image   || null,
+    ...(pendingSet.has(v.vote_identity) ? { pending: true } : {}),
   }));
 
   // Pool members Stakewiz doesn't know still belong in the file — a validator
   // must never be invisible to the direct-stake search just because a third
   // party hasn't indexed it. Geo fields stay null; the UI already guards.
   const matchedVotes = new Set(validators.map((v) => v.vote));
-  for (const vote of votePubkeys) {
+  for (const vote of allVotes) {
     if (!matchedVotes.has(vote)) {
       console.log(`  (no Stakewiz record for ${vote} — including without geo)`);
       validators.push({
         vote, identity: null, name: null, country: null, city: null,
         lat: null, lng: null, asn: null, activatedStakeSol: null,
         commission: null, website: null, image: null,
+        ...(pendingSet.has(vote) ? { pending: true } : {}),
       });
     }
   }
 
   const out = {
     lastFetchedAt: new Date().toISOString(),
-    expected: votePubkeys.length,
+    expected: allVotes.length,
     matched: matched.length,
+    pending: pendingVotes.length,
     countries: byCountry.length,
     byCountry,
     validators,
@@ -245,8 +291,8 @@ async function maybeRefreshValidators(votePubkeys) {
 
   await atomicWriteJson(VALIDATORS_PATH, out);
   console.log(
-    `wrote ${VALIDATORS_PATH}: ${matched.length}/${votePubkeys.length} matched, ` +
-    `${byCountry.length} countries`,
+    `wrote ${VALIDATORS_PATH}: ${matched.length}/${allVotes.length} matched ` +
+    `(${votePubkeys.length} in pool + ${pendingVotes.length} pending), ${byCountry.length} countries`,
   );
 }
 
@@ -292,7 +338,9 @@ async function main() {
   // whole job — the stats portion already wrote, and the prior validators.json
   // (if any) is still intact.
   try {
-    await maybeRefreshValidators(vlist.votePubkeys);
+    const pendingVotes = await fetchPendingVotes(vlist.votePubkeys);
+    if (pendingVotes.length) console.log(`pending (Notion-Active, not yet on-chain): ${pendingVotes.length}`);
+    await maybeRefreshValidators(vlist.votePubkeys, pendingVotes);
   } catch (err) {
     console.error(`validator geo refresh skipped: ${err.message}`);
   }

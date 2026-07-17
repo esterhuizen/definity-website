@@ -94,6 +94,8 @@ export async function ValidatorMap() {
 
   const located = data.validators.filter(
     (v): v is Validator & { lat: number; lng: number } =>
+      // pending members (approved, seat not on-chain yet) stay off the map
+      !(v as { pending?: boolean }).pending &&
       v.lat != null && v.lng != null && Number.isFinite(v.lat) && Number.isFinite(v.lng),
   );
 

@@ -6,4 +6,5 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=/var/www/definity/current
+EnvironmentFile=-/home/sol/build/definity_automation/.env
 ExecStart=/usr/bin/node scripts/fetch-pool-stats.mjs public/stats.json
