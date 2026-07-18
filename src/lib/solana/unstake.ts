@@ -20,21 +20,11 @@ function b64ToBytes(b64: string): Uint8Array {
 
 export type UnstakeQuote = { outSol: number; quote: unknown };
 
-// definSOL → SOL is a single-hop Sanctum stake-pool redemption, so we request a
-// LEGACY transaction (asLegacyTransaction). Jupiter self-restricts to routes
-// that fit a legacy tx, which for this pair is the direct Sanctum route — and a
-// legacy tx carries NO address-lookup-tables, which mobile wallet in-app
-// browsers simulate reliably. (Versioned + ALT swaps made phone wallets report
-// "simulation failed / can't predict balance changes" even though the tx was
-// valid — verified 2026-07-18: versioned build resolves ALTs the wallet's RPC
-// couldn't; the legacy build has 0 ALTs and simulates cleanly.)
-const LEGACY = '&asLegacyTransaction=true';
-
 /** Jupiter quote for definSOL → SOL (whole SOL out). null if there's no route. */
 export async function quoteUnstake(amountDefinsol: number): Promise<UnstakeQuote | null> {
   if (!(amountDefinsol > 0)) return null;
   const lamports = Math.round(amountDefinsol * 1e9);
-  const r = await fetch(`${JUP}/quote?inputMint=${DEFINSOL_MINT}&outputMint=${WSOL}&amount=${lamports}&slippageBps=50${LEGACY}`);
+  const r = await fetch(`${JUP}/quote?inputMint=${DEFINSOL_MINT}&outputMint=${WSOL}&amount=${lamports}&slippageBps=50`);
   if (!r.ok) return null;
   const quote = await r.json();
   if (!quote?.outAmount) return null;
@@ -53,7 +43,6 @@ export async function buildUnstakeSwap(ownerAddress: string, amountDefinsol: num
       userPublicKey: ownerAddress,
       wrapAndUnwrapSol: true,
       dynamicComputeUnitLimit: true,
-      asLegacyTransaction: true, // must match the quote
     }),
   });
   if (!res.ok) throw new Error('Could not build the swap.');

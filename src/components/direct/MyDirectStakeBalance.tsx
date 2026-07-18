@@ -1,10 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { UiWalletAccount } from '@wallet-standard/react';
 import { useSelectedWalletAccount, useSignAndSendTransaction } from '@solana/react';
+import { getBase58Decoder } from '@solana/kit';
 import { Copy, Check } from 'lucide-react';
-import { SOLANA_CHAIN } from '@/lib/solana/constants';
-import { quoteUnstake, buildUnstakeSwap, sigToBase58, errMsg } from '@/lib/solana/unstake';
+import { SOLANA_CHAIN, DEFINSOL_MINT, DEFINSOL_DECIMALS, SOL_MINT, SOL_DECIMALS } from '@/lib/solana/constants';
+import { quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote } from '@/lib/solana/jupiter';
+import { errMsg } from '@/lib/solana/unstake';
 import { waitForConfirmation } from '@/lib/solana/rpc';
 
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
@@ -58,45 +61,48 @@ function Amount({ definsol, sol }: { definsol: number; sol: number }) {
 
 // On-site unstake: redeem definSOL → SOL, signed in the user's own wallet, right
 // here — no redirect to jup.ag. Same Jupiter routing under the hood as the embed
-// widget (buildUnstakeSwap), presented in our own UI. Prefilled with this
+// widget, presented in our own UI, via the SAME quoteSwap + buildSwapTransaction
 // position's unstakable amount.
 type USub = { k: 'idle' } | { k: 'signing' } | { k: 'done'; sig: string } | { k: 'error'; m: string };
 
 function UnstakeInline({
   account, maxDefinsol, onDone,
 }: {
-  account: { address: string };
+  account: UiWalletAccount;
   maxDefinsol: number;
   onDone: () => void;
 }) {
-  const signAndSend = useSignAndSendTransaction(account as never, SOLANA_CHAIN);
+  // Identical wiring to the main StakeWidget's unstake (the proven mobile path):
+  // quoteSwap + buildSwapTransaction from lib/solana/jupiter, no cast on account.
+  const signAndSend = useSignAndSendTransaction(account, SOLANA_CHAIN);
   const [amount, setAmount] = useState(maxDefinsol > 0 ? String(Number(maxDefinsol.toFixed(6))) : '');
-  const [out, setOut] = useState<number | null>(null);
+  const [quote, setQuote] = useState<JupiterQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [sub, setSub] = useState<USub>({ k: 'idle' });
   const amt = Number(amount);
+  const out = quote ? quoteOut(quote, SOL_DECIMALS) : null;
 
   useEffect(() => {
-    if (!(amt > 0)) { setOut(null); setQuoting(false); return; }
+    if (!(amt > 0)) { setQuote(null); setQuoting(false); return; }
     let alive = true;
     setQuoting(true);
     const t = setTimeout(() => {
-      quoteUnstake(amt)
-        .then((q) => { if (alive) { setOut(q?.outSol ?? null); setQuoting(false); } })
-        .catch(() => { if (alive) setQuoting(false); });
+      quoteSwap(DEFINSOL_MINT, SOL_MINT, toBaseUnits(amount, DEFINSOL_DECIMALS))
+        .then((q) => { if (alive) { setQuote(q); setQuoting(false); } })
+        .catch(() => { if (alive) { setQuote(null); setQuoting(false); } });
     }, 400);
     return () => { alive = false; clearTimeout(t); };
-  }, [amt]);
+  }, [amount, amt]);
 
-  const can = amt > 0 && amt <= maxDefinsol + 1e-9 && sub.k !== 'signing';
+  const can = amt > 0 && amt <= maxDefinsol + 1e-9 && !!quote && sub.k !== 'signing';
 
   async function submit() {
-    if (!(amt > 0)) return;
+    if (!quote) return;
     try {
       setSub({ k: 'signing' });
-      const bytes = await buildUnstakeSwap(account.address, amt);
+      const bytes = await buildSwapTransaction(quote, account.address);
       const { signature } = await signAndSend({ transaction: bytes });
-      const sig = sigToBase58(signature);
+      const sig = getBase58Decoder().decode(signature);
       setSub({ k: 'done', sig });
       void waitForConfirmation(sig).then(onDone).catch(() => {});
     } catch (e) {
