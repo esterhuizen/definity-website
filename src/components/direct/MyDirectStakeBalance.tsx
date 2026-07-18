@@ -206,7 +206,16 @@ export function MyDirectStakeBalance() {
 
   if (!wallet) return null;
   if (loading && !data) return <div className="mx-auto mt-6 max-w-md text-center font-mono text-sm text-ink-dim">Loading your direct stake…</div>;
-  if (!data || data.positions.length === 0) return null;
+  if (!data) return null;
+
+  // Drop fully-exited positions (everything unstaked → all amounts ~0), so a
+  // zeroed validator with a dead Unstake button doesn't linger. Keep a position
+  // while it still has directed stake, matched stake, or matching in the pipeline.
+  const DUST = 1e-6;
+  const positions = data.positions.filter(
+    (p) => p.directedDefinsol > DUST || p.principalSol > DUST || p.pendingMatchSol > DUST || p.matchedDeployedSol > DUST,
+  );
+  if (positions.length === 0) return null;
 
   const t = data.totals;
 
@@ -225,7 +234,7 @@ export function MyDirectStakeBalance() {
         </div>
 
         <div className="space-y-3">
-          {data.positions.map((p) => {
+          {positions.map((p) => {
             const m = meta.get(p.vote);
             const name = p.name || m?.name || short(p.vote);
             const loc = [m?.country, m?.city || p.city].filter(Boolean).join(', ');
@@ -261,17 +270,18 @@ export function MyDirectStakeBalance() {
                       <Amount definsol={p.unstakableDefinsol} sol={p.unstakableValueSol} />
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    disabled={p.unstakableDefinsol <= 0}
-                    onClick={() => setUnstakingVote((v) => (v === p.vote ? null : p.vote))}
-                    className="shrink-0 rounded-full border border-ring bg-bg px-4 py-2 text-sm font-medium text-ink transition hover:border-ink-dim hover:bg-bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {unstakingVote === p.vote ? 'Close' : 'Unstake'}
-                  </button>
+                  {p.unstakableDefinsol > DUST ? (
+                    <button
+                      type="button"
+                      onClick={() => setUnstakingVote((v) => (v === p.vote ? null : p.vote))}
+                      className="shrink-0 rounded-full border border-ring bg-bg px-4 py-2 text-sm font-medium text-ink transition hover:border-ink-dim hover:bg-bg-muted"
+                    >
+                      {unstakingVote === p.vote ? 'Close' : 'Unstake'}
+                    </button>
+                  ) : null}
                 </div>
 
-                {unstakingVote === p.vote && selected ? (
+                {unstakingVote === p.vote && selected && p.unstakableDefinsol > DUST ? (
                   <UnstakeInline
                     account={selected}
                     maxDefinsol={p.unstakableDefinsol}
