@@ -208,12 +208,20 @@ async function maybeRefreshValidators(votePubkeys, pendingVotes = []) {
   const ageMs  = Date.now() - lastMs;
 
   // The daily TTL is Stakewiz courtesy, not correctness — a MEMBERSHIP change
-  // must refresh immediately, or a newly added validator is invisible to the
-  // direct-stake search for up to 24h (live incident: StakeCraft, 2026-07-16).
+  // must refresh immediately, or the widget shows stale state for up to 24h.
+  // TWO kinds of change both count:
+  //   (a) the vote SET gains/loses a pubkey (e.g. StakeCraft added, 2026-07-16).
+  //   (b) a pubkey flips pending → active (or back): same set, same count, but
+  //       its "joining" badge is now wrong (e.g. WEB34EVER added, 2026-07-18).
+  //       Comparing only the vote set misses this, so compare the pending set too.
   const allVotes = [...votePubkeys, ...pendingVotes];
   const existingVotes = new Set((existing?.validators ?? []).map((v) => v?.vote).filter(Boolean));
-  const setChanged = existing
-    && (allVotes.some((v) => !existingVotes.has(v)) || existingVotes.size !== allVotes.length);
+  const existingPending = new Set((existing?.validators ?? []).filter((v) => v?.pending).map((v) => v.vote));
+  const pendingNow = new Set(pendingVotes);
+  const voteSetChanged = allVotes.some((v) => !existingVotes.has(v)) || existingVotes.size !== allVotes.length;
+  const pendingSetChanged = pendingNow.size !== existingPending.size
+    || [...pendingNow].some((v) => !existingPending.has(v));
+  const setChanged = existing && (voteSetChanged || pendingSetChanged);
 
   if (existing && ageMs < VALIDATORS_TTL_MS && !setChanged) {
     console.log(`validators.json is ${(ageMs / 3600_000).toFixed(1)}h old, skipping geo refresh`);
