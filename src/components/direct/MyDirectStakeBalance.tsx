@@ -8,7 +8,14 @@ import { Copy, Check } from 'lucide-react';
 import { SOLANA_CHAIN, DEFINSOL_MINT, DEFINSOL_DECIMALS, SOL_MINT, SOL_DECIMALS } from '@/lib/solana/constants';
 import { quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote } from '@/lib/solana/jupiter';
 import { errMsg } from '@/lib/solana/unstake';
-import { waitForConfirmation } from '@/lib/solana/rpc';
+import { waitForConfirmation, getDefinsolBalance } from '@/lib/solana/rpc';
+
+// FLOOR to 6 decimals, never round. toFixed()/r6() round half-up, so a
+// prefill from the balance API can land a few lamports ABOVE the true wallet
+// balance — the swap then tries to sell definSOL the wallet doesn't have and
+// the wallet's simulation fails ("can't predict balance changes"). Flooring
+// keeps the amount at or below the real balance. (Same fix the StakeWidget made.)
+const floor6 = (n: number) => (Math.floor(n * 1e6) / 1e6).toFixed(6).replace(/\.?0+$/, '');
 
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
 const fmt = (n: number, d = 5) => n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -75,12 +82,27 @@ function UnstakeInline({
   // Identical wiring to the main StakeWidget's unstake (the proven mobile path):
   // quoteSwap + buildSwapTransaction from lib/solana/jupiter, no cast on account.
   const signAndSend = useSignAndSendTransaction(account, SOLANA_CHAIN);
-  const [amount, setAmount] = useState(maxDefinsol > 0 ? String(Number(maxDefinsol.toFixed(6))) : '');
+  // The hard cap is the REAL on-chain definSOL balance, not the balance API's
+  // rounded per-position figure (which can exceed it by a few lamports).
+  const [walletBal, setWalletBal] = useState<number | null>(null);
+  const usableMax = walletBal != null ? Math.min(maxDefinsol, walletBal) : maxDefinsol;
+  const [amount, setAmount] = useState(maxDefinsol > 0 ? floor6(maxDefinsol) : '');
   const [quote, setQuote] = useState<JupiterQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [sub, setSub] = useState<USub>({ k: 'idle' });
   const amt = Number(amount);
   const out = quote ? quoteOut(quote, SOL_DECIMALS) : null;
+
+  // Fetch the true balance and re-floor the prefill to it (matches StakeWidget).
+  useEffect(() => {
+    let alive = true;
+    getDefinsolBalance(account.address).then((b) => {
+      if (!alive) return;
+      setWalletBal(b);
+      setAmount((cur) => (cur === '' || Number(cur) > b ? floor6(Math.min(maxDefinsol, b)) : cur));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [account.address, maxDefinsol]);
 
   useEffect(() => {
     if (!(amt > 0)) { setQuote(null); setQuoting(false); return; }
@@ -94,7 +116,7 @@ function UnstakeInline({
     return () => { alive = false; clearTimeout(t); };
   }, [amount, amt]);
 
-  const can = amt > 0 && amt <= maxDefinsol + 1e-9 && !!quote && sub.k !== 'signing';
+  const can = amt > 0 && amt <= usableMax + 1e-9 && !!quote && sub.k !== 'signing';
 
   async function submit() {
     if (!quote) return;
@@ -126,8 +148,8 @@ function UnstakeInline({
     <div className="mt-3 rounded-lg border border-ring bg-bg-muted/40 p-3">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-xs text-ink-dim">Amount to unstake</span>
-        <button type="button" className="text-xs text-sunrise-500 hover:underline" onClick={() => setAmount(String(Number(maxDefinsol.toFixed(6))))}>
-          Max {fmt(maxDefinsol, 4)}
+        <button type="button" className="text-xs text-sunrise-500 hover:underline" onClick={() => setAmount(floor6(usableMax))}>
+          Max {fmt(usableMax, 4)}
         </button>
       </div>
       <div className="flex items-center gap-2 rounded-lg border border-ring bg-bg px-3 py-2">
