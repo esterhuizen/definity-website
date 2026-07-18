@@ -52,3 +52,28 @@ export async function buildUnstakeSwap(ownerAddress: string, amountDefinsol: num
 }
 
 export const sigToBase58 = (sig: Uint8Array) => getBase58Decoder().decode(sig);
+
+/** Pull a human message out of ANYTHING thrown — Error, wallet-standard error
+ * object, SolanaError, nested {error}, {code}, else JSON. Wallets and the
+ * signing hooks frequently throw plain objects, so `String(e)` alone yields the
+ * useless "[object Object]". */
+export function errMsg(e: unknown): string {
+  if (e == null) return 'Unknown error';
+  if (typeof e === 'string') return e;
+  if (e instanceof Error && e.message) return e.message;
+  const o = e as Record<string, unknown>;
+  const nested = o.error ?? o.cause;
+  if (typeof o.message === 'string' && o.message) return o.message;
+  if (typeof nested === 'string' && nested) return nested;
+  if (nested && typeof nested === 'object') {
+    const nm = (nested as Record<string, unknown>).message;
+    if (typeof nm === 'string' && nm) return nm;
+  }
+  const parts = [o.name, o.code].filter((x) => x != null && x !== '').join(' ');
+  if (parts) return `${parts}${typeof o.reason === 'string' ? `: ${o.reason}` : ''}`;
+  try {
+    const j = JSON.stringify(e);
+    if (j && j !== '{}') return j;
+  } catch { /* circular */ }
+  return String(e);
+}

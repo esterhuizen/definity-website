@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSelectedWalletAccount, useSignAndSendTransaction } from '@solana/react';
 import { Copy, Check } from 'lucide-react';
 import { SOLANA_CHAIN } from '@/lib/solana/constants';
-import { quoteUnstake, buildUnstakeSwap, sigToBase58 } from '@/lib/solana/unstake';
+import { quoteUnstake, buildUnstakeSwap, sigToBase58, errMsg } from '@/lib/solana/unstake';
 import { waitForConfirmation } from '@/lib/solana/rpc';
 
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
@@ -100,7 +100,8 @@ function UnstakeInline({
       setSub({ k: 'done', sig });
       void waitForConfirmation(sig).then(onDone).catch(() => {});
     } catch (e) {
-      setSub({ k: 'error', m: e instanceof Error ? e.message : String(e) });
+      console.error('[unstake] failed', e);
+      setSub({ k: 'error', m: errMsg(e) });
     }
   }
 
