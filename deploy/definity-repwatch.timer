@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily definity.finance reputation check
+
+[Timer]
+OnCalendar=*-*-* 20:05:00 UTC
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target

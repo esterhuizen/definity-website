@@ -301,9 +301,31 @@ steps. Recorded for historical accuracy only.
 | `pool-stats.service` | `oneshot` | `definity` | ❌ (not applicable) | next `pool-stats.timer` tick (hourly) |
 | `daily-report.service` | `oneshot` | `definity` | ❌ (not applicable) | next `daily-report.timer` tick (02:13 UTC) |
 | `certbot-renew.service` | `oneshot` | `root` | ❌ (not applicable) | next `certbot-renew.timer` tick (03:17 + 15:17 UTC) |
+| `definity-repwatch.service` | `oneshot` | `definity` | ❌ (not applicable) | next `definity-repwatch.timer` tick (20:05 UTC daily) |
 
-All three timers have `Persistent=yes` — a missed run during downtime fires
+All four timers have `Persistent=yes`/`true` — a missed run during downtime fires
 on next boot.
+
+### D1 · Reputation watch (`definity-repwatch`)
+
+Daily VirusTotal + Google Safe Browsing check on `definity.finance`; TG-notifies
+only when the vendor verdict set changes (+ a Monday heartbeat). Part of the AV
+delisting campaign (see CLAUDE.md's AV-reputation note). Read-only, holds no keys.
+
+- Script: `scripts/definity-reputation-watch.py` (installed to, and run from, `/usr/local/bin/`).
+- Units: `deploy/definity-repwatch.{service,timer}`.
+- Creds via `EnvironmentFile` (NOT in the repo): `/etc/default/sgdi.env` (TG) + `/etc/default/definity-repwatch.env` (`VT_API_KEY`).
+- State: `/var/lib/definity-repwatch/state.json`.
+
+Install / refresh from the repo (this dir is a public GitHub repo — the script + units are secret-free; keys live only in the env files above):
+
+```bash
+sudo install -m755 scripts/definity-reputation-watch.py /usr/local/bin/
+sudo cp deploy/definity-repwatch.service deploy/definity-repwatch.timer /etc/systemd/system/
+sudo install -d -o definity -g definity /var/lib/definity-repwatch
+sudo systemctl daemon-reload && sudo systemctl enable --now definity-repwatch.timer
+# smoke: sudo -u definity bash -c 'set -a; . /etc/default/sgdi.env; . /etc/default/definity-repwatch.env; set +a; python3 /usr/local/bin/definity-reputation-watch.py --force'
+```
 
 The `definity` user has *no* shell, *no* home, and only one sudo grant (see
 A2 above). It cannot write outside `/var/www/definity` and `/var/lib/definity`

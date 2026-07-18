@@ -1,0 +1,12 @@
+[Unit]
+Description=definity.finance reputation watch — VirusTotal + Google Safe Browsing, TG notify on change
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=definity
+Group=definity
+EnvironmentFile=/etc/default/sgdi.env
+EnvironmentFile=/etc/default/definity-repwatch.env
+ExecStart=/usr/bin/python3 /usr/local/bin/definity-reputation-watch.py
