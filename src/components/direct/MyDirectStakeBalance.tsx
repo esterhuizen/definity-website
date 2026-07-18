@@ -126,6 +126,10 @@ function UnstakeInline({
       const { signature } = await signAndSend({ transaction: bytes });
       const sig = getBase58Decoder().decode(signature);
       setSub({ k: 'done', sig });
+      // Refresh the balance card once the redemption confirms (no page refresh).
+      void waitForConfirmation(sig)
+        .then(() => window.dispatchEvent(new CustomEvent('definity:direct-staked')))
+        .catch(() => {});
       void waitForConfirmation(sig).then(onDone).catch(() => {});
     } catch (e) {
       console.error('[unstake] failed', e);
@@ -203,6 +207,18 @@ export function MyDirectStakeBalance() {
   }, [wallet, meta]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Reload the moment a stake lands on this page (DirectStakeWidget dispatches
+  // this after confirm + ingest) — no page refresh needed. Retry once after a
+  // short delay to cover ingest/registry write latency.
+  useEffect(() => {
+    const onStaked = () => {
+      load();
+      setTimeout(() => { void load(); }, 4_000);
+    };
+    window.addEventListener('definity:direct-staked', onStaked);
+    return () => window.removeEventListener('definity:direct-staked', onStaked);
+  }, [load]);
 
   if (!wallet) return null;
   if (loading && !data) return <div className="mx-auto mt-6 max-w-md text-center font-mono text-sm text-ink-dim">Loading your direct stake…</div>;

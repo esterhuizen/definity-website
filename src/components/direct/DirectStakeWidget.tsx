@@ -91,6 +91,12 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
           });
         } catch {
           /* the cron will pick it up */
+        } finally {
+          // Tell the on-page balance card to reload — the deposit is confirmed
+          // and (best-effort) ingested, so its next fetch will include it.
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('definity:direct-staked'));
+          }
         }
       })();
     } catch (e) {
