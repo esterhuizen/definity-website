@@ -173,8 +173,27 @@ export async function GET(req: Request) {
 
   const totalDirectedSol = mine.reduce((a, e) => a + (e.depositSol ?? 0), 0);
   const holdingsSol = holding * nav;
-  // Fraction of directed deposits the wallet still holds (anti-overstate when they exit).
-  const heldScale = totalDirectedSol > 0 ? Math.min(1, holdingsSol / totalDirectedSol) : 0;
+  // Recency-first (LIFO) backing: the wallet's current holdings back its MOST
+  // RECENT deposits first. definSOL is fungible, so a wallet that reduced its
+  // balance kept its latest stake, not a proportional slice of everything it
+  // ever directed — a fresh full deposit to one validator therefore shows in
+  // full, and validators the wallet effectively exited drop to zero. The
+  // TOTAL is identical to a flat scale (min(holdings, deposits)); only the
+  // per-deposit distribution differs. Mirrors composeDirected in the optimiser
+  // so the page matches what actually gets directed.
+  const backedFrac = new Array<number>(mine.length).fill(0);
+  {
+    let remaining = Math.min(holdingsSol, totalDirectedSol);
+    const order = mine
+      .map((e, i) => ({ i, slot: e.slot ?? 0, sol: e.depositSol ?? 0 }))
+      .sort((a, b) => b.slot - a.slot);
+    for (const d of order) {
+      if (remaining <= 0) break;
+      const backed = Math.min(d.sol, remaining);
+      backedFrac[d.i] = d.sol > 0 ? backed / d.sol : 0;
+      remaining -= backed;
+    }
+  }
 
   type Pos = {
     vote: string; name: string | null; city: string | null;
@@ -193,14 +212,16 @@ export async function GET(req: Request) {
     const m = minted[i];
     // Prefer the true minted amount; fall back to depositSol/nav if the tx read failed.
     const mintedAmt = m != null && m > 0 ? m : (e.depositSol ?? 0) / nav;
+    const f = backedFrac[i]; // recency-backed fraction of this deposit still held
     p.mintedDefinsol += mintedAmt;
+    p.directedDefinsol += mintedAmt * f;
     p.directedSol += e.depositSol ?? 0;
     p.deposits += 1;
     // Principal: the user's own 1× stake — directed to their validator at the NEXT
     // cycle regardless of maturity (self-funded, claws back on withdrawal).
-    p.principalSol += (e.depositSol ?? 0) * heldScale;
+    p.principalSol += (e.depositSol ?? 0) * f;
     // Matching uplift: RETAIL_MULTIPLE×, gated by the anti-gaming maturity window.
-    const match = RETAIL_MULTIPLE * (e.depositSol ?? 0) * heldScale;
+    const match = RETAIL_MULTIPLE * (e.depositSol ?? 0) * f;
     if (isMatured(e.slot)) {
       // held a full lookback window → eligible (directs on the next optimiser cycle)
       p.matchedPlannedSol += match;
@@ -221,15 +242,14 @@ export async function GET(req: Request) {
     // match ÷ the validator's total target (materialised in the ledger), applied to
     // what's actually deployed — no full-registry scan needed.
     const share = dep && dep.target > 0 ? Math.min(1, (p.principalSol + p.matchedPlannedSol) / dep.target) : 0;
-    // directed definSOL the staker holds for this validator (capped at what they still hold)
-    p.directedDefinsol = p.mintedDefinsol * heldScale;
+    // directedDefinsol already accumulated per-deposit (recency-backed) above.
     return {
       vote: p.vote,
       name: p.name,
       city: p.city,
       directedDefinsol: r6(p.directedDefinsol),
       directedValueSol: r6(p.directedDefinsol * nav),
-      // unstakable == directed (liquid LST), already capped by heldScale
+      // unstakable == directed (liquid LST), already recency-backed
       unstakableDefinsol: r6(p.directedDefinsol),
       unstakableValueSol: r6(p.directedDefinsol * nav),
       mintedDefinsol: r6(p.mintedDefinsol),
