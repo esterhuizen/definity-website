@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { ArrowUpRight, RefreshCw, Circle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, RefreshCw, Circle, Search, Eye, EyeOff, X } from 'lucide-react';
 
 type Req = {
   signature: string;
@@ -72,11 +72,35 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
+function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <label className="flex min-w-[170px] flex-1 items-center gap-2 rounded-lg border border-ring bg-bg-muted/40 px-3 py-1.5">
+      <Search className="h-3.5 w-3.5 shrink-0 text-ink-dim" aria-hidden="true" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-dim"
+      />
+      {value ? (
+        <button type="button" aria-label="Clear" onClick={() => onChange('')} className="shrink-0 text-ink-dim hover:text-ink">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </label>
+  );
+}
+
 export default function DirectStakeRequestsPage() {
   const [data, setData] = useState<Data | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<number>(0);
+
+  // Filters — active-only by default; withdrawn (superseded/exited) hidden.
+  const [depQ, setDepQ] = useState('');
+  const [valQ, setValQ] = useState('');
+  const [showWithdrawn, setShowWithdrawn] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -102,38 +126,50 @@ export default function DirectStakeRequestsPage() {
   const t = data?.totals;
   const dep = data?.deployment;
   const pct = dep ? Math.min(100, dep.deployedPct) : 0;
+  const withdrawnCount = t?.withdrawn ?? 0;
+
+  const visible = useMemo(() => {
+    const dq = depQ.trim().toLowerCase();
+    const vq = valQ.trim().toLowerCase();
+    return (data?.requests ?? []).filter((r) => {
+      if (!showWithdrawn && r.status === 'withdrawn') return false;
+      if (dq && !r.depositor.toLowerCase().includes(dq)) return false;
+      if (vq) {
+        const hay = `${r.validatorName ?? ''} ${r.validatorVote ?? ''} ${r.validatorCity ?? ''}`.toLowerCase();
+        if (!hay.includes(vq)) return false;
+      }
+      return true;
+    });
+  }, [data, depQ, valQ, showWithdrawn]);
+
   const planSub = t
-    ? [
-        t.matched ? `${t.matched} matched` : '',
-        t.awaiting ? `${t.awaiting} awaiting` : '',
-        t.maturing ? `${t.maturing} maturing` : '',
-        t.reduced ? `${t.reduced} reduced` : '',
-      ]
+    ? [t.matched ? `${t.matched} matched` : '', t.awaiting ? `${t.awaiting} awaiting` : '', t.maturing ? `${t.maturing} maturing` : '', t.reduced ? `${t.reduced} reduced` : '']
         .filter(Boolean)
         .join(' · ') || undefined
     : undefined;
+  const filtering = depQ.trim() !== '' || valQ.trim() !== '' || showWithdrawn;
 
   return (
     <div className="mx-auto w-full max-w-5xl px-5 py-10 md:py-14">
-      {/* Header */}
+      {/* Header — on the dark canvas, so light text */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-ink-dim">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-white/55">
             <Circle className="h-2 w-2 fill-success text-success" aria-hidden="true" />
             Live · directed-stake
           </div>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink md:text-4xl">Direct-stake requests</h1>
-          <p className="mt-2 max-w-2xl text-sm text-ink-muted">
+          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">Direct-stake requests</h1>
+          <p className="mt-2 max-w-2xl text-sm text-white/70">
             On-chain <span className="font-mono">direct:</span> deposits into definSOL, with live holdings.{' '}
-            <span className="text-ink">Planned</span> = the directed target: the staker&apos;s own 1× stake (directed next cycle) plus up to{' '}
+            <span className="text-white">Planned</span> = the directed target: the staker&apos;s own 1× stake (directed next cycle) plus up to{' '}
             {data?.retailMultiple ?? 3.5}× matching once a deposit has been held a full epoch (the trailing-minimum anti-gaming basis) — up
-            to 4.5× total. <span className="text-ink">Deployed</span> = pool stake actually placed on-chain.
+            to 4.5× total. <span className="text-white">Deployed</span> = pool stake actually placed on-chain.
           </p>
         </div>
         <button
           type="button"
           onClick={load}
-          className="inline-flex items-center gap-2 rounded-lg border border-ring px-3 py-1.5 text-sm text-ink-muted transition hover:text-ink"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white/70 transition hover:border-white/40 hover:text-white"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           {updatedAt ? `Updated ${ago(Math.floor(updatedAt / 1000))}` : 'Refresh'}
@@ -141,7 +177,7 @@ export default function DirectStakeRequestsPage() {
       </div>
 
       {err ? (
-        <p className="mt-6 rounded-lg border border-fuchsia-600/40 bg-fuchsia-600/10 px-4 py-3 text-sm text-fuchsia-500">
+        <p className="mt-6 rounded-lg border border-fuchsia-600/40 bg-fuchsia-600/10 px-4 py-3 text-sm text-fuchsia-300">
           Could not load: {err}
         </p>
       ) : null}
@@ -150,11 +186,7 @@ export default function DirectStakeRequestsPage() {
       <div className="surface mt-6 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="text-[11px] uppercase tracking-[0.18em] text-ink-dim">Directed stake · planned vs deployed</div>
-          <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-              dep?.live ? 'bg-success/15 text-success' : 'bg-sunrise-300/20 text-sunrise-300'
-            }`}
-          >
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${dep?.live ? 'bg-success/15 text-success' : 'bg-sunrise-300/20 text-sunrise-300'}`}>
             {dep?.live ? 'Live' : 'Pending go-live'}
           </span>
         </div>
@@ -172,9 +204,7 @@ export default function DirectStakeRequestsPage() {
             cycle — each cycle is operator-approved before any pool stake is directed, so this fills in right after the first approval.
           </p>
         ) : !dep?.live ? (
-          <p className="mt-3 text-xs text-ink-dim">
-            Matching is computed but <span className="text-ink-muted">not yet deployed</span>.
-          </p>
+          <p className="mt-3 text-xs text-ink-dim">Matching is computed but <span className="text-ink-muted">not yet deployed</span>.</p>
         ) : null}
       </div>
 
@@ -186,8 +216,30 @@ export default function DirectStakeRequestsPage() {
         <Stat label="Sleeve used" value={t ? `${t.sleeveUsedPct}%` : '—'} sub={data ? `${fmt(t?.plannedSol ?? 0)} / ${fmt(data.sleeveCapSol, 0)} ◎` : undefined} />
       </div>
 
+      {/* Filters */}
+      <div className="surface mt-4 flex flex-wrap items-center gap-3 p-3">
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <SearchInput value={depQ} onChange={setDepQ} placeholder="Filter depositor…" />
+          <SearchInput value={valQ} onChange={setValQ} placeholder="Filter validator (name, city, vote)…" />
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowWithdrawn((v) => !v)}
+          aria-pressed={showWithdrawn}
+          className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition ${
+            showWithdrawn ? 'border-ink/25 bg-ink/5 text-ink' : 'border-ring text-ink-muted hover:text-ink'
+          }`}
+        >
+          {showWithdrawn ? <Eye className="h-3.5 w-3.5" aria-hidden="true" /> : <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />}
+          {showWithdrawn ? 'Hide' : 'Show'} withdrawn ({withdrawnCount})
+        </button>
+        <span className="shrink-0 font-mono text-xs text-ink-dim">
+          {data ? `${visible.length} of ${t?.requests ?? 0}` : ''}
+        </span>
+      </div>
+
       {/* Table */}
-      <div className="surface mt-6 overflow-hidden">
+      <div className="surface mt-3 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-sm">
             <thead>
@@ -204,8 +256,8 @@ export default function DirectStakeRequestsPage() {
               </tr>
             </thead>
             <tbody>
-              {data?.requests.length ? (
-                data.requests.map((r) => (
+              {visible.length ? (
+                visible.map((r) => (
                   <tr key={r.signature} className="border-b border-ring/50 last:border-0">
                     <td className="px-4 py-3">
                       <a className="font-mono text-ink hover:underline" href={`https://solscan.io/account/${r.depositor}`} target="_blank" rel="noreferrer">
@@ -225,8 +277,8 @@ export default function DirectStakeRequestsPage() {
                     <td className="px-4 py-3 text-right font-mono text-ink">{fmt(r.depositSol ?? 0)} ◎</td>
                     <td className="px-4 py-3 text-right font-mono text-ink-muted">{fmt(r.holdingsSol)} ◎</td>
                     <td className="px-4 py-3 text-right font-mono text-ink">{fmt(r.plannedMatchSol)} ◎</td>
-                    <td className={`px-4 py-3 text-right font-mono ${r.deployedMatchSol > 0 ? 'text-success' : 'text-ink-dim'}`}>
-                      {r.deployedMatchSol > 0 ? `${fmt(r.deployedMatchSol)} ◎` : '— pending'}
+                    <td className={`px-4 py-3 text-right font-mono ${r.deployedMatchSol > 1e-3 ? 'text-success' : 'text-ink-dim'}`}>
+                      {r.deployedMatchSol > 1e-3 ? `${fmt(r.deployedMatchSol)} ◎` : r.status === 'withdrawn' ? '—' : '— pending'}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS[r.status].cls}`}>
@@ -247,7 +299,11 @@ export default function DirectStakeRequestsPage() {
               ) : (
                 <tr>
                   <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-dim">
-                    {data ? 'No direct-stake requests yet. New deposits appear here within ~5 min of the deposit.' : 'Loading…'}
+                    {!data
+                      ? 'Loading…'
+                      : (data.requests.length && filtering)
+                        ? 'No requests match your filters.'
+                        : 'No direct-stake requests yet. New deposits appear here within ~5 min of the deposit.'}
                   </td>
                 </tr>
               )}
@@ -256,9 +312,10 @@ export default function DirectStakeRequestsPage() {
         </div>
       </div>
 
-      <p className="mt-4 text-center text-[11px] text-ink-dim">
-        Source of truth is on-chain. Planned = 1× principal + up to {data?.retailMultiple ?? 3.5}× matching (holdings-capped, up to 4.5×).
-        Deployed = the optimiser&apos;s directed deployments. Auto-refreshes every 15s.
+      <p className="mt-4 text-center text-[11px] text-white/40">
+        Source of truth is on-chain. Planned = 1× principal + up to {data?.retailMultiple ?? 3.5}× matching (recency-backed, up to 4.5×).
+        Deployed = the optimiser&apos;s directed deployments. Withdrawn = a deposit superseded by a more-recent one or fully exited.
+        Auto-refreshes every 15s.
       </p>
     </div>
   );

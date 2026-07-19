@@ -247,6 +247,7 @@ export async function GET() {
   const requests = retail
     .map((e) => {
       const f = backedFrac.get(e.signature) ?? 0;
+      const backedSol = (e.depositSol ?? 0) * f; // this deposit's still-held portion, in SOL
       const matured = isMatured(e.slot);
       const plannedMatchSol = plannedBySig.get(e.signature) ?? 0;
       const deployedMatchSol = deployedBySig.get(e.signature) ?? 0;
@@ -257,8 +258,11 @@ export async function GET() {
       //   matched   → matching pool stake actually directed onto the validator
       //   reduced   → this deposit is only partly still backed (LIFO boundary)
       //   withdrawn → superseded by a more-recent deposit / fully exited; no match
+      // Dust: < 0.01 SOL still backed → withdrawn (a fully-exited deposit or a
+      // negligible NAV-rounding residual), so it doesn't read as an all-zero
+      // "maturing" row.
       const status =
-        f <= 1e-3 ? 'withdrawn' // dust: fully exited, or a negligible NAV-rounding residual
+        backedSol < 0.01 ? 'withdrawn'
           : !matured ? 'maturing'
           : f < 0.999 ? 'reduced'
           : deployedMatchSol > 1e-9 ? 'matched'
@@ -273,7 +277,7 @@ export async function GET() {
         depositSol: e.depositSol,
         // "Held now" = the portion of THIS deposit still backed (recency-first),
         // not the wallet's total holdings repeated on every row.
-        holdingsSol: r6((e.depositSol ?? 0) * f),
+        holdingsSol: r6(backedSol),
         plannedMatchSol: r6(plannedMatchSol),
         deployedMatchSol: r6(deployedMatchSol),
         validatorPoolStakeSol: r6(poolStakes.get(vote) ?? 0),
