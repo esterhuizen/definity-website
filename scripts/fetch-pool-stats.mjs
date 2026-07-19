@@ -18,12 +18,16 @@
 
 import { writeFile, readFile, mkdir, rename } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { computeDirectedPlanned, SLEEVE_CAP_SOL } from '../src/lib/directed-planned.mjs';
 
 const RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const POOL_ADDRESS = 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const LST_MINT     = 'DEF1NXSZ8Th9n28hYBayrFtx9bj1EwwTiy3mhHEB9oyA';
 const OUT_PATH        = resolve(process.argv[2] || 'public/stats.json');
 const VALIDATORS_PATH = resolve(process.argv[3] || 'public/validators.json');
+// Directed-stake registry (same files the /requests API reads).
+const DIRECTED_REGISTRY_PATH = process.env.DIRECTED_REGISTRY_PATH || '/var/lib/definity-dsp/directed-stake-registry.jsonl';
+const DIRECTED_WEBHOOK_PATH  = process.env.DIRECTED_WEBHOOK_PATH  || '/var/lib/definity-staging/directed-stake-webhook.jsonl';
 
 const STAKEWIZ_URL = process.env.STAKEWIZ_URL || 'https://api.stakewiz.com/validators';
 // Refresh validator geo at most once per day. Validators rarely change data
@@ -304,6 +308,49 @@ async function maybeRefreshValidators(votePubkeys, pendingVotes = []) {
   );
 }
 
+// Directed-stake capacity used (% of the 60k matching budget), precomputed here
+// so the landing card just reads stats.json — no on-chain work at view time. Uses
+// the SAME shared LIFO helper as the /requests API, so the two agree. Fail-soft:
+// returns null on any error (registry missing, RPC hiccup), leaving the field out.
+async function computeDirectStakeUsedPct(nav) {
+  try {
+    const readJsonl = async (p) => {
+      try {
+        return (await readFile(p, 'utf8')).split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
+      } catch {
+        return [];
+      }
+    };
+    const [wh, cr] = await Promise.all([readJsonl(DIRECTED_WEBHOOK_PATH), readJsonl(DIRECTED_REGISTRY_PATH)]);
+    const seen = new Set();
+    const deposits = [];
+    for (const e of [...wh, ...cr]) {
+      if (!e.signature || seen.has(e.signature) || !e.validatorVote || e.depositSol == null || !e.depositor) continue;
+      seen.add(e.signature);
+      deposits.push({ signature: e.signature, depositor: e.depositor, depositSol: e.depositSol, slot: e.slot ?? 0 });
+    }
+    if (!deposits.length) return 0;
+
+    const wallets = [...new Set(deposits.map((d) => d.depositor))];
+    const epoch = await rpc('getEpochInfo', []);
+    const holdRes = await Promise.all(
+      wallets.map((w) => rpc('getTokenAccountsByOwner', [w, { mint: LST_MINT }, { encoding: 'jsonParsed', commitment: 'confirmed' }])),
+    );
+    const holdingsSolByWallet = new Map();
+    wallets.forEach((w, i) => {
+      let total = 0n;
+      for (const a of holdRes[i].value) total += BigInt(a.account.data.parsed.info.tokenAmount.amount);
+      holdingsSolByWallet.set(w, (Number(total) / 1e9) * (nav ?? 1));
+    });
+    const windowStartSlot = epoch.absoluteSlot - epoch.slotsInEpoch;
+    const { totalSol } = computeDirectedPlanned(deposits, holdingsSolByWallet, windowStartSlot);
+    return Math.round((totalSol / SLEEVE_CAP_SOL) * 1000) / 10;
+  } catch (err) {
+    console.error(`direct-stake usage skipped: ${err.message}`);
+    return null;
+  }
+}
+
 async function main() {
   const t0 = Date.now();
 
@@ -319,6 +366,9 @@ async function main() {
   const definsolSupply = Number(lstSupply.rawAmount) / 10 ** lstSupply.decimals;
   const exchangeRate = definsolSupply > 0 ? totalSol / definsolSupply : null;
 
+  // Precompute the directed-stake capacity used so the landing card reads a file.
+  const directStakeUsedPct = await computeDirectStakeUsedPct(exchangeRate);
+
   const stats = {
     validators: vlist.count,
     maxValidators: vlist.maxValidators,
@@ -327,6 +377,7 @@ async function main() {
     definsolSupply,
     definsolRawSupply: lstSupply.rawAmount.toString(),
     exchangeRate,
+    directStakeUsedPct,
     updatedAt: new Date().toISOString(),
     rpc: new URL(RPC).host,
     fetchedInMs: Date.now() - t0,

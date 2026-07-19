@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'node:fs/promises';
+import { computeDirectedPlanned } from '@/lib/directed-planned.mjs';
 
 // Live view of directed-stake requests. Reads the scanner's registry (the
 // on-chain `direct:<vote>` deposit log) and enriches each request with LIVE
@@ -196,36 +197,20 @@ export async function GET() {
   const maturesInHours = (slot: number) =>
     Math.round((Math.max(0, slot + epochInfo.slotsInEpoch - epochInfo.absoluteSlot) * 0.4 / 3600) * 10) / 10;
 
-  const walletTotals = new Map<string, number>();
-  for (const e of retail) walletTotals.set(e.depositor, (walletTotals.get(e.depositor) ?? 0) + e.depositSol!);
-
-  // Recency-first (LIFO) backing per wallet: current holdings back a wallet's
-  // MOST RECENT deposits first; deposits it effectively exited drop to zero.
-  // Mirrors composeDirected (the optimiser) and the balance API's backedFrac, so
-  // this operator view matches what actually gets directed AND the staker's own
-  // card. (Previously a flat proportional scale, which smeared a reduced balance
-  // evenly across every deposit and disagreed with both.)
-  const backedFrac = new Map<string, number>(); // signature -> fraction of THIS deposit still held
-  for (const w of wallets) {
-    const wEntries = retail.filter((e) => e.depositor === w).sort((a, b) => (b.slot ?? 0) - (a.slot ?? 0));
-    let remaining = Math.min((holdings.get(w) ?? 0) * nav, walletTotals.get(w) ?? 0);
-    for (const e of wEntries) {
-      const sol = e.depositSol ?? 0;
-      const backed = Math.min(sol, Math.max(0, remaining));
-      backedFrac.set(e.signature, sol > 0 ? backed / sol : 0);
-      remaining -= backed;
-    }
-  }
-
-  // Directed target per deposit (mirrors composeDirected): 1× PRINCIPAL on every
-  // still-held deposit + RETAIL_MULTIPLE× MATCHING on matured ones, recency-backed.
-  const plannedBySig = new Map<string, number>();
+  // Directed target per deposit — recency-first (LIFO), from the shared helper so
+  // the /requests view, the balance card and the landing usage indicator can't
+  // drift apart. Current holdings back a wallet's MOST RECENT deposits first; each
+  // still-held deposit earns 1× principal + RETAIL_MULTIPLE× matching once matured.
+  const holdingsSolByWallet = new Map(wallets.map((w) => [w, (holdings.get(w) ?? 0) * nav]));
+  const { bySig } = computeDirectedPlanned(
+    retail.map((e) => ({ signature: e.signature, depositor: e.depositor, depositSol: e.depositSol!, slot: e.slot })),
+    holdingsSolByWallet,
+    windowStartSlot,
+    RETAIL_MULTIPLE,
+  );
   const plannedByValidator = new Map<string, number>();
   for (const e of retail) {
-    const f = backedFrac.get(e.signature) ?? 0;
-    const planned = (1 + (isMatured(e.slot) ? RETAIL_MULTIPLE : 0)) * e.depositSol! * f;
-    plannedBySig.set(e.signature, planned);
-    plannedByValidator.set(e.validatorVote!, (plannedByValidator.get(e.validatorVote!) ?? 0) + planned);
+    plannedByValidator.set(e.validatorVote!, (plannedByValidator.get(e.validatorVote!) ?? 0) + (bySig.get(e.signature)?.plannedSol ?? 0));
   }
 
   // Deployed stake is a per-VALIDATOR lump on-chain; the optimiser builds it from
@@ -238,7 +223,7 @@ export async function GET() {
     let remaining = deployed.get(vote) ?? 0;
     const votes = retail.filter((e) => e.validatorVote === vote).sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
     for (const e of votes) {
-      const d = Math.min(plannedBySig.get(e.signature) ?? 0, Math.max(0, remaining));
+      const d = Math.min(bySig.get(e.signature)?.plannedSol ?? 0, Math.max(0, remaining));
       deployedBySig.set(e.signature, d);
       remaining -= d;
     }
@@ -246,10 +231,11 @@ export async function GET() {
 
   const requests = retail
     .map((e) => {
-      const f = backedFrac.get(e.signature) ?? 0;
+      const info = bySig.get(e.signature);
+      const f = info?.backedFrac ?? 0;
       const backedSol = (e.depositSol ?? 0) * f; // this deposit's still-held portion, in SOL
       const matured = isMatured(e.slot);
-      const plannedMatchSol = plannedBySig.get(e.signature) ?? 0;
+      const plannedMatchSol = info?.plannedSol ?? 0;
       const deployedMatchSol = deployedBySig.get(e.signature) ?? 0;
       const vote = e.validatorVote!;
       // Status from the direct staker's POV — where their MATCH is in its journey:

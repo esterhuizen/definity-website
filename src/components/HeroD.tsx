@@ -1,12 +1,13 @@
 import { getGdiStanding, GDI_URLS } from '@/lib/gdi';
-import { getBaseApy, getNav } from '@/lib/apy';
+import { getBaseApy, getNav, getDirectStakeUsedPct } from '@/lib/apy';
 import { InfinityField } from './InfinityField';
 
 // Concept D hero — manifesto serif on Definity blue + a live instrument panel (the proof),
 // wrapped in a generative ∞. Real GDI rank + base APY; looped APY is "coming soon" until
 // the leverage product is locked in.
 export async function HeroD() {
-  const [apy, gdi, nav] = await Promise.all([getBaseApy(), getGdiStanding(), getNav()]);
+  const [apy, gdi, nav, dsUsedPct] = await Promise.all([getBaseApy(), getGdiStanding(), getNav(), getDirectStakeUsedPct()]);
+  const dsUsed = dsUsedPct != null ? String(dsUsedPct) : null; // % of matching capacity used (precomputed in stats.json)
 
   const apyStr = (apy ?? 5.32).toFixed(2);
   const navStr = nav != null ? nav.toFixed(3) : null;
@@ -51,7 +52,7 @@ export async function HeroD() {
                 </div>
               </div>
               <div className="twocol trio">
-                <a href="/direct-staking"><div className="k">Direct staking <span className="go">↗</span></div><div className="v" style={{ color: 'var(--teal)' }}>Live</div><div className="sub">up to 4.5× to your validator · looping soon</div></a>
+                <a href="/direct-staking"><div className="k">Direct staking <span className="go">↗</span></div><div className="v" style={{ color: 'var(--teal)' }}>{dsUsed != null ? <>{dsUsed}<i>%</i></> : 'Live'}</div><div className="sub">{dsUsed != null ? 'capacity used · up to 4.5×' : 'up to 4.5× to your validator · looping soon'}</div></a>
                 <a href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank <span className="go">↗</span></div><div className="v">#{rank}<i>/{total}</i></div><div className="sub">open · reproducible</div></a>
                 <div><div className="k">Total staked</div><div className="v">{tvlK}<span style={{ fontSize: '.42em', fontFamily: 'var(--mono)', color: 'var(--dim)' }}>K SOL</span></div><div className="sub">vetted, decentralised set</div></div>
               </div>
@@ -63,7 +64,7 @@ export async function HeroD() {
 
           <section className="metrics reveal d5">
             <div className="metric"><div className="k">definSOL base APY</div><div className="v">{apyStr}<small>%</small></div><div className="s">on-chain · net of fees</div></div>
-            <a className="metric metric-link" href="/direct-staking"><div className="k">Direct staking <span className="go">↗</span></div><div className="v">Live</div><div className="s">up to 4.5× to your validator · looping soon</div></a>
+            <a className="metric metric-link" href="/direct-staking"><div className="k">Direct staking <span className="go">↗</span></div><div className="v">{dsUsed != null ? <>{dsUsed}<small>%</small></> : 'Live'}</div><div className="s">{dsUsed != null ? 'capacity used · up to 4.5× to your validator' : 'up to 4.5× to your validator · looping soon'}</div></a>
             <div className="metric"><div className="k">Total value staked</div><div className="v">{tvlK}<small>K SOL</small></div><div className="s">across the pool</div></div>
             <a className="metric metric-link" href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank · decentralisation</div><div className="v">#{rank}<small>/{total}</small></div><div className="s">{gdiScore} vs {baseline} baseline <span className="go">↗</span></div></a>
           </section>

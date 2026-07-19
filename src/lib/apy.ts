@@ -48,3 +48,18 @@ export async function getNav(): Promise<number | null> {
     return null;
   }
 }
+
+/** Directed-stake capacity used (%), read from the precomputed stats.json the
+ *  collector writes — no on-chain work at render. null if absent (card shows a
+ *  static fallback). */
+export async function getDirectStakeUsedPct(): Promise<number | null> {
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const raw = await readFile(join(process.cwd(), 'public/stats.json'), 'utf8');
+    const v = (JSON.parse(raw) as { directStakeUsedPct?: number })?.directStakeUsedPct;
+    return typeof v === 'number' ? v : null;
+  } catch {
+    return null;
+  }
+}
