@@ -199,41 +199,68 @@ export async function GET() {
   const walletTotals = new Map<string, number>();
   for (const e of retail) walletTotals.set(e.depositor, (walletTotals.get(e.depositor) ?? 0) + e.depositSol!);
 
-  // Directed target per validator (mirrors the optimiser's composeDirected):
-  // 1× PRINCIPAL on every held deposit (directed next cycle) + RETAIL_MULTIPLE×
-  // MATCHING uplift on matured deposits only. Holdings-capped.
+  // Recency-first (LIFO) backing per wallet: current holdings back a wallet's
+  // MOST RECENT deposits first; deposits it effectively exited drop to zero.
+  // Mirrors composeDirected (the optimiser) and the balance API's backedFrac, so
+  // this operator view matches what actually gets directed AND the staker's own
+  // card. (Previously a flat proportional scale, which smeared a reduced balance
+  // evenly across every deposit and disagreed with both.)
+  const backedFrac = new Map<string, number>(); // signature -> fraction of THIS deposit still held
+  for (const w of wallets) {
+    const wEntries = retail.filter((e) => e.depositor === w).sort((a, b) => (b.slot ?? 0) - (a.slot ?? 0));
+    let remaining = Math.min((holdings.get(w) ?? 0) * nav, walletTotals.get(w) ?? 0);
+    for (const e of wEntries) {
+      const sol = e.depositSol ?? 0;
+      const backed = Math.min(sol, Math.max(0, remaining));
+      backedFrac.set(e.signature, sol > 0 ? backed / sol : 0);
+      remaining -= backed;
+    }
+  }
+
+  // Directed target per deposit (mirrors composeDirected): 1× PRINCIPAL on every
+  // still-held deposit + RETAIL_MULTIPLE× MATCHING on matured ones, recency-backed.
+  const plannedBySig = new Map<string, number>();
   const plannedByValidator = new Map<string, number>();
   for (const e of retail) {
-    const holdingsSol = (holdings.get(e.depositor) ?? 0) * nav;
-    const wt = walletTotals.get(e.depositor) ?? 0;
-    const scale = wt > 0 ? Math.min(1, holdingsSol / wt) : 0;
-    const directed = (1 + (isMatured(e.slot) ? RETAIL_MULTIPLE : 0)) * e.depositSol! * scale;
-    plannedByValidator.set(e.validatorVote!, (plannedByValidator.get(e.validatorVote!) ?? 0) + directed);
+    const f = backedFrac.get(e.signature) ?? 0;
+    const planned = (1 + (isMatured(e.slot) ? RETAIL_MULTIPLE : 0)) * e.depositSol! * f;
+    plannedBySig.set(e.signature, planned);
+    plannedByValidator.set(e.validatorVote!, (plannedByValidator.get(e.validatorVote!) ?? 0) + planned);
+  }
+
+  // Deployed stake is a per-VALIDATOR lump on-chain; the optimiser builds it from
+  // the deposits present at each cycle. Attribute a validator's deployed total to
+  // its deposits OLDEST-first, capped at each deposit's planned — so a large,
+  // freshly deposited principal that hasn't been directed yet doesn't appear
+  // deployed (a proportional split wrongly handed it the lion's share).
+  const deployedBySig = new Map<string, number>();
+  for (const vote of new Set(retail.map((e) => e.validatorVote!))) {
+    let remaining = deployed.get(vote) ?? 0;
+    const votes = retail.filter((e) => e.validatorVote === vote).sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
+    for (const e of votes) {
+      const d = Math.min(plannedBySig.get(e.signature) ?? 0, Math.max(0, remaining));
+      deployedBySig.set(e.signature, d);
+      remaining -= d;
+    }
   }
 
   const requests = retail
     .map((e) => {
-      const holdingsSol = (holdings.get(e.depositor) ?? 0) * nav;
-      const wt = walletTotals.get(e.depositor) ?? 0;
-      const scale = wt > 0 ? Math.min(1, holdingsSol / wt) : 0;
+      const f = backedFrac.get(e.signature) ?? 0;
       const matured = isMatured(e.slot);
-      // directed total: 1× principal (next cycle) + RETAIL_MULTIPLE× matching (matured only)
-      const plannedMatchSol = (1 + (matured ? RETAIL_MULTIPLE : 0)) * e.depositSol! * scale;
+      const plannedMatchSol = plannedBySig.get(e.signature) ?? 0;
+      const deployedMatchSol = deployedBySig.get(e.signature) ?? 0;
       const vote = e.validatorVote!;
-      const valPlanned = plannedByValidator.get(vote) ?? 0;
-      const valDeployed = deployed.get(vote) ?? 0;
-      // This request's share of its validator's deployed directed stake.
-      const deployedMatchSol = valPlanned > 0 ? valDeployed * (plannedMatchSol / valPlanned) : 0;
       // Status from the direct staker's POV — where their MATCH is in its journey:
       //   maturing  → still in the anti-gaming hold window
       //   awaiting  → cleared the window, match directs on the next optimiser cycle
       //   matched   → matching pool stake actually directed onto the validator
-      //   reduced   → they pulled some definSOL out; the match scales down with it
-      //   withdrawn → they exited; no match
+      //   reduced   → this deposit is only partly still backed (LIFO boundary)
+      //   withdrawn → superseded by a more-recent deposit / fully exited; no match
       const status =
-        scale <= 0 ? 'withdrawn'
+        f <= 1e-3 ? 'withdrawn' // dust: fully exited, or a negligible NAV-rounding residual
           : !matured ? 'maturing'
-          : scale < 0.999 ? 'reduced'
+          : f < 0.999 ? 'reduced'
           : deployedMatchSol > 1e-9 ? 'matched'
           : 'awaiting';
       const vn = names.get(vote);
@@ -244,7 +271,9 @@ export async function GET() {
         validatorName: vn?.name ?? null,
         validatorCity: vn?.city ?? null,
         depositSol: e.depositSol,
-        holdingsSol: r6(holdingsSol),
+        // "Held now" = the portion of THIS deposit still backed (recency-first),
+        // not the wallet's total holdings repeated on every row.
+        holdingsSol: r6((e.depositSol ?? 0) * f),
         plannedMatchSol: r6(plannedMatchSol),
         deployedMatchSol: r6(deployedMatchSol),
         validatorPoolStakeSol: r6(poolStakes.get(vote) ?? 0),
