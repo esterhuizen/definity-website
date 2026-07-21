@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { UiWalletAccount } from '@wallet-standard/react';
-import { useSelectedWalletAccount, useSignAndSendTransaction } from '@solana/react';
+import { useSelectedWalletAccount, useSignAndSendTransaction, useSignTransaction } from '@solana/react';
 import { getBase58Decoder } from '@solana/kit';
 import { Copy, Check } from 'lucide-react';
 import { SOLANA_CHAIN, DEFINSOL_MINT, DEFINSOL_DECIMALS, SOL_MINT, SOL_DECIMALS } from '@/lib/solana/constants';
 import { quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote } from '@/lib/solana/jupiter';
 import { errMsg } from '@/lib/solana/unstake';
 import { waitForConfirmation, getDefinsolBalance } from '@/lib/solana/rpc';
+import { submitSignedTx } from '@/lib/solana/deposit-squads';
 
 // FLOOR to 6 decimals, never round. toFixed()/r6() round half-up, so a
 // prefill from the balance API can land a few lamports ABOVE the true wallet
@@ -182,6 +183,110 @@ function UnstakeInline({
   );
 }
 
+// Multisig exit: build the same Jupiter definSOL→SOL swap with the vault as signer,
+// hand it to signTransaction — which a Squad turns into a vault-transaction PROPOSAL
+// — and submit the proposal-create tx. The swap executes when the Squad approves;
+// the route is quoted at proposal time, so a much-later execution may slip and need
+// re-proposing (definSOL↔SOL is a stable pair, so this is rare). Mounted only for a
+// sign-only wallet, so useSignTransaction never runs for a regular one.
+function MultisigUnstakeInline({ account, maxDefinsol }: { account: UiWalletAccount; maxDefinsol: number }) {
+  const signTransaction = useSignTransaction(account, SOLANA_CHAIN);
+  const [walletBal, setWalletBal] = useState<number | null>(null);
+  const usableMax = walletBal != null ? Math.min(maxDefinsol, walletBal) : maxDefinsol;
+  const [amount, setAmount] = useState(maxDefinsol > 0 ? floor6(maxDefinsol) : '');
+  const [quote, setQuote] = useState<JupiterQuote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [sub, setSub] = useState<{ k: 'idle' } | { k: 'signing' } | { k: 'proposed'; sig: string } | { k: 'error'; m: string }>({ k: 'idle' });
+  const amt = Number(amount);
+  const out = quote ? quoteOut(quote, SOL_DECIMALS) : null;
+
+  useEffect(() => {
+    let alive = true;
+    getDefinsolBalance(account.address).then((b) => {
+      if (!alive) return;
+      setWalletBal(b);
+      setAmount((cur) => (cur === '' || Number(cur) > b ? floor6(Math.min(maxDefinsol, b)) : cur));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [account.address, maxDefinsol]);
+
+  useEffect(() => {
+    if (!(amt > 0)) { setQuote(null); setQuoting(false); return; }
+    let alive = true;
+    setQuoting(true);
+    const t = setTimeout(() => {
+      quoteSwap(DEFINSOL_MINT, SOL_MINT, toBaseUnits(amount, DEFINSOL_DECIMALS))
+        .then((q) => { if (alive) { setQuote(q); setQuoting(false); } })
+        .catch(() => { if (alive) { setQuote(null); setQuoting(false); } });
+    }, 400);
+    return () => { alive = false; clearTimeout(t); };
+  }, [amount, amt]);
+
+  const can = amt > 0 && amt <= usableMax + 1e-9 && !!quote && sub.k !== 'signing';
+
+  async function submit() {
+    if (!quote) return;
+    try {
+      setSub({ k: 'signing' });
+      const bytes = await buildSwapTransaction(quote, account.address);
+      const { signedTransaction } = await signTransaction({ transaction: bytes });
+      const sig = await submitSignedTx(signedTransaction);
+      setSub({ k: 'proposed', sig });
+    } catch (e) {
+      console.error('[unstake-proposal] failed', e);
+      setSub({ k: 'error', m: errMsg(e) });
+    }
+  }
+
+  if (sub.k === 'proposed') {
+    return (
+      <div className="mt-3 rounded-lg border border-sunrise-300/40 bg-sunrise-300/10 px-3 py-3 text-xs">
+        <div className="font-medium text-ink">Unstake proposal created</div>
+        <p className="mt-1 leading-relaxed text-ink-muted">
+          Swapping {fmt(amt, 4)} definSOL → SOL is now a proposal in your Squad. Open Squads and{' '}
+          <strong className="text-ink">approve + execute it soon</strong> — the route is quoted now. SOL lands in your vault.
+        </p>
+        <a href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-ink-dim underline hover:text-ink">
+          View proposal transaction →
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-ring bg-bg-muted/40 p-3">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-xs text-ink-dim">Amount to unstake</span>
+        <button type="button" className="text-xs text-sunrise-500 hover:underline" onClick={() => setAmount(floor6(usableMax))}>
+          Max {fmt(usableMax, 4)}
+        </button>
+      </div>
+      <div className="flex items-center gap-2 rounded-lg border border-ring bg-bg px-3 py-2">
+        <input
+          inputMode="decimal"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+          placeholder="0.0"
+          className="w-full bg-transparent font-mono text-sm text-ink outline-none placeholder:text-ink-dim"
+        />
+        <span className="shrink-0 text-xs text-ink-dim">definSOL</span>
+      </div>
+      <div className="mt-1 min-h-4 text-xs text-ink-dim">
+        {quoting ? 'Fetching rate…' : out != null ? `≈ ${fmt(out, 4)} SOL · forms a Squads proposal` : 'Redeemed at the best market rate, into your vault, via a Squads proposal.'}
+      </div>
+      <button
+        type="button"
+        disabled={!can}
+        onClick={submit}
+        className="btn-primary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {sub.k === 'signing' ? 'Forming proposal…' : 'Create unstake proposal'}
+      </button>
+      {sub.k === 'error' ? <div className="mt-2 break-words text-xs text-fuchsia-600">Failed: {sub.m}</div> : null}
+    </div>
+  );
+}
+
 export function MyDirectStakeBalance() {
   const [selected] = useSelectedWalletAccount();
   // A multisig (SquadsX) can't sign-and-send, so the Jupiter-swap unstake path
@@ -303,10 +408,7 @@ export function MyDirectStakeBalance() {
 
                 {unstakingVote === p.vote && selected && p.unstakableDefinsol > DUST ? (
                   isMultisig ? (
-                    <div className="mt-3 rounded-lg border border-ring bg-bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
-                      To exit from a multisig, swap your definSOL → SOL directly from your vault (e.g. via Jupiter in Squads). It
-                      redeems at par and funds never leave the vault.
-                    </div>
+                    <MultisigUnstakeInline account={selected} maxDefinsol={p.unstakableDefinsol} />
                   ) : (
                     <UnstakeInline
                       account={selected}
