@@ -81,7 +81,7 @@ export default function EmbedPage() {
           <p style={{ marginTop: 14, color: 'var(--dim)', fontSize: 13, maxWidth: 720 }}>
             Set <code style={{ fontFamily: 'var(--mono)' }}>data-vote</code> to your validator’s vote account — it must be a Definity pool
             validator, and the widget stakes only to that one validator. <code style={{ fontFamily: 'var(--mono)' }}>data-ref</code> is
-            optional (request one to attribute deposits to your site).
+            optional (request one to attribute stakes to your site).
           </p>
           <p className="sec-lede" style={{ marginTop: 26 }}>
             The widget mounts into a shadow root, so your site’s CSS can’t touch it and it can’t touch yours. A React/npm package is

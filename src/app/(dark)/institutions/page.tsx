@@ -96,7 +96,7 @@ const CLI = [
   },
   {
     t: 'Open-source & reproducible',
-    d: 'Tagged releases, dependencies pinned to exact versions, lockfile committed — build from the tag for a byte-verifiable install. Deposits are permissionless and zero-fee on the pool.',
+    d: 'Tagged releases, dependencies pinned to exact versions, lockfile committed — build from the tag for a byte-verifiable install. Staking is permissionless and zero-fee on the pool.',
   },
 ];
 
@@ -286,7 +286,7 @@ export default async function InstitutionsPage() {
           <div className="chapter"><span className="n">06</span>&nbsp; Stake it yourself</div>
           <div className="sec-head">
             <h1 className="sec-h">Stake from <em>your own signer.</em></h1>
-            <p className="sec-lede">No browser wallet required. One open-source command builds the exact deposit — for a hot keypair, a Ledger, an air-gapped signer, or a Squads multisig — and you verify every account and the <code style={{ fontFamily: 'var(--mono)' }}>direct:</code> memo before anything is signed.</p>
+            <p className="sec-lede">No browser wallet required. One open-source command builds the exact staking transaction — for a hot keypair, a Ledger, an air-gapped signer, or a Squads multisig — and you verify every account and the <code style={{ fontFamily: 'var(--mono)' }}>direct:</code> memo before anything is signed.</p>
           </div>
           <div className="steps">
             {CLI.map((c, i) => (

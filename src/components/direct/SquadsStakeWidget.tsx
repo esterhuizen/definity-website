@@ -105,17 +105,17 @@ function Panel({ account }: { account: UiWalletAccount }) {
         <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-sunrise-300/15">
           <Check className="h-6 w-6 text-sunrise-300" aria-hidden="true" />
         </div>
-        <p className="font-display text-lg font-semibold text-ink">{isMultisig ? 'Proposal created' : 'Deposit sent'}</p>
+        <p className="font-display text-lg font-semibold text-ink">{isMultisig ? 'Proposal created' : 'Staked'}</p>
         <p className="text-sm text-ink-muted">
           {isMultisig ? (
             <>
-              Your deposit of {amt} SOL to {picked?.name || short(picked!.vote)} is now a proposal in your Squad. Open
+              Your stake of {amt} SOL to {picked?.name || short(picked!.vote)} is now a proposal in your Squad. Open
               Squads, then <strong className="text-ink">approve and execute</strong> it — funds and definSOL never leave
-              your vault. Your stake is directed once the deposit executes; matching accrues after a full epoch.
+              your vault. Your stake is directed once it executes; matching accrues after a full epoch.
             </>
           ) : (
             <>
-              Your {amt} SOL deposit to {picked?.name || short(picked!.vote)} is on-chain — definSOL is in your wallet.
+              Your {amt} SOL stake to {picked?.name || short(picked!.vote)} is on-chain — definSOL is in your wallet.
               Your stake is directed at the next optimiser cycle; matching accrues after a full epoch.
             </>
           )}
@@ -250,8 +250,8 @@ function Panel({ account }: { account: UiWalletAccount }) {
         </div>
         <p className="mt-2 text-xs text-ink-dim">
           {isMultisig
-            ? 'Deposits SOL from your vault and mints definSOL to it. This forms a Squads proposal — approve and execute it in your Squad to complete the deposit.'
-            : 'Deposits SOL from your wallet and mints definSOL to it, directed to your chosen validator.'}{' '}
+            ? 'Stakes SOL from your vault into definSOL. This forms a Squads proposal — approve and execute it in your Squad to complete the stake.'
+            : 'Stakes SOL from your wallet into definSOL, directed to your chosen validator.'}{' '}
           Up to 4.5× total directed (1× principal + up to 3.5× matching), capped at 20,000 SOL per validator.
         </p>
       </div>
@@ -265,7 +265,7 @@ function Panel({ account }: { account: UiWalletAccount }) {
       >
         {sub.kind === 'signing'
           ? isMultisig ? 'Forming proposal…' : 'Staking…'
-          : isMultisig ? 'Create deposit proposal' : 'Direct-stake'}
+          : isMultisig ? 'Create stake proposal' : 'Direct-stake'}
       </button>
 
       {sub.kind === 'error' ? (

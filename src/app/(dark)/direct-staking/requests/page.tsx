@@ -160,9 +160,9 @@ export default function DirectStakeRequestsPage() {
           </div>
           <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-white md:text-4xl">Direct-stake requests</h1>
           <p className="mt-2 max-w-2xl text-sm text-white/70">
-            On-chain <span className="font-mono">direct:</span> deposits into definSOL, with live holdings.{' '}
+            On-chain <span className="font-mono">direct:</span> stakes into definSOL, with live holdings.{' '}
             <span className="text-white">Planned</span> = the directed target: the staker&apos;s own 1× stake (directed next cycle) plus up to{' '}
-            {data?.retailMultiple ?? 3.5}× matching once a deposit has been held a full epoch (the trailing-minimum anti-gaming basis) — up
+            {data?.retailMultiple ?? 3.5}× matching once a stake has been held a full epoch (the trailing-minimum anti-gaming basis) — up
             to 4.5× total. <span className="text-white">Deployed</span> = pool stake actually placed on-chain.
           </p>
         </div>
@@ -211,7 +211,7 @@ export default function DirectStakeRequestsPage() {
       {/* Stats */}
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Requests" value={t ? String(t.requests) : '—'} sub={t ? `${t.wallets} wallet${t.wallets === 1 ? '' : 's'}` : undefined} />
-        <Stat label="Deposited" value={t ? `${fmt(t.depositedSol)} ◎` : '—'} sub={data ? `NAV ${data.nav}` : undefined} />
+        <Stat label="Staked" value={t ? `${fmt(t.depositedSol)} ◎` : '—'} sub={data ? `NAV ${data.nav}` : undefined} />
         <Stat label="Planned directed" value={t ? `${fmt(t.plannedSol)} ◎` : '—'} sub={planSub} />
         <Stat label="Sleeve used" value={t ? `${t.sleeveUsedPct}%` : '—'} sub={data ? `${fmt(t?.plannedSol ?? 0)} / ${fmt(data.sleeveCapSol, 0)} ◎` : undefined} />
       </div>
@@ -219,7 +219,7 @@ export default function DirectStakeRequestsPage() {
       {/* Filters */}
       <div className="surface mt-4 flex flex-wrap items-center gap-3 p-3">
         <div className="flex flex-1 flex-wrap items-center gap-2">
-          <SearchInput value={depQ} onChange={setDepQ} placeholder="Filter depositor…" />
+          <SearchInput value={depQ} onChange={setDepQ} placeholder="Filter staker…" />
           <SearchInput value={valQ} onChange={setValQ} placeholder="Filter validator (name, city, vote)…" />
         </div>
         <button
@@ -244,9 +244,9 @@ export default function DirectStakeRequestsPage() {
           <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-ring text-left text-[11px] uppercase tracking-[0.12em] text-ink-dim">
-                <th className="px-4 py-3 font-medium">Depositor</th>
+                <th className="px-4 py-3 font-medium">Staker</th>
                 <th className="px-4 py-3 font-medium">Validator</th>
-                <th className="px-4 py-3 text-right font-medium">Deposit</th>
+                <th className="px-4 py-3 text-right font-medium">Staked</th>
                 <th className="px-4 py-3 text-right font-medium">Held now</th>
                 <th className="px-4 py-3 text-right font-medium">Planned</th>
                 <th className="px-4 py-3 text-right font-medium">Deployed</th>
@@ -303,7 +303,7 @@ export default function DirectStakeRequestsPage() {
                       ? 'Loading…'
                       : (data.requests.length && filtering)
                         ? 'No requests match your filters.'
-                        : 'No direct-stake requests yet. New deposits appear here within ~5 min of the deposit.'}
+                        : 'No direct-stake requests yet. New stakes appear here within ~5 min of the stake.'}
                   </td>
                 </tr>
               )}
@@ -314,7 +314,7 @@ export default function DirectStakeRequestsPage() {
 
       <p className="mt-4 text-center text-[11px] text-white/40">
         Source of truth is on-chain. Planned = 1× principal + up to {data?.retailMultiple ?? 3.5}× matching (recency-backed, up to 4.5×).
-        Deployed = the optimiser&apos;s directed deployments. Withdrawn = a deposit superseded by a more-recent one or fully exited.
+        Deployed = the optimiser&apos;s directed deployments. Withdrawn = a stake superseded by a more-recent one or fully exited.
         Auto-refreshes every 15s.
       </p>
     </div>

@@ -25,7 +25,7 @@ const FULL_FAQ = [
   },
   {
     q: 'What are the fees?',
-    a: `Stake-pool fees are set on-chain and are visible on the pool account itself. They typically come in three forms: a small fee on staking rewards (the standard model: taken from yield, not principal), a small management fee, and an SOL-deposit fee for instant deposits. The exact current values are encoded on-chain at the pool address; check Solscan for the live numbers.`,
+    a: `Stake-pool fees are set on-chain and are visible on the pool account itself. They typically come in three forms: a small fee on staking rewards (the standard model: taken from yield, not principal), a small management fee, and a fee on instant staking (the SOL-in path). The exact current values are encoded on-chain at the pool address; check Solscan for the live numbers.`,
   },
   {
     q: 'How do I unstake?',

@@ -129,7 +129,7 @@ function StakePanel({ account, cfg }: { account: UiWalletAccount; cfg: EmbedConf
   if (sub.k === 'done') {
     return (
       <Done title={`Staked to ${label}`} sig={sub.sig} onReset={() => { setSub({ k: 'idle' }); setAmount(''); }} resetLabel="Stake again">
-        You deposited {amt} SOL and now hold liquid definSOL. Definity directs your stake onto {label} at the next cycle, then up to
+        You staked {amt} SOL and now hold liquid definSOL. Definity directs your stake onto {label} at the next cycle, then up to
         3.5× matching on top once it has been held a full epoch — up to 4.5× in total.
       </Done>
     );

@@ -29,15 +29,15 @@ export const HOMEPAGE_FAQ: QA[] = [
 export const DIRECT_STAKING_FAQ: QA[] = [
   {
     q: 'What is direct staking?',
-    a: `A second way to stake with Definity. Instead of letting the pool spread your stake across its curated set, you pick the validator you want to back. You deposit SOL, receive ${POOL.lstSymbol} (your liquid stake), and Definity directs additional pool stake onto your chosen validator — amplifying your delegation, with no separate token to manage.`,
+    a: `A second way to stake with Definity. Instead of letting the pool spread your stake across its curated set, you pick the validator you want to back. You stake SOL, receive ${POOL.lstSymbol} (your liquid stake), and Definity directs additional pool stake onto your chosen validator — amplifying your delegation, with no separate token to manage.`,
   },
   {
     q: 'How much does Definity match?',
-    a: `Two parts. Your own stake is directed onto your validator at the next optimiser cycle. On top of that, Definity directs up to 3.5× matching once your deposit has been held a full epoch — so your validator receives up to 4.5× in total (your 1× plus up to 3.5× matching), subject to pool liquidity and capped at 20,000 SOL per validator. If your validator is also in the Solana Foundation Delegation Program (SFDP), the Foundation matches again on top, beyond 4.5×.`,
+    a: `Two parts. Your own stake is directed onto your validator at the next optimiser cycle. On top of that, Definity directs up to 3.5× matching once your stake has been held a full epoch — so your validator receives up to 4.5× in total (your 1× plus up to 3.5× matching), subject to pool liquidity and capped at 20,000 SOL per validator. If your validator is also in the Solana Foundation Delegation Program (SFDP), the Foundation matches again on top, beyond 4.5×.`,
   },
   {
     q: 'When does the matching go live?',
-    a: `It follows the epoch cadence. Your stake first has to sit in place for a full epoch (~2 days) — an anti-gaming window. Once it clears that window it becomes eligible, and the next optimiser cycle directs the matching stake onto your validator; that directed stake then warms up over one more epoch before it is active and earning. So roughly: deposit in one epoch, eligible and directed the next, active the epoch after. Your balance page shows when each deposit becomes eligible.`,
+    a: `It follows the epoch cadence. Your stake first has to sit in place for a full epoch (~2 days) — an anti-gaming window. Once it clears that window it becomes eligible, and the next optimiser cycle directs the matching stake onto your validator; that directed stake then warms up over one more epoch before it is active and earning. So roughly: stake in one epoch, eligible and directed the next, active the epoch after. Your balance page shows when each stake becomes eligible.`,
   },
   {
     q: 'Do I keep my liquidity?',
@@ -49,11 +49,11 @@ export const DIRECT_STAKING_FAQ: QA[] = [
   },
   {
     q: 'What happens to my matching if I reduce my direct stake?',
-    a: `It follows your balance down. The match is based on the MINIMUM ${POOL.lstSymbol} you have held over the trailing epoch, so reducing your direct-staked balance immediately lowers your matching basis, and the next optimiser cycle scales the directed stake down to match. There is no grace period on the old, higher balance — you are matched on what you keep continuously in place, not a past peak. (One consequence of the same rule: even a brief dip lowers your basis until the trailing window passes it, about an epoch — and it is what stops anyone gaming the match by depositing then pulling out.)`,
+    a: `It follows your balance down. The match is based on the MINIMUM ${POOL.lstSymbol} you have held over the trailing epoch, so reducing your direct-staked balance immediately lowers your matching basis, and the next optimiser cycle scales the directed stake down to match. There is no grace period on the old, higher balance — you are matched on what you keep continuously in place, not a past peak. (One consequence of the same rule: even a brief dip lowers your basis until the trailing window passes it, about an epoch — and it is what stops anyone gaming the match by staking then pulling out.)`,
   },
   {
     q: `What if I move my ${POOL.lstSymbol} to another wallet?`,
-    a: `Your directed status stays with the wallet that made the deposit, not with the token. So if you move your ${POOL.lstSymbol} to a different wallet — even one you own — that position stops being directed, and both your 1× principal and any matching are pulled back at the next optimiser cycle, exactly as if you had unstaked. The tokens themselves keep earning the pool's yield wherever they sit; they just aren't directed anymore. To direct from the new wallet, make a fresh direct-stake deposit from it. (Intent can't ride a transferable token — it is the same anti-gaming rule that ties matching to a balance you hold continuously in one place.)`,
+    a: `Your directed status stays with the wallet that made the stake, not with the token. So if you move your ${POOL.lstSymbol} to a different wallet — even one you own — that position stops being directed, and both your 1× principal and any matching are pulled back at the next optimiser cycle, exactly as if you had unstaked. The tokens themselves keep earning the pool's yield wherever they sit; they just aren't directed anymore. To direct from the new wallet, make a fresh direct stake from it. (Intent can't ride a transferable token — it is the same anti-gaming rule that ties matching to a balance you hold continuously in one place.)`,
   },
   {
     q: 'Which validators can I direct-stake to?',
@@ -64,8 +64,8 @@ export const DIRECT_STAKING_FAQ: QA[] = [
     a: `Yes, two. Per validator, directed stake is capped at 20,000 SOL. Program-wide, Definity grants at most 60,000 SOL of matching stake in total — if aggregate matching demand ever exceeds that budget, every participant's matching scales down pro-rata (your own directed principal is never scaled; it always directs in full). The directed sleeve is ring-fenced: it is the only stake in the pool allowed to deviate from the decentralisation formula — everything else stays decentralisation-allocated.`,
   },
   {
-    q: 'Can someone game the matching by depositing then withdrawing?',
-    a: `No. The matching basis is the minimum stake you held continuously across a full epoch window, reconstructed from on-chain history rather than a one-off snapshot. A deposit that lands just before an allocation and leaves right after has a minimum of zero and earns nothing — you are only matched on what you genuinely keep in place. That is the reason for the ~1-epoch wait.`,
+    q: 'Can someone game the matching by staking then unstaking?',
+    a: `No. The matching basis is the minimum stake you held continuously across a full epoch window, reconstructed from on-chain history rather than a one-off snapshot. A stake that lands just before an allocation and leaves right after has a minimum of zero and earns nothing — you are only matched on what you genuinely keep in place. That is the reason for the ~1-epoch wait.`,
   },
   {
     q: 'Does direct staking hurt the pool’s decentralisation?',
@@ -73,7 +73,7 @@ export const DIRECT_STAKING_FAQ: QA[] = [
   },
   {
     q: 'Can I loop or leverage a direct-staked position?',
-    a: `Soon. A ${POOL.lstSymbol} leverage market is on the way — once it is live you will be able to loop a direct-staked position (deposit, borrow SOL, re-stake) to amplify your delegation further, routed to the best available rate.`,
+    a: `Soon. A ${POOL.lstSymbol} leverage market is on the way — once it is live you will be able to loop a direct-staked position (stake, borrow SOL, re-stake) to amplify your delegation further, routed to the best available rate.`,
   },
   {
     q: 'Who should consider direct staking?',

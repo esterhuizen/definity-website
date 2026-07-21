@@ -104,7 +104,7 @@ export function MultisigLiquidPanel({ account }: { account: UiWalletAccount }) {
         </div>
         <p className="mt-2 text-xs text-ink-dim">
           Liquid-stakes SOL from your vault into definSOL — no direction. Forms a Squads proposal; approve and execute it
-          in your Squad to complete the deposit. To direct your stake to a validator (and earn matching), use{' '}
+          in your Squad to complete the stake. To direct your stake to a validator (and earn matching), use{' '}
           <a className="font-medium text-sunrise-400 underline underline-offset-2" href="/direct-staking">Direct Staking</a>.
         </p>
       </div>
@@ -115,7 +115,7 @@ export function MultisigLiquidPanel({ account }: { account: UiWalletAccount }) {
         onClick={onSubmit}
         className="btn-primary mt-1 w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {sub.kind === 'signing' ? 'Forming proposal…' : 'Create deposit proposal'}
+        {sub.kind === 'signing' ? 'Forming proposal…' : 'Create stake proposal'}
       </button>
 
       {sub.kind === 'error' ? (

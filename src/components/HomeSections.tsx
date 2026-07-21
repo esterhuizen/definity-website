@@ -21,10 +21,10 @@ export async function HomeSections() {
           <div className="chapter"><span className="n">01</span>&nbsp; The loop</div>
           <div className="sec-head">
             <h1 className="sec-h">Compound the <em>compounding.</em></h1>
-            <p className="sec-lede">definSOL compounds your staking yield every epoch. Loop it — deposit, borrow SOL, re-stake — to compound it again, at leverage.</p>
+            <p className="sec-lede">definSOL compounds your staking yield every epoch. Loop it — stake, borrow SOL, re-stake — to compound it again, at leverage.</p>
           </div>
           <div className="steps">
-            <div className="step"><div className="si">01</div><div className="st">Stake</div><div className="sd">Deposit SOL, receive definSOL — a liquid token whose value compounds each epoch.</div></div>
+            <div className="step"><div className="si">01</div><div className="st">Stake</div><div className="sd">Stake SOL, receive definSOL — a liquid token whose value compounds each epoch.</div></div>
             <div className="step"><div className="si">02</div><div className="st">Borrow</div><div className="sd">Post definSOL as collateral and borrow SOL against it in a lending market.</div></div>
             <div className="step"><div className="si">03</div><div className="st">Re-stake</div><div className="sd">Stake the borrowed SOL back into definSOL and repeat — looping the yield.</div></div>
           </div>
