@@ -99,7 +99,9 @@ function toBase64(bytes: Uint8Array): string {
  */
 export async function buildVaultDepositWireTx(
   vaultAddress: string,
-  validatorVote: string,
+  // A validator vote → a directed deposit (adds the `direct:<vote>` memo). Pass
+  // null for a plain LIQUID deposit (no memo, no direction).
+  validatorVote: string | null,
   amountSol: number,
 ): Promise<Uint8Array> {
   if (!(amountSol > 0)) throw new Error('Amount must be greater than zero.');
@@ -119,7 +121,10 @@ export async function buildVaultDepositWireTx(
     tokenProgram: TOKEN_PROGRAM_ADDRESS,
   });
   const depositIx = depositSolInstruction(vault, ata, lamports);
-  const memoIx = memoInstruction(`direct:${validatorVote}`);
+  // Directed deposits carry a `direct:<vote>` memo; a liquid deposit has none.
+  const ixs = validatorVote
+    ? [createAtaIx, depositIx, memoInstruction(`direct:${validatorVote}`)]
+    : [createAtaIx, depositIx];
 
   const { value: blockhash } = await rpc.getLatestBlockhash().send();
 
@@ -127,7 +132,7 @@ export async function buildVaultDepositWireTx(
     createTransactionMessage({ version: 0 }),
     (m) => setTransactionMessageFeePayer(vault, m),
     (m) => setTransactionMessageLifetimeUsingBlockhash(blockhash, m),
-    (m) => appendTransactionMessageInstructions([createAtaIx, depositIx, memoIx], m),
+    (m) => appendTransactionMessageInstructions(ixs, m),
   );
 
   const tx = compileTransaction(message);

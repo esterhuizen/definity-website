@@ -8,7 +8,7 @@ import { getBase58Decoder } from '@solana/kit';
 import { ConnectWallet } from './ConnectWallet';
 import { RewardsPanel } from './RewardsPanel';
 import { getSolBalance, getDefinsolBalance, waitForConfirmation } from '@/lib/solana/rpc';
-import { LINKS } from '@/config/pool';
+import { MultisigLiquidPanel } from './MultisigLiquidPanel';
 import {
   quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote,
 } from '@/lib/solana/jupiter';
@@ -359,25 +359,12 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
   );
 }
 
-// A multisig (SquadsX) can't sign-and-send, so the liquid-stake DepositPanel
-// (which uses useSignAndSendTransaction at render + the sign-and-send RewardsPanel)
-// would throw. Route multisig users to Direct Staking (proposal flow) or the CLI.
-function MultisigNote() {
-  return (
-    <div className="space-y-3 py-2 text-center">
-      <p className="font-display text-lg font-semibold text-ink">Staking from a multisig?</p>
-      <p className="text-sm text-ink-muted">
-        Liquid staking here signs and sends in one step, which a Squad can&apos;t do. To stake from your multisig, use{' '}
-        <a className="font-medium text-sunrise-400 underline underline-offset-2" href="/direct-staking">Direct Staking</a>{' '}
-        — it forms a proposal your Squad approves and executes — or the{' '}
-        <a className="font-medium text-sunrise-400 underline underline-offset-2" href={LINKS.cli} target="_blank" rel="noreferrer">command-line tool</a>.
-      </p>
-    </div>
-  );
-}
-
 export function StakeWidget() {
   const [selected] = useSelectedWalletAccount();
+  // A multisig (SquadsX) can't sign-and-send, so the normal DepositPanel (which
+  // uses useSignAndSendTransaction at render + the sign-and-send RewardsPanel)
+  // would throw. Mount the liquid-PROPOSAL panel for it instead — regular wallets
+  // keep the direct deposit path.
   const isMultisig = selected ? !selected.features.includes('solana:signAndSendTransaction') : false;
   return (
     <div className="mx-auto w-full max-w-xl">
@@ -385,7 +372,7 @@ export function StakeWidget() {
         <div className="absolute inset-0 bg-dawn-gradient opacity-50" aria-hidden="true" />
         <div className="relative">
           {selected
-            ? (isMultisig ? <MultisigNote /> : <DepositPanel account={selected} />)
+            ? (isMultisig ? <MultisigLiquidPanel account={selected} /> : <DepositPanel account={selected} />)
             : <ConnectWallet />}
         </div>
       </div>
