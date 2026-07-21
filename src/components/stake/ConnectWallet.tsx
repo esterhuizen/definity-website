@@ -144,7 +144,7 @@ export function ConnectWallet() {
             rel="noreferrer"
             className="block text-center text-sm font-medium text-sunrise-400 hover:text-sunrise-300"
           >
-            Prefer not to connect? Stake from the CLI →
+            Prefer to stake via terminal/CLI? →
           </a>
         </>
       )}
