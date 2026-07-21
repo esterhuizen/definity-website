@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import { LINKS } from '@/config/pool';
 import { getGdiStanding, GDI_URLS } from '@/lib/gdi';
 import { StakeProviders } from '@/components/stake/StakeProviders';
-import { DirectStakeWidget } from '@/components/direct/DirectStakeWidget';
+// Converged wallet-aware direct-stake widget: a regular wallet (Phantom etc.)
+// deposits directly; a multisig (SquadsX) gets a proposal. Replaces the old
+// signAndSend-only DirectStakeWidget, which crashed the page on a multisig.
+import { SquadsStakeWidget as DirectStakeWidget } from '@/components/direct/SquadsStakeWidget';
 import { MyDirectStakeBalance } from '@/components/direct/MyDirectStakeBalance';
 import { FAQAccordion, DIRECT_STAKING_FAQ } from '@/components/FAQAccordion';
 

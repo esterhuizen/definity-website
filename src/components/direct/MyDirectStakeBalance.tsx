@@ -184,6 +184,10 @@ function UnstakeInline({
 
 export function MyDirectStakeBalance() {
   const [selected] = useSelectedWalletAccount();
+  // A multisig (SquadsX) can't sign-and-send, so the Jupiter-swap unstake path
+  // (UnstakeInline → useSignAndSendTransaction) would throw. Detect it and show a
+  // vault-exit note instead of mounting that hook.
+  const isMultisig = selected ? !selected.features.includes('solana:signAndSendTransaction') : false;
   const wallet = selected?.address;
   const [data, setData] = useState<Balance | null>(null);
   const [meta, setMeta] = useState<Map<string, Meta>>(new Map());
@@ -298,11 +302,18 @@ export function MyDirectStakeBalance() {
                 </div>
 
                 {unstakingVote === p.vote && selected && p.unstakableDefinsol > DUST ? (
-                  <UnstakeInline
-                    account={selected}
-                    maxDefinsol={p.unstakableDefinsol}
-                    onDone={() => { setUnstakingVote(null); load(); }}
-                  />
+                  isMultisig ? (
+                    <div className="mt-3 rounded-lg border border-ring bg-bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
+                      To exit from a multisig, swap your definSOL → SOL directly from your vault (e.g. via Jupiter in Squads). It
+                      redeems at par and funds never leave the vault.
+                    </div>
+                  ) : (
+                    <UnstakeInline
+                      account={selected}
+                      maxDefinsol={p.unstakableDefinsol}
+                      onDone={() => { setUnstakingVote(null); load(); }}
+                    />
+                  )
                 ) : null}
 
                 {/* Directed to this validator: the user's own 1× principal (next cycle)

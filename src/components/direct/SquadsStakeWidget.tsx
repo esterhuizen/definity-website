@@ -1,13 +1,21 @@
 'use client';
 
+// Squads / multisig direct-stake — ISOLATED staging WIP.
+//
+// Parallel to DirectStakeWidget, but for wallets that can only PROPOSE. Instead
+// of sign-and-send, we build the deposit, hand it to `solana:signTransaction`,
+// and submit what comes back. For a Squads multisig that submit creates a
+// PROPOSAL; the deposit executes later, after approval, and the 5-min scanner
+// attributes it to the vault. So success here means "proposal created", never
+// "deposited". The current DirectStakeWidget is untouched.
+
 import { useEffect, useMemo, useState } from 'react';
 import type { UiWalletAccount } from '@wallet-standard/react';
-import { useSelectedWalletAccount, useWalletAccountTransactionSendingSigner } from '@solana/react';
-import { Search, Check, X, ArrowUpRight } from 'lucide-react';
+import { useSelectedWalletAccount, useSignTransaction } from '@solana/react';
+import { Search, Check, X, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { ConnectWallet } from '../stake/ConnectWallet';
 import { SOLANA_CHAIN } from '@/lib/solana/constants';
-import { directDepositSol } from '@/lib/solana/deposit';
-import { waitForConfirmation } from '@/lib/solana/rpc';
+import { buildVaultDepositWireTx, submitSignedTx } from '@/lib/solana/deposit-squads';
 
 type V = {
   vote: string;
@@ -16,25 +24,29 @@ type V = {
   country: string | null;
   image: string | null;
   activatedStakeSol: number | null;
-  /** Approved to join (Notion-Active) but the on-chain seat lands at the next
-   *  optimiser cycle. Directable immediately — the maturity clock is
-   *  wallet-bound and starts at deposit, not at seat creation. */
   pending?: boolean;
 };
 
 type SubState =
   | { kind: 'idle' }
   | { kind: 'signing' }
-  | { kind: 'done'; signature: string }
+  | { kind: 'submitted'; signature: string }
   | { kind: 'error'; message: string };
 
 function short(a: string) {
   return `${a.slice(0, 4)}…${a.slice(-4)}`;
 }
 
-function RequestPanel({ account }: { account: UiWalletAccount }) {
-  const txSigner = useWalletAccountTransactionSendingSigner(account, SOLANA_CHAIN);
+function Panel({ account }: { account: UiWalletAccount }) {
+  const signTransaction = useSignTransaction(account, SOLANA_CHAIN);
   const [, setSelected] = useSelectedWalletAccount();
+
+  // A Squads/multisig wallet can only PROPOSE (it advertises signTransaction but
+  // NOT signAndSendTransaction): signing substitutes a Multisig Transaction, so
+  // submitting creates a proposal. A regular wallet (Phantom etc.) simply signs,
+  // and submitting EXECUTES the deposit immediately. Same submit path either way —
+  // only the copy differs, so this widget serves both.
+  const isMultisig = !account.features.includes('solana:signAndSendTransaction');
 
   const [vals, setVals] = useState<V[]>([]);
   const [query, setQuery] = useState('');
@@ -57,9 +69,9 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const base = [...vals].sort((a, b) => (b.activatedStakeSol ?? 0) - (a.activatedStakeSol ?? 0));
-    if (!q) return []; // search-only: no list until the user types
-    return base
+    if (!q) return [];
+    return [...vals]
+      .sort((a, b) => (b.activatedStakeSol ?? 0) - (a.activatedStakeSol ?? 0))
       .filter(
         (v) =>
           (v.name || '').toLowerCase().includes(q) ||
@@ -77,44 +89,36 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
     if (!picked || !(amt > 0)) return;
     try {
       setSub({ kind: 'signing' });
-      const signature = await directDepositSol(txSigner, account.address, picked.vote, amt);
-      setSub({ kind: 'done', signature });
-      // Notify the backend the moment it confirms so the requests dashboard
-      // reflects it within seconds (the 5-min cron is the backstop).
-      void (async () => {
-        try {
-          await waitForConfirmation(signature);
-          await fetch('/api/direct-stake/ingest', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ signature }),
-          });
-        } catch {
-          /* the cron will pick it up */
-        } finally {
-          // Tell the on-page balance card to reload — the deposit is confirmed
-          // and (best-effort) ingested, so its next fetch will include it.
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('definity:direct-staked'));
-          }
-        }
-      })();
+      // The connected account is the Squads vault PDA — funds source + definSOL owner.
+      const wire = await buildVaultDepositWireTx(account.address, picked.vote, amt);
+      const { signedTransaction } = await signTransaction({ transaction: wire });
+      const signature = await submitSignedTx(signedTransaction);
+      setSub({ kind: 'submitted', signature });
     } catch (e) {
       setSub({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
     }
   }
 
-  if (sub.kind === 'done') {
+  if (sub.kind === 'submitted') {
     return (
       <div className="space-y-3 text-center">
-        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-success/15">
-          <Check className="h-6 w-6 text-success" aria-hidden="true" />
+        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-sunrise-300/15">
+          <Check className="h-6 w-6 text-sunrise-300" aria-hidden="true" />
         </div>
-        <p className="font-display text-lg font-semibold text-ink">Directed to {picked?.name || short(picked!.vote)}</p>
+        <p className="font-display text-lg font-semibold text-ink">{isMultisig ? 'Proposal created' : 'Deposit sent'}</p>
         <p className="text-sm text-ink-muted">
-          You deposited {amt} SOL and now hold definSOL. Definity directs your stake onto your chosen validator at the
-          next optimiser cycle, then up to 3.5× matching on top once it has been held a full epoch — up to 4.5× in total
-          (capped 20,000 SOL/validator).
+          {isMultisig ? (
+            <>
+              Your deposit of {amt} SOL to {picked?.name || short(picked!.vote)} is now a proposal in your Squad. Open
+              Squads, then <strong className="text-ink">approve and execute</strong> it — funds and definSOL never leave
+              your vault. Your stake is directed once the deposit executes; matching accrues after a full epoch.
+            </>
+          ) : (
+            <>
+              Your {amt} SOL deposit to {picked?.name || short(picked!.vote)} is on-chain — definSOL is in your wallet.
+              Your stake is directed at the next optimiser cycle; matching accrues after a full epoch.
+            </>
+          )}
         </p>
         <a
           className="inline-flex items-center gap-1 text-sm text-ink underline underline-offset-2"
@@ -122,7 +126,7 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
           target="_blank"
           rel="noreferrer"
         >
-          View transaction <ArrowUpRight className="h-3 w-3" />
+          {isMultisig ? 'View proposal transaction' : 'View transaction'} <ArrowUpRight className="h-3 w-3" />
         </a>
         <div>
           <button
@@ -135,7 +139,7 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
               setQuery('');
             }}
           >
-            Stake to another
+            {isMultisig ? 'Propose another' : 'Stake another'}
           </button>
         </div>
       </div>
@@ -144,11 +148,12 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
 
   return (
     <div className="space-y-3">
-      {/* Connected wallet */}
+      {/* Connected vault */}
       <div className="flex items-center justify-between rounded-xl border border-ring bg-bg-muted/60 px-4 py-2.5 text-sm">
         <span className="flex items-center gap-2 text-ink-muted">
-          <span className="inline-block h-2 w-2 rounded-full bg-success" aria-hidden="true" />
+          <ShieldCheck className="h-4 w-4 text-sunrise-300" aria-hidden="true" />
           <span className="font-mono text-ink">{short(account.address)}</span>
+          <span className="text-ink-dim">{isMultisig ? 'vault' : 'wallet'}</span>
         </span>
         <button
           type="button"
@@ -172,16 +177,7 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
             )}
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium text-ink">{picked.name || short(picked.vote)}</span>
-              <span className="block truncate font-mono text-xs text-ink-dim">
-                {short(picked.vote)}
-                {picked.city ? ` · ${picked.city}` : ''}
-                {picked.country ? `, ${picked.country}` : ''}
-              </span>
-              {picked.pending ? (
-                <span className="block text-xs text-sunrise-300">
-                  Joining the pool — you can direct now; your stake matures from deposit and directs once the validator is added.
-                </span>
-              ) : null}
+              <span className="block truncate font-mono text-xs text-ink-dim">{short(picked.vote)}</span>
             </span>
             <button
               type="button"
@@ -222,24 +218,9 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
                         <span className="h-6 w-6 rounded-full bg-ring" aria-hidden="true" />
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-ink">
-                          {v.name || short(v.vote)}
-                          {v.pending ? (
-                            <span className="ml-2 rounded bg-sunrise-300/20 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sunrise-300">
-                              joining
-                            </span>
-                          ) : null}
-                        </span>
-                        <span className="block truncate font-mono text-[11px] text-ink-dim">
-                          {short(v.vote)}
-                          {v.city ? ` · ${v.city}` : ''}
-                        </span>
+                        <span className="block truncate text-sm text-ink">{v.name || short(v.vote)}</span>
+                        <span className="block truncate font-mono text-[11px] text-ink-dim">{short(v.vote)}</span>
                       </span>
-                      {v.activatedStakeSol != null ? (
-                        <span className="shrink-0 font-mono text-[11px] text-ink-dim">
-                          {Math.round(v.activatedStakeSol / 1000)}k◎
-                        </span>
-                      ) : null}
                     </button>
                   </li>
                 ))}
@@ -248,9 +229,7 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
                 ) : null}
               </ul>
             ) : (
-              <p className="mt-2 px-1 text-[11px] text-ink-dim">
-                Search Definity&apos;s vetted set by name, city, or vote pubkey. Pick one to direct your stake.
-              </p>
+              <p className="mt-2 px-1 text-[11px] text-ink-dim">Search Definity&apos;s vetted set. Pick one to direct your stake.</p>
             )}
           </>
         )}
@@ -270,9 +249,10 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
           <span className="shrink-0 font-medium text-ink-muted">SOL</span>
         </div>
         <p className="mt-2 text-xs text-ink-dim">
-          You deposit SOL and receive definSOL. Definity directs your stake onto your chosen validator at the next cycle,
-          then up to 3.5× matching on top — up to 4.5× in total, capped at 20,000 SOL per validator and 60,000 total.
-          Decentralisation is disclosed, never used to block your choice.
+          {isMultisig
+            ? 'Deposits SOL from your vault and mints definSOL to it. This forms a Squads proposal — approve and execute it in your Squad to complete the deposit.'
+            : 'Deposits SOL from your wallet and mints definSOL to it, directed to your chosen validator.'}{' '}
+          Up to 4.5× total directed (1× principal + up to 3.5× matching), capped at 20,000 SOL per validator.
         </p>
       </div>
 
@@ -283,7 +263,9 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
         onClick={onSubmit}
         className="btn-primary mt-1 w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {sub.kind === 'signing' ? 'Confirm in your wallet…' : 'Stake to validator'}
+        {sub.kind === 'signing'
+          ? isMultisig ? 'Forming proposal…' : 'Staking…'
+          : isMultisig ? 'Create deposit proposal' : 'Direct-stake'}
       </button>
 
       {sub.kind === 'error' ? (
@@ -293,13 +275,13 @@ function RequestPanel({ account }: { account: UiWalletAccount }) {
   );
 }
 
-export function DirectStakeWidget() {
+export function SquadsStakeWidget() {
   const [selected] = useSelectedWalletAccount();
   return (
     <div className="mx-auto w-full max-w-xl">
       <div className="surface relative overflow-hidden p-6 shadow-glow-sm md:p-8">
         <div className="absolute inset-0 bg-dawn-gradient opacity-50" aria-hidden="true" />
-        <div className="relative">{selected ? <RequestPanel account={selected} /> : <ConnectWallet />}</div>
+        <div className="relative">{selected ? <Panel account={selected} /> : <ConnectWallet />}</div>
       </div>
     </div>
   );
