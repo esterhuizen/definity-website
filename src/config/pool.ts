@@ -22,6 +22,10 @@ export const LINKS = {
   solscanPool: `https://solscan.io/account/${POOL.stakePoolAddress}`,
   solscanMint: `https://solscan.io/token/${POOL.lstMint}`,
 
+  // Staking CLI — public npm package + open-source repo (offline/hardware/multisig).
+  cli: 'https://www.npmjs.com/package/@definity/stake',
+  cliRepo: 'https://github.com/esterhuizen/definity-stake-cli',
+
   twitter: 'https://x.com/realdefinity',
   // Single Telegram link: the operator's personal handle. There is no
   // separate "DefinityFinance" channel; every "Telegram" reference on the

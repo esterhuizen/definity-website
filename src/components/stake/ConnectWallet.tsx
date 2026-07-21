@@ -6,6 +6,7 @@ import { useWallets, useConnect, useDisconnect } from '@wallet-standard/react';
 import { Wallet } from 'lucide-react';
 import { useSelectedWalletAccount } from '@solana/react';
 import { SOLANA_CHAIN } from '@/lib/solana/constants';
+import { LINKS } from '@/config/pool';
 
 function short(addr: string) {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
@@ -87,11 +88,21 @@ export function ConnectWallet() {
 
   if (wallets.length === 0) {
     return (
-      <div className="rounded-xl border border-ring bg-bg-muted/60 px-4 py-4 text-sm text-ink-muted">
-        No Solana wallet detected. Install{' '}
-        <a className="text-ink underline underline-offset-2" href="https://phantom.app" target="_blank" rel="noreferrer">Phantom</a>,{' '}
-        <a className="text-ink underline underline-offset-2" href="https://solflare.com" target="_blank" rel="noreferrer">Solflare</a>, or{' '}
-        <a className="text-ink underline underline-offset-2" href="https://backpack.app" target="_blank" rel="noreferrer">Backpack</a>.
+      <div className="space-y-2.5">
+        <div className="rounded-xl border border-ring bg-bg-muted/60 px-4 py-4 text-sm text-ink-muted">
+          No Solana wallet detected. Install{' '}
+          <a className="text-ink underline underline-offset-2" href="https://phantom.app" target="_blank" rel="noreferrer">Phantom</a>,{' '}
+          <a className="text-ink underline underline-offset-2" href="https://solflare.com" target="_blank" rel="noreferrer">Solflare</a>, or{' '}
+          <a className="text-ink underline underline-offset-2" href="https://backpack.app" target="_blank" rel="noreferrer">Backpack</a>.
+        </div>
+        <a
+          href={LINKS.cli}
+          target="_blank"
+          rel="noreferrer"
+          className="block text-center text-sm font-medium text-sunrise-400 hover:text-sunrise-300"
+        >
+          Treasury or no wallet? Stake from the CLI →
+        </a>
       </div>
     );
   }
@@ -119,13 +130,23 @@ export function ConnectWallet() {
           </button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="btn-primary w-full"
-        >
-          <Wallet className="h-4 w-4" aria-hidden="true" /> Connect wallet
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="btn-primary w-full"
+          >
+            <Wallet className="h-4 w-4" aria-hidden="true" /> Connect wallet
+          </button>
+          <a
+            href={LINKS.cli}
+            target="_blank"
+            rel="noreferrer"
+            className="block text-center text-sm font-medium text-sunrise-400 hover:text-sunrise-300"
+          >
+            Prefer not to connect? Stake from the CLI →
+          </a>
+        </>
       )}
     </div>
   );

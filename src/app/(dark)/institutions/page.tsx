@@ -85,6 +85,25 @@ const AUDIT = [
   },
 ];
 
+const CLI = [
+  {
+    t: 'Keypair, or no key at all',
+    d: 'Stake from a local keypair with one command — or pass --owner for build-only mode: it loads no private key and emits an unsigned transaction to sign on your Ledger, an air-gapped machine, or your Squads multisig.',
+  },
+  {
+    t: 'Verify before you sign',
+    d: 'The transaction is decoded — every account, the amount, the direct: memo — and simulated unsigned. You confirm exactly what will execute, then sign offline. What you verify is what lands on-chain.',
+  },
+  {
+    t: 'Open-source & reproducible',
+    d: 'Tagged releases, dependencies pinned to exact versions, lockfile committed — build from the tag for a byte-verifiable install. Deposits are permissionless and zero-fee on the pool.',
+  },
+];
+
+const CLI_SNIPPET = `# Build-only — no private key is loaded; sign offline
+npx @definity/stake direct-stake \\
+  --validator <vote> --amount 100 --owner <yourTreasuryPubkey>`;
+
 export default async function InstitutionsPage() {
   const g = await getGdiStanding();
   const rank = g ? g.rank : 2;
@@ -257,6 +276,33 @@ export default async function InstitutionsPage() {
                 <a href={r.href} target="_blank" rel="noreferrer">View on Solscan →</a>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* stake it yourself — the CLI */}
+      <section className="sec">
+        <div className="wrap">
+          <div className="chapter"><span className="n">06</span>&nbsp; Stake it yourself</div>
+          <div className="sec-head">
+            <h1 className="sec-h">Stake from <em>your own signer.</em></h1>
+            <p className="sec-lede">No browser wallet required. One open-source command builds the exact deposit — for a hot keypair, a Ledger, an air-gapped signer, or a Squads multisig — and you verify every account and the <code style={{ fontFamily: 'var(--mono)' }}>direct:</code> memo before anything is signed.</p>
+          </div>
+          <div className="steps">
+            {CLI.map((c, i) => (
+              <div className="step" key={c.t}>
+                <div className="si">{String(i + 1).padStart(2, '0')}</div>
+                <div className="st">{c.t}</div>
+                <div className="sd">{c.d}</div>
+              </div>
+            ))}
+          </div>
+          <pre style={{ margin: '28px 0 0', padding: '18px 20px', borderRadius: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.09)', overflowX: 'auto', fontFamily: 'var(--mono)', fontSize: 12.5, lineHeight: 1.75 }}>
+            <code>{CLI_SNIPPET}</code>
+          </pre>
+          <div className="cta" style={{ marginTop: '22px' }}>
+            <a className="btn btn-ghost" href={LINKS.cli} target="_blank" rel="noreferrer">View on npm →</a>
+            <a className="btn btn-ghost" href={LINKS.cliRepo} target="_blank" rel="noreferrer">Read the source →</a>
           </div>
         </div>
       </section>

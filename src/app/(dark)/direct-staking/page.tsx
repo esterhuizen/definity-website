@@ -158,6 +158,7 @@ export default async function DirectStakingPage() {
           <div className="cta" style={{ justifyContent: 'center' }}>
             <a className="btn btn-solid" href="#direct-stake">Direct-stake now →</a>
             <a className="btn btn-ghost" href="/direct-staking/embed">Run a validator? Embed it →</a>
+            <a className="btn btn-ghost" href={LINKS.cli} target="_blank" rel="noreferrer">Prefer a terminal? Stake from the CLI →</a>
           </div>
           <p style={{ marginTop: '14px', fontSize: '13px' }}>
             <a className="morelink" href={LINKS.telegram} target="_blank" rel="noreferrer">Operators &amp; partners — talk to us about a dedicated allocation →</a>
