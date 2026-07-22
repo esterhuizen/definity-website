@@ -159,12 +159,18 @@ async function atomicWriteJson(path, obj) {
 // from Stakewiz in one shot, filters to our pool's vote pubkeys, writes a
 // slim public/validators.json that the website reads at render time.
 // ---------------------------------------------------------------------------
-// Notion "Active in pool = Active" votes that are NOT yet in the on-chain
-// list: validators approved to join (e.g. fast-track acceptors) whose seat
-// lands at the next optimiser approval. Including them (flagged pending) lets
-// direct-stakers find them in the widget IMMEDIATELY — the deposit-maturity
-// clock is wallet-bound and starts ticking before the seat exists. Fail-soft:
-// no token / Notion error → empty list, the site simply shows pool members.
+// Notion votes to surface in the widget even before they hold an on-chain pool
+// seat, so direct-stakers can find them IMMEDIATELY (the deposit-maturity clock
+// is wallet-bound and starts ticking before the seat exists). TWO sources:
+//   (a) "Active in pool = Active" votes not yet in the on-chain list — approved
+//       validators whose seat lands at the next optimiser approval.
+//   (b) "Fast track (3k direct) = Whitelisted" votes — fast-track acceptors who
+//       are admitted and ALLOWED to stake but have NOT yet reached the 3k
+//       commitment, so their "Active in pool" is still inactive (James sets
+//       only Whitelisted on acceptance; the timer flips Active in pool at
+//       Active(staking)). They must be direct-stakeable so operators can build
+//       toward the 3k. Fail-soft: no token / Notion error → empty list, the
+//       site simply shows pool members.
 async function fetchPendingVotes(poolVotes) {
   const token = process.env.NOTION_TOKEN;
   if (!token) return [];
@@ -178,7 +184,15 @@ async function fetchPendingVotes(poolVotes) {
           'Notion-Version': '2025-09-03',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ page_size: 100, filter: { property: 'Active in pool', status: { equals: 'Active' } } }),
+        body: JSON.stringify({
+          page_size: 100,
+          filter: {
+            or: [
+              { property: 'Active in pool', status: { equals: 'Active' } },
+              { property: 'Fast track (3k direct)', select: { equals: 'Whitelisted' } },
+            ],
+          },
+        }),
         signal: AbortSignal.timeout(20_000),
       },
     );
