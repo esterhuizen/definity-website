@@ -25,7 +25,7 @@ const FULL_FAQ = [
   },
   {
     q: 'What are the fees?',
-    a: `Stake-pool fees are set on-chain and are visible on the pool account itself. They typically come in three forms: a small fee on staking rewards (the standard model: taken from yield, not principal), a small management fee, and a fee on instant staking (the SOL-in path). The exact current values are encoded on-chain at the pool address; check Solscan for the live numbers.`,
+    a: `Three, all set on-chain and visible on the pool account: a 7.5% fee on staking rewards (taken from yield, never from principal — it's already reflected in the net APY you earn), no fee to stake in (minting definSOL is permissionless and free), and a 0.1% fee on a direct pool withdrawal. Instant unstaking through Jupiter instead pays a small market fee (Jupiter's, not Definity's). Fees can change on-chain with an epoch's notice — verify the live values on Solscan at the pool address.`,
   },
   {
     q: 'How do I unstake?',
