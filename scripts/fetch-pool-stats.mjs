@@ -174,7 +174,12 @@ async function atomicWriteJson(path, obj) {
 async function fetchPendingVotes(poolVotes) {
   const token = process.env.NOTION_TOKEN;
   if (!token) return [];
-  try {
+  // TWO single-property queries, unioned — NOT one OR filter. Notion silently drops
+  // rows from complex (or/and) filters when not run via a saved view (observed live
+  // on the pool-membership sync — a run dropped seated validators), which here would
+  // transiently HIDE a stakeable validator from the widget. Single "equals"
+  // predicates mirror the saved-view semantics and are reliable.
+  const query = async (filter) => {
     const res = await fetch(
       'https://api.notion.com/v1/data_sources/c5bf5bae-c249-4503-a4d9-c6a4ca989834/query',
       {
@@ -184,30 +189,28 @@ async function fetchPendingVotes(poolVotes) {
           'Notion-Version': '2025-09-03',
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          page_size: 100,
-          filter: {
-            or: [
-              { property: 'Active in pool', status: { equals: 'Active' } },
-              { property: 'Fast track (3k direct)', select: { equals: 'Whitelisted' } },
-            ],
-          },
-        }),
+        body: JSON.stringify({ page_size: 100, filter }),
         signal: AbortSignal.timeout(20_000),
       },
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const d = await res.json();
+    return (await res.json()).results ?? [];
+  };
+  try {
+    const rows = [
+      ...(await query({ property: 'Active in pool', status: { equals: 'Active' } })),
+      ...(await query({ property: 'Fast track (3k direct)', select: { equals: 'Whitelisted' } })),
+    ];
     const B58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
     const inPool = new Set(poolVotes);
-    const pending = [];
-    for (const r of d.results ?? []) {
+    const pending = new Set(); // dedup: a vote matching both queries appears once
+    for (const r of rows) {
       const t = (r.properties?.['Operator / Vote ID']?.title ?? []).map((x) => x.plain_text).join('').trim();
       const v = (r.properties?.['Vote ID']?.rich_text ?? []).map((x) => x.plain_text).join('').trim();
       const vote = B58.test(t) ? t : B58.test(v) ? v : null;
-      if (vote && !inPool.has(vote)) pending.push(vote);
+      if (vote && !inPool.has(vote)) pending.add(vote);
     }
-    return pending;
+    return [...pending];
   } catch (e) {
     console.log(`WARN: pending-validator lookup failed (${e.message}) — pool members only`);
     return [];
