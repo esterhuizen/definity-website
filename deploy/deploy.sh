@@ -135,6 +135,16 @@ npm ci
 # Populate public/stats.json + public/validators.json before build so the
 # build-time prerender has live data (otherwise the homepage shows '—' for
 # the first 30 min until ISR fires).
+#
+# Seed last-good data forward from the live release FIRST: these files are
+# gitignored, so the git-archive release ships without them → stats:fetch starts
+# from prev={} and, when the build box's public RPC 429s on the heavy holdings
+# call, bakes a null sleeve %. Carrying the current file forward gives the
+# collector's lastGood() a recent prev to hold, so a build-time blip keeps the
+# real value instead of an em-dash. MUST run before stats:fetch. Cold box with no
+# current/ → the copies no-op and stats:fetch fills what it can.
+mkdir -p public
+for f in stats.json validators.json; do cp "$APP_ROOT/current/public/$f" "public/$f" 2>/dev/null || true; done
 npm run stats:fetch || echo "WARN: stats:fetch failed; build will use placeholders"
 npm run build
 
