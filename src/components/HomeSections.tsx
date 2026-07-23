@@ -7,10 +7,10 @@ import { ValidatorDots } from './ValidatorDots';
 // validator set (mission reframed as counterparty quality), an institutional CTA, footer.
 export async function HomeSections() {
   const gdi = await getGdiStanding();
-  const rank = gdi?.rank ?? 2;
-  const total = gdi?.total ?? 23;
-  const score = gdi?.gdi != null ? gdi.gdi.toFixed(2) : '4.42';
-  const baseline = gdi?.baseline != null ? gdi.baseline.toFixed(2) : '2.73';
+  // Degrade to null → em-dash on a GDI outage; never a fabricated rank on the page
+  // whose entire pitch is that the number is independently verifiable.
+  const score = gdi?.gdi != null ? gdi.gdi.toFixed(2) : null;
+  const baseline = gdi?.baseline != null ? gdi.baseline.toFixed(2) : null;
   const gdiHref = gdi ? GDI_URLS.pool : GDI_URLS.index;
 
   return (
@@ -43,8 +43,8 @@ export async function HomeSections() {
           <div className="creds">
             <a className="cred" href={gdiHref} target="_blank" rel="noreferrer">
               <div className="ck">Decentralisation · open GDI</div>
-              <div className="cv">#{rank} <small>of {total}</small></div>
-              <div className="cd">Ranked on the open Geographic Decentralisation Index — {score} vs a {baseline} network baseline.</div>
+              <div className="cv">{gdi ? <>#{gdi.rank} <small>of {gdi.total}</small></> : '—'}</div>
+              <div className="cd">Ranked on the open Geographic Decentralisation Index{score != null && baseline != null ? <> — {score} vs a {baseline} network baseline.</> : <>.</>}</div>
               <div className="clink">Reproduce our score →</div>
             </a>
             <a className="cred" href={LINKS.solscanPool} target="_blank" rel="noreferrer">
@@ -82,7 +82,7 @@ export async function HomeSections() {
             <img src="/world-map.svg" alt="" aria-hidden="true" />
             <ValidatorDots />
             <div className="ov">
-              <div className="ovk">#{rank} of {total}<span style={{ fontSize: '.4em', color: 'var(--teal)', fontFamily: 'var(--mono)' }}> · GDI</span></div>
+              <div className="ovk">{gdi ? <>#{gdi.rank} of {gdi.total}</> : '—'}<span style={{ fontSize: '.4em', color: 'var(--teal)', fontFamily: 'var(--mono)' }}> · GDI</span></div>
               <div className="ovs">Geographic decentralisation, scored from public on-chain data — and independently reproducible.</div>
             </div>
           </div>

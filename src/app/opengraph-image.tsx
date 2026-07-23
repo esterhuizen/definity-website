@@ -14,15 +14,17 @@ export const contentType = 'image/png';
 export default async function Image() {
   const fonts = await loadOgFonts();
 
-  let apyStr = '5.32';
-  let rank = 2;
-  let total = 23;
+  // Honest defaults: a social card must not bake a fabricated APY/rank on a >a-day source
+  // outage. getBaseApy/getGdiStanding read the collector's last-good stats.json, so a real
+  // number is used virtually always; the words are the truthful fallback, never a number.
+  let apyVal = 'On-chain';
+  let gdiVal = 'Verifiable';
   try {
     const [apy, gdi] = await Promise.all([getBaseApy(), getGdiStanding()]);
-    if (apy != null) apyStr = apy.toFixed(2);
-    if (gdi) { rank = gdi.rank; total = gdi.total; }
+    if (apy != null) apyVal = `${apy.toFixed(2)}%`;
+    if (gdi) gdiVal = `#${gdi.rank} / ${gdi.total}`;
   } catch {
-    /* fall back to defaults */
+    /* keep the honest word-fallbacks */
   }
 
   return new ImageResponse(
@@ -34,8 +36,8 @@ export default async function Image() {
         headlineSize={104}
         stats={
           <>
-            <OgStat label="Base APY" value={`${apyStr}%`} teal />
-            <OgStat label="GDI rank" value={`#${rank} / ${total}`} />
+            <OgStat label="Base APY" value={apyVal} teal />
+            <OgStat label="GDI rank" value={gdiVal} />
             <OgStat label="Custody" value="Non-custodial" />
           </>
         }

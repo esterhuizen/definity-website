@@ -1,16 +1,14 @@
-// definSOL base staking APY — the real Method-A figure (NAV growth per epoch, annualised
-// at the live cadence), sourced from the public incentives feed we already run hourly.
-// INTERIM: Phase 1 wires the existing live number; a later phase can compute it natively
-// in this app. Returns null on failure so the caller renders a sane fallback.
+// definSOL base staking APY — read from the precomputed stats.json the collector
+// writes hourly. The collector owns the incentive-feed fetch and keeps the last-good
+// value (age-bounded to ~a day) on a blip, so this reader never hits the feed at
+// render and the caller never fabricates a number. null if absent/expired → "—".
 export async function getBaseApy(): Promise<number | null> {
   try {
-    const res = await fetch('https://incentive.definity.finance/last24h.json', {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    const j = (await res.json()) as { latest?: { defsol_yield_pct?: number } };
-    const pct = j?.latest?.defsol_yield_pct;
-    return typeof pct === 'number' && pct > 3 && pct < 12 ? pct : null;
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const raw = await readFile(join(process.cwd(), 'public/stats.json'), 'utf8');
+    const v = (JSON.parse(raw) as { baseApyPct?: number | null })?.baseApyPct;
+    return typeof v === 'number' ? v : null;
   } catch {
     return null;
   }
@@ -59,6 +57,22 @@ export async function getDirectStakeUsedPct(): Promise<number | null> {
     const raw = await readFile(join(process.cwd(), 'public/stats.json'), 'utf8');
     const v = (JSON.parse(raw) as { directStakeUsedPct?: number })?.directStakeUsedPct;
     return typeof v === 'number' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+// Total SOL staked in the pool — the authoritative on-chain figure from stats.json
+// (age-guarded). Used for the hero's Total-staked tile so it matches StatsRow and can
+// never diverge to a GDI-sourced fabrication. null if absent/stale → the caller shows "—".
+export async function getTotalStakedSol(): Promise<number | null> {
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const raw = await readFile(join(process.cwd(), 'public/stats.json'), 'utf8');
+    const j = JSON.parse(raw) as { totalSol?: number; updatedAt?: string };
+    const ageOk = j?.updatedAt ? Date.now() - Date.parse(j.updatedAt) < 26 * 3600 * 1000 : false;
+    return typeof j?.totalSol === 'number' && ageOk ? j.totalSol : null;
   } catch {
     return null;
   }

@@ -106,10 +106,10 @@ npx @definity/stake direct-stake \\
 
 export default async function InstitutionsPage() {
   const g = await getGdiStanding();
-  const rank = g ? g.rank : 2;
-  const total = g ? g.total : 23;
-  const score = g?.gdi != null ? g.gdi.toFixed(2) : '4.42';
-  const baseline = g?.baseline != null ? g.baseline.toFixed(2) : '2.73';
+  // Honest-degrade: on a GDI outage the panel shows "—" rather than a fabricated
+  // #2/23 · 4.42 · 2.73 under a "live · gdindex.app" pulse (the allocator-facing page).
+  const score = g?.gdi != null ? g.gdi.toFixed(2) : null;
+  const baseline = g?.baseline != null ? g.baseline.toFixed(2) : null;
   const aboveBaseline = g && g.baseline ? Math.round(((g.gdi - g.baseline) / g.baseline) * 100) : null;
   const gdiHref = g ? GDI_URLS.pool : GDI_URLS.index;
   const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-6)}`;
@@ -140,11 +140,11 @@ export default async function InstitutionsPage() {
               <div className="phead"><span className="l"><span className="live" /> definSOL · GDI</span><span>live · gdindex.app</span></div>
               <div className="prow">
                 <div className="k">Decentralisation rank</div>
-                <div className="big"><div className="v">#{rank}<span className="pct"> / {total}</span></div></div>
+                <div className="big"><div className="v">{g ? <>#{g.rank}<span className="pct"> / {g.total}</span></> : '—'}</div></div>
               </div>
               <div className="twocol">
-                <div><div className="k">GDI score</div><div className="v">{score}</div><div className="sub">geo · operator · ASN</div></div>
-                <div><div className="k">Network baseline</div><div className="v">{baseline}</div><div className="sub">all-pools average</div></div>
+                <div><div className="k">GDI score</div><div className="v">{score ?? '—'}</div><div className="sub">geo · operator · ASN</div></div>
+                <div><div className="k">Network baseline</div><div className="v">{baseline ?? '—'}</div><div className="sub">all-pools average</div></div>
               </div>
               <a className="soon" href={gdiHref} target="_blank" rel="noreferrer">
                 <span>{aboveBaseline != null ? `${aboveBaseline}% above baseline` : 'Above network baseline'}</span>
@@ -156,7 +156,7 @@ export default async function InstitutionsPage() {
           <div className="metrics" style={{ marginTop: '50px' }}>
             <div className="metric"><div className="k">Custody</div><div className="v">Yours</div><div className="s">SPL token in your own stack</div></div>
             <div className="metric"><div className="k">Yield at size</div><div className="v">Base +</div><div className="s">negotiated rev-share on top</div></div>
-            <div className="metric"><div className="k">Decentralisation</div><div className="v">#{rank}<small>/{total}</small></div><div className="s">independently verified</div></div>
+            <div className="metric"><div className="k">Decentralisation</div><div className="v">{g ? <>#{g.rank}<small>/{g.total}</small></> : '—'}</div><div className="s">independently verified</div></div>
             <div className="metric"><div className="k">Audit trail</div><div className="v">Ledger</div><div className="s">every move, with its reason</div></div>
           </div>
         </div>

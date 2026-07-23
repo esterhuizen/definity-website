@@ -22,9 +22,11 @@ const GDI_BASE = 'https://gdindex.app';
 // otherwise top a rarity-weighted index (a 1-validator pool can post the
 // highest GDI while being maximally centralised). Must stay in lock-step with
 // SGDI's DEFAULT_TVL_FLOOR_SOL (sgdi/src/lib/leaderboard-config.ts); if they
-// drift, the rank shown here will disagree with the public leaderboard it links
-// to — which would break the whole "independently verifiable" claim.
-const GDI_MIN_TVL_SOL = 100_000;
+// drift, the rank will disagree with the public leaderboard it links to — which
+// would break the whole "independently verifiable" claim. The filter now runs in
+// the collector (scripts/fetch-pool-stats.mjs); this value is the canonical copy it
+// must mirror. Exported so it stays a referenced, documented constant.
+export const GDI_MIN_TVL_SOL = 100_000;
 
 export const GDI_URLS = {
   index: GDI_BASE,
@@ -33,34 +35,17 @@ export const GDI_URLS = {
   repo: 'https://github.com/esterhuizen/sgdi',
 };
 
+// Read from the precomputed stats.json the collector writes hourly: it owns the
+// gdindex fetch + the TVL-floor filter and keeps the last-good standing (age-bounded)
+// on an outage, so this reader never hits gdindex at render and the callers never
+// fabricate a rank. null if absent/expired → callers show "—".
 export async function getGdiStanding(): Promise<GdiStanding | null> {
   try {
-    const res = await fetch(`${GDI_BASE}/gdi/leaderboard-latest.json`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    const lb = (await res.json()) as {
-      epoch?: number;
-      network_baseline?: { gdi?: number };
-      pools?: { pool_address: string; gdi: number | null; total_stake_sol?: number | null }[];
-    };
-    // Apply the SAME TVL floor gdindex.app uses for its default leaderboard so
-    // the rank reported here matches the public index the claim is verified
-    // against. Without it, a sub-scale pool (e.g. a single validator in a rare
-    // datacentre) tops the raw-GDI sort and pushes definSOL down a place.
-    const pools = (lb.pools ?? [])
-      .filter((p) => p.gdi != null && (p.total_stake_sol ?? 0) >= GDI_MIN_TVL_SOL)
-      .sort((a, b) => (b.gdi ?? 0) - (a.gdi ?? 0));
-    const idx = pools.findIndex((p) => p.pool_address === POOL.stakePoolAddress);
-    if (idx < 0) return null;
-    return {
-      rank: idx + 1,
-      total: pools.length,
-      gdi: pools[idx].gdi as number,
-      baseline: lb.network_baseline?.gdi ?? null,
-      epoch: lb.epoch ?? null,
-      stakeSol: pools[idx].total_stake_sol ?? null,
-    };
+    const { readFile } = await import('node:fs/promises');
+    const { join } = await import('node:path');
+    const raw = await readFile(join(process.cwd(), 'public/stats.json'), 'utf8');
+    const g = (JSON.parse(raw) as { gdi?: GdiStanding | null })?.gdi;
+    return g && typeof g.rank === 'number' && typeof g.total === 'number' && typeof g.gdi === 'number' ? g : null;
   } catch {
     return null;
   }

@@ -6,8 +6,8 @@ import { LogoMark } from './LogoMark';
 // verifiable links. Self-contained (fetches its own GDI standing) so any dark page can use it.
 export async function FooterD() {
   const gdi = await getGdiStanding();
-  const rank = gdi?.rank ?? 2;
-  const total = gdi?.total ?? 23;
+  // Omit the numbers on a GDI outage rather than baking in a stale rank; the links
+  // still resolve (to the pool page, or the index when we can't confirm the rank).
   const gdiHref = gdi ? GDI_URLS.pool : GDI_URLS.index;
 
   return (
@@ -25,7 +25,7 @@ export async function FooterD() {
             <a href="/stake">Stake widget</a>
           </div>
           <div className="fcol"><h4>Verify</h4>
-            <a href={gdiHref} target="_blank" rel="noreferrer">GDI rank #{rank}/{total}</a>
+            <a href={gdiHref} target="_blank" rel="noreferrer">GDI rank{gdi ? ` #${gdi.rank}/${gdi.total}` : ''}</a>
             <a href={LINKS.solscanPool} target="_blank" rel="noreferrer">Pool on Solscan</a>
             <a href={LINKS.solscanMint} target="_blank" rel="noreferrer">Mint on Solscan</a>
             <a href="/addresses">Addresses</a>
@@ -38,7 +38,7 @@ export async function FooterD() {
         </div>
         <div className="fbot">
           <span>© Definity · {POOL.lstName}</span>
-          <span>Non-custodial · Audited Sanctum program · Ranked #{rank} of {total} on the GDI</span>
+          <span>Non-custodial · Audited Sanctum program{gdi ? ` · Ranked #${gdi.rank} of ${gdi.total} on the GDI` : ' · Ranked on the GDI'}</span>
         </div>
         <p className="ftag" style={{ marginTop: 10, opacity: 0.75 }}>
           Definity is a Solana staking protocol. Not affiliated with Definity Financial Corporation.

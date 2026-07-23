@@ -12,12 +12,14 @@ export const contentType = 'image/png';
 export default async function Image() {
   const fonts = await loadOgFonts();
 
-  let apyStr = '5.32';
+  // Honest fallback: show a truthful word, never a fabricated APY, if the feed is >a day
+  // cold (getBaseApy reads the collector's last-good stats.json, so a real % almost always).
+  let apyVal = 'On-chain';
   try {
     const apy = await getBaseApy();
-    if (apy != null) apyStr = apy.toFixed(2);
+    if (apy != null) apyVal = `${apy.toFixed(2)}%`;
   } catch {
-    /* fall back to default */
+    /* keep the honest word-fallback */
   }
 
   return new ImageResponse(
@@ -29,7 +31,7 @@ export default async function Image() {
         headlineSize={92}
         stats={
           <>
-            <OgStat label="Base APY" value={`${apyStr}%`} teal />
+            <OgStat label="Base APY" value={apyVal} teal />
             <OgStat label="Custody" value="Non-custodial" />
             <OgStat label="Exit" value="Anytime" />
           </>

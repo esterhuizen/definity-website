@@ -52,8 +52,8 @@ const GUARDS = [
 
 export default async function DirectStakingPage() {
   const g = await getGdiStanding();
-  const rank = g ? g.rank : 2;
-  const total = g ? g.total : 23;
+  // Degrade the rank out of the copy on a GDI outage rather than baking in a stale
+  // "#2/23" on the page whose whole point is the number is independently verifiable.
   const gdiHref = g ? GDI_URLS.pool : GDI_URLS.index;
 
   return (
@@ -124,7 +124,7 @@ export default async function DirectStakingPage() {
           <div className="chapter"><span className="n">03</span>&nbsp; Guarded by the GDI</div>
           <div className="sec-head">
             <h1 className="sec-h">Directed, <em>never concentrated.</em></h1>
-            <p className="sec-lede">Choosing your own validators usually means concentration. Definity’s direct staking is hard-capped and measured against the open decentralisation index, so it amplifies your stake without gutting the mandate that earns the pool its #{rank} ranking.</p>
+            <p className="sec-lede">Choosing your own validators usually means concentration. Definity’s direct staking is hard-capped and measured against the open decentralisation index, so it amplifies your stake without gutting the mandate that earns the pool its{g ? ` #${g.rank}` : ''} ranking.</p>
           </div>
           <div className="creds">
             {GUARDS.map((c) => (
@@ -135,7 +135,7 @@ export default async function DirectStakingPage() {
               </div>
             ))}
           </div>
-          <a className="morelink" href={gdiHref} target="_blank" rel="noreferrer">See Definity’s live decentralisation score — #{rank} of {total} →</a>
+          <a className="morelink" href={gdiHref} target="_blank" rel="noreferrer">See Definity’s live decentralisation score{g ? ` — #${g.rank} of ${g.total}` : ''} →</a>
         </div>
       </section>
 

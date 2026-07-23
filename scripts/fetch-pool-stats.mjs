@@ -20,14 +20,26 @@ import { writeFile, readFile, mkdir, rename } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { computeDirectedPlanned, SLEEVE_CAP_SOL } from '../src/lib/directed-planned.mjs';
 
-const RPC = process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
+// RPC: prefer the conventional SOLANA_RPC_URL (what the site + the box already set
+// to Helius); SOLANA_RPC kept only as a legacy fallback name; the public RPC is a
+// last resort — it rate-limits the per-wallet token lookups the capacity % needs.
+const RPC = process.env.SOLANA_RPC_URL || process.env.SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 const POOL_ADDRESS = 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const LST_MINT     = 'DEF1NXSZ8Th9n28hYBayrFtx9bj1EwwTiy3mhHEB9oyA';
 const OUT_PATH        = resolve(process.argv[2] || 'public/stats.json');
 const VALIDATORS_PATH = resolve(process.argv[3] || 'public/validators.json');
-// Directed-stake registry (same files the /requests API reads).
-const DIRECTED_REGISTRY_PATH = process.env.DIRECTED_REGISTRY_PATH || '/var/lib/definity-dsp/directed-stake-registry.jsonl';
-const DIRECTED_WEBHOOK_PATH  = process.env.DIRECTED_WEBHOOK_PATH  || '/var/lib/definity-staging/directed-stake-webhook.jsonl';
+// Directed-stake registry + webhook (same files the /requests API reads). Paths
+// derive from DSP_DIRECTED_DIR (the dir the pool-stats env sets) so a relocation is
+// honoured; a per-file env var still overrides. Was: a stale hardcoded *staging*
+// webhook path baked into this prod script.
+const DSP_DIR = process.env.DSP_DIRECTED_DIR || '/var/lib/definity-dsp';
+const DIRECTED_REGISTRY_PATH = process.env.DIRECTED_REGISTRY_PATH || `${DSP_DIR}/directed-stake-registry.jsonl`;
+const DIRECTED_WEBHOOK_PATH  = process.env.DIRECTED_WEBHOOK_PATH  || `${DSP_DIR}/directed-stake-webhook.jsonl`;
+// Cross-service hero sources the collector now owns + keeps last-good for, so the
+// site never fabricates a number when a feed blips (see last-good in main()).
+const INCENTIVE_FEED  = process.env.INCENTIVE_FEED_URL  || 'https://incentive.definity.finance/last24h.json';
+const GDI_LEADERBOARD = process.env.GDI_LEADERBOARD_URL || 'https://gdindex.app/gdi/leaderboard-latest.json';
+const GDI_MIN_TVL_SOL = 100_000; // MUST match src/lib/gdi.ts GDI_MIN_TVL_SOL + SGDI's floor
 
 const STAKEWIZ_URL = process.env.STAKEWIZ_URL || 'https://api.stakewiz.com/validators';
 // Refresh validator geo at most once per day. Validators rarely change data
@@ -331,14 +343,20 @@ async function maybeRefreshValidators(votePubkeys, pendingVotes = []) {
 // returns null on any error (registry missing, RPC hiccup), leaving the field out.
 async function computeDirectStakeUsedPct(nav) {
   try {
-    const readJsonl = async (p) => {
-      try {
-        return (await readFile(p, 'utf8')).split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
-      } catch {
-        return [];
-      }
-    };
-    const [wh, cr] = await Promise.all([readJsonl(DIRECTED_WEBHOOK_PATH), readJsonl(DIRECTED_REGISTRY_PATH)]);
+    const readJsonl = (txt) => txt.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
+    // The registry is REQUIRED: if it's unreadable (path drift / permissions) return
+    // null so the caller keeps the last-good %, instead of silently computing 0% and
+    // rendering a confident, wrong "0% capacity used". An empty-but-readable registry
+    // legitimately yields 0 below. The webhook is optional (may be absent) → soft read.
+    let cr;
+    try {
+      cr = readJsonl(await readFile(DIRECTED_REGISTRY_PATH, 'utf8'));
+    } catch (e) {
+      console.error(`direct-stake usage: registry unreadable (${DIRECTED_REGISTRY_PATH}): ${e.message}`);
+      return null;
+    }
+    let wh = [];
+    try { wh = readJsonl(await readFile(DIRECTED_WEBHOOK_PATH, 'utf8')); } catch { /* optional */ }
     const seen = new Set();
     const deposits = [];
     for (const e of [...wh, ...cr]) {
@@ -368,6 +386,48 @@ async function computeDirectStakeUsedPct(nav) {
   }
 }
 
+// Base staking APY from the incentives feed (defsol_yield_pct, validated band). The
+// collector owns the fetch so the value can be kept last-good in stats.json; the site
+// then reads the file instead of hitting the feed at render + fabricating on failure.
+async function fetchBaseApy() {
+  try {
+    const res = await fetch(INCENTIVE_FEED, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    const pct = j?.latest?.defsol_yield_pct;
+    return typeof pct === 'number' && pct > 3 && pct < 12 ? pct : null;
+  } catch (e) {
+    console.error(`base APY fetch skipped: ${e.message}`);
+    return null;
+  }
+}
+
+// definSOL's GDI standing from gdindex.app, applying the SAME TVL floor the public
+// leaderboard uses so the rank matches (the "independently verifiable" claim).
+async function fetchGdiStanding() {
+  try {
+    const res = await fetch(GDI_LEADERBOARD, { signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const lb = await res.json();
+    const pools = (lb.pools ?? [])
+      .filter((p) => p.gdi != null && (p.total_stake_sol ?? 0) >= GDI_MIN_TVL_SOL)
+      .sort((a, b) => (b.gdi ?? 0) - (a.gdi ?? 0));
+    const idx = pools.findIndex((p) => p.pool_address === POOL_ADDRESS);
+    if (idx < 0) return null;
+    return {
+      rank: idx + 1,
+      total: pools.length,
+      gdi: pools[idx].gdi,
+      baseline: lb.network_baseline?.gdi ?? null,
+      epoch: lb.epoch ?? null,
+      stakeSol: pools[idx].total_stake_sol ?? null,
+    };
+  } catch (e) {
+    console.error(`GDI standing fetch skipped: ${e.message}`);
+    return null;
+  }
+}
+
 async function main() {
   const t0 = Date.now();
 
@@ -383,8 +443,30 @@ async function main() {
   const definsolSupply = Number(lstSupply.rawAmount) / 10 ** lstSupply.decimals;
   const exchangeRate = definsolSupply > 0 ? totalSol / definsolSupply : null;
 
-  // Precompute the directed-stake capacity used so the landing card reads a file.
-  const directStakeUsedPct = await computeDirectStakeUsedPct(exchangeRate);
+  // Cross-service hero values (capacity %, base APY, GDI standing) are computed HERE
+  // and KEPT LAST-GOOD in stats.json: on a source blip we re-use the previous value
+  // (age-bounded to ~a day) rather than dropping to null — so the site reads a real,
+  // recent number instead of fabricating one or blanking. On-chain figures (totalSol,
+  // rate) are always fresh; if the pool account is unreachable the whole run throws
+  // and the prior (served) stats.json stays intact.
+  let prev = {};
+  try { prev = JSON.parse(await readFile(OUT_PATH, 'utf8')); } catch { /* first run / missing */ }
+  const nowIso = new Date().toISOString();
+  const LAST_GOOD_MAX_AGE_MS = 26 * 3600 * 1000; // keep a stale value at most ~a day
+  const lastGood = (fresh, prevVal, prevAt) =>
+    fresh != null ? { v: fresh, at: nowIso }
+    : (prevVal != null && prevAt && Date.now() - Date.parse(prevAt) < LAST_GOOD_MAX_AGE_MS)
+        ? { v: prevVal, at: prevAt }
+        : { v: null, at: null };
+
+  const [freshDsPct, freshApy, freshGdi] = await Promise.all([
+    computeDirectStakeUsedPct(exchangeRate),
+    fetchBaseApy(),
+    fetchGdiStanding(),
+  ]);
+  const dsLG  = lastGood(freshDsPct, prev.directStakeUsedPct, prev.directStakeUsedAsOf);
+  const apyLG = lastGood(freshApy,   prev.baseApyPct,          prev.baseApyAsOf);
+  const gdiLG = lastGood(freshGdi,   prev.gdi,                 prev.gdiAsOf);
 
   const stats = {
     validators: vlist.count,
@@ -394,11 +476,18 @@ async function main() {
     definsolSupply,
     definsolRawSupply: lstSupply.rawAmount.toString(),
     exchangeRate,
-    directStakeUsedPct,
-    updatedAt: new Date().toISOString(),
+    directStakeUsedPct: dsLG.v,
+    directStakeUsedAsOf: dsLG.at,
+    baseApyPct: apyLG.v,
+    baseApyAsOf: apyLG.at,
+    gdi: gdiLG.v,
+    gdiAsOf: gdiLG.at,
+    updatedAt: nowIso,
     rpc: new URL(RPC).host,
     fetchedInMs: Date.now() - t0,
   };
+  const stale = [dsLG, apyLG, gdiLG].some((x) => x.v != null && x.at !== nowIso);
+  if (stale) console.log(`  ⚠ kept last-good for: ${[['capacity', dsLG], ['apy', apyLG], ['gdi', gdiLG]].filter(([, x]) => x.v != null && x.at !== nowIso).map(([n]) => n).join(', ')}`);
 
   await atomicWriteJson(OUT_PATH, stats);
 
