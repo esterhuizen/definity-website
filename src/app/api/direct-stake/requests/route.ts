@@ -156,13 +156,18 @@ export async function GET() {
   // Merge the webhook registry (instant) + the cron registry (backstop),
   // deduped by signature. Webhook first so an instant entry wins; the cron later
   // records the same signature and is deduped away.
+  // Per-line tolerant: a single torn/malformed JSONL line must not blank the
+  // whole registry (all-or-nothing parsing would zero every position for good).
   const readEntries = async (path: string): Promise<RegistryEntry[]> => {
+    const out: RegistryEntry[] = [];
     try {
       const txt = await readFile(path, 'utf8');
-      return txt.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l) as RegistryEntry);
-    } catch {
-      return [];
-    }
+      for (const l of txt.split('\n')) {
+        if (!l.trim()) continue;
+        try { out.push(JSON.parse(l) as RegistryEntry); } catch { /* skip torn line */ }
+      }
+    } catch { /* missing file → empty */ }
+    return out;
   };
   const [webhookEntries, cronEntries] = await Promise.all([readEntries(WEBHOOK_PATH), readEntries(REGISTRY_PATH)]);
   const seen = new Set<string>();

@@ -124,11 +124,20 @@ export async function GET(req: Request) {
   const wallet = new URL(req.url).searchParams.get('wallet');
   if (!wallet) return NextResponse.json({ error: 'wallet required' }, { status: 400 });
 
+  // Per-line tolerant: one torn/malformed JSONL line (mid-append crash) must not
+  // blank the whole registry — all-or-nothing parsing would permanently zero
+  // every position, since a bad line stays in the file even after the scanner
+  // re-appends a good copy.
   const readEntries = async (path: string): Promise<RegistryEntry[]> => {
+    const out: RegistryEntry[] = [];
     try {
       const txt = await readFile(path, 'utf8');
-      return txt.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l) as RegistryEntry);
-    } catch { return []; }
+      for (const l of txt.split('\n')) {
+        if (!l.trim()) continue;
+        try { out.push(JSON.parse(l) as RegistryEntry); } catch { /* skip torn line */ }
+      }
+    } catch { /* missing file → empty */ }
+    return out;
   };
   const [webhookEntries, cronEntries] = await Promise.all([readEntries(WEBHOOK_PATH), readEntries(REGISTRY_PATH)]);
   // Dedup by signature; when a deposit appears in both logs, prefer the copy that
