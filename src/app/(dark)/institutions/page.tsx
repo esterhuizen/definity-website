@@ -87,8 +87,8 @@ const AUDIT = [
 
 const CLI = [
   {
-    t: 'Keypair, or no key at all',
-    d: 'Stake from a local keypair with one command — or pass --owner for build-only mode: it loads no private key and emits an unsigned transaction to sign on your Ledger, an air-gapped machine, or your Squads multisig.',
+    t: 'Keypair, Trezor, or no key at all',
+    d: 'Stake from a local keypair with one command. Pass --trezor and a Trezor signs in-CLI — the key never leaves the device. Or pass --owner for build-only mode: no private key is loaded and an unsigned transaction is emitted to sign on your Ledger, an air-gapped machine, or your Squads multisig.',
   },
   {
     t: 'Verify before you sign',
@@ -96,7 +96,7 @@ const CLI = [
   },
   {
     t: 'Open-source & reproducible',
-    d: 'Tagged releases, dependencies pinned to exact versions, lockfile committed — build from the tag for a byte-verifiable install. Staking is permissionless and zero-fee on the pool.',
+    d: 'Tagged releases, dependencies pinned to exact versions, and the shrinkwrap ships with the package — installs resolve the exact tree we tested. Build from the tag for a byte-verifiable install. Staking is permissionless and zero-fee on the pool.',
   },
 ];
 
@@ -286,7 +286,7 @@ export default async function InstitutionsPage() {
           <div className="chapter"><span className="n">06</span>&nbsp; Stake it yourself</div>
           <div className="sec-head">
             <h1 className="sec-h">Stake from <em>your own signer.</em></h1>
-            <p className="sec-lede">No browser wallet required. One open-source command builds the exact staking transaction — for a hot keypair, a Ledger, an air-gapped signer, or a Squads multisig — and you verify every account and the <code style={{ fontFamily: 'var(--mono)' }}>direct:</code> memo before anything is signed.</p>
+            <p className="sec-lede">No browser wallet required. One open-source command builds the exact staking transaction — for a hot keypair, a Trezor (signs in-CLI), a Ledger, an air-gapped signer, or a Squads multisig — and you verify every account and the <code style={{ fontFamily: 'var(--mono)' }}>direct:</code> memo before anything is signed.</p>
           </div>
           <div className="steps">
             {CLI.map((c, i) => (
