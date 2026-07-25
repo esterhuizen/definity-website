@@ -44,7 +44,7 @@ export async function StatsRow() {
     },
     {
       value: stats ? `${solFmt.format(stats.totalSol)} SOL` : '- SOL',
-      label: 'Total staked',
+      label: 'TVL',
       live: true,
     },
   ];

@@ -69,7 +69,7 @@ export async function HeroD() {
               <div className="twocol trio">
                 <a href="/direct-staking"><div className="k">Direct staking <span className="go">↗</span></div><div className="v" style={{ color: 'var(--teal)' }}>{dsBig}</div><div className="sub">{dsSub}</div></a>
                 <a href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank <span className="go">↗</span></div><div className="v">{rankBig}</div><div className="sub">open · reproducible</div></a>
-                <div><div className="k">Total staked</div><div className="v">{tvlBig}</div><div className="sub">vetted, decentralised set</div></div>
+                <div><div className="k">TVL</div><div className="v">{tvlBig}</div><div className="sub">vetted, decentralised set</div></div>
               </div>
               <a className="soon" href={gdiHref} target="_blank" rel="noreferrer">
                 <span>Loop competitiveness</span><span><b>Coming soon</b> · definSOL · bSOL · INF →</span>
@@ -80,7 +80,7 @@ export async function HeroD() {
           <section className="metrics reveal d5">
             <div className="metric"><div className="k">definSOL base APY</div><div className="v">{apySmall}</div><div className="s">on-chain · net of fees</div></div>
             <a className="metric metric-link" href="/direct-staking"><div className="k">Direct staking <span className="go">↗</span></div><div className="v">{dsSmall}</div><div className="s">{dsSubLong}</div></a>
-            <div className="metric"><div className="k">Total value staked</div><div className="v">{tvlSmall}</div><div className="s">across the pool</div></div>
+            <div className="metric"><div className="k">TVL</div><div className="v">{tvlSmall}</div><div className="s">total value locked in the pool</div></div>
             <a className="metric metric-link" href={gdiHref} target="_blank" rel="noreferrer"><div className="k">GDI rank · decentralisation</div><div className="v">{rankSmall}</div><div className="s">{gdiSub} <span className="go">↗</span></div></a>
           </section>
           <div className="trust reveal d5">
