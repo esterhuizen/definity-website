@@ -308,3 +308,11 @@
 .dfy .stakeui .btn-primary{background:var(--teal);color:#06112e;font-weight:700;box-shadow:none}
 .dfy .stakeui .btn-primary:hover{filter:brightness(1.06)}
 .dfy .stakeui .btn-primary:disabled{opacity:.45}
+
+/* ── inline hardware-wallet disclosure (direct-staking hero) ─ */
+.dfy .hwnote{margin:10px auto 0;max-width:620px;text-align:center}
+.dfy .hwnote summary{list-style:none;cursor:pointer;display:inline-block;font-size:13px;color:var(--dim);border-bottom:1px dashed var(--faint);transition:color .2s}
+.dfy .hwnote summary::-webkit-details-marker{display:none}
+.dfy .hwnote summary:hover{color:var(--teal);border-color:var(--teal)}
+.dfy .hwnote[open] summary{color:var(--teal);border-color:transparent}
+.dfy .hwnote p{margin:10px auto 0;max-width:520px;font-size:13px;line-height:1.7;color:var(--dim)}

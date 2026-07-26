@@ -72,6 +72,13 @@ export default async function DirectStakingPage() {
             <p style={{ margin: '14px auto 0' }}>
               <a className="morelink" href="#faq">New to direct staking? Read the FAQ →</a>
             </p>
+            <details className="hwnote">
+              <summary>Using a hardware wallet?</summary>
+              <p>
+                Ledger works through Phantom, Solflare or Backpack — enable blind signing in the Ledger
+                Solana app first. Trezor connects through Backpack.
+              </p>
+            </details>
           </header>
           <div className="stakeui" style={{ marginTop: '40px' }}>
             <StakeProviders>
