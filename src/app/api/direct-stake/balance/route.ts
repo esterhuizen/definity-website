@@ -272,6 +272,11 @@ export async function GET(req: Request) {
         .map(([hours, matchSol]) => ({ hours, matchSol: r6(matchSol) }))
         .sort((a, b) => a.hours - b.hours),
       matchedDeployedSol: r6(dep ? dep.deployed * share : 0),
+      // False when the validator LEFT the directed set (removed/ineligible → the
+      // optimiser drop-out relabel zeroed its deployment to target=0). An undeployed
+      // match on a departed validator is non-actionable — match-watch skips OVERDUE
+      // for these. A not-yet-deployed validator (no dep, or target>0) stays active.
+      directedActive: !(dep && dep.target === 0),
       deposits: p.deposits,
       allMatured: p.allMatured,
     };
