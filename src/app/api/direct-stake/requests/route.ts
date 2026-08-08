@@ -25,7 +25,9 @@ const DEFINSOL_MINT = 'DEF1NXSZ8Th9n28hYBayrFtx9bj1EwwTiy3mhHEB9oyA';
 
 const RETAIL_MULTIPLE = 3.5;
 const PER_VALIDATOR_CAP_SOL = 20_000;
-const SLEEVE_CAP_SOL = 60_000;
+// Combined directed-sleeve display cap. 60k→100k 2026-08-08, tracking the
+// optimiser's MAX_MATCHING_TOTAL raise (78k matching + ~22k principal ≈ 100k).
+const SLEEVE_CAP_SOL = 100_000;
 
 type RegistryEntry = {
   signature: string;

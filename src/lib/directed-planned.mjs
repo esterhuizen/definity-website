@@ -7,7 +7,7 @@
 // deposit earns 1× principal, plus retailMultiple× matching once it has matured
 // (slot < windowStartSlot). Holdings-capped.
 
-export const SLEEVE_CAP_SOL = 60_000; // program-wide directed-matching budget
+export const SLEEVE_CAP_SOL = 100_000; // program-wide directed-matching budget (display cap; 60k→100k 2026-08-08, matches api/direct-stake/requests SLEEVE_CAP_SOL after the Aug-5 9.7k directed principal). totalSol below = principal + matured matching (uncapped), so the full-sleeve 100k basis keeps the public hero card < 100%.
 
 /**
  * @param {{ signature: string, depositor: string, depositSol: number, slot: number }[]} deposits
