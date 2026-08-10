@@ -86,6 +86,7 @@ export async function HomeSections() {
               <div className="ovs">Geographic decentralisation, scored from public on-chain data — and independently reproducible.</div>
             </div>
           </div>
+          <a className="morelink" href="/validators/lookup">See any validator&apos;s pool position →</a>
         </div>
       </section>
 

@@ -26,6 +26,7 @@ export async function FooterD() {
           </div>
           <div className="fcol"><h4>Verify</h4>
             <a href={gdiHref} target="_blank" rel="noreferrer">GDI rank{gdi ? ` #${gdi.rank}/${gdi.total}` : ''}</a>
+            <a href="/validators/lookup">Validator lookup</a>
             <a href={LINKS.solscanPool} target="_blank" rel="noreferrer">Pool on Solscan</a>
             <a href={LINKS.solscanMint} target="_blank" rel="noreferrer">Mint on Solscan</a>
             <a href="/addresses">Addresses</a>

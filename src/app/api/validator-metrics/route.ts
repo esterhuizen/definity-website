@@ -1,0 +1,70 @@
+import { NextResponse } from 'next/server';
+import { readFile } from 'node:fs/promises';
+
+// Joins TWO authoritative sources so the page shows exactly what each system says:
+//  · the optimiser's per-validator snapshot (validator-targets.json) — the ONLY source
+//    of the directed/curve stake split and the sigmoid CURVE TARGET it steers toward;
+//  · the published GDI pool file (the same data gdindex.app shows) — the authoritative
+//    G score (gradient `g`), per-dimension rarities, geo, and the pool's GDI + rank.
+// The optimiser's gradient equals the published `g` by construction; we surface the
+// published value so it matches gdindex to the digit.
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+const TARGETS_PATH = process.env.VALIDATOR_TARGETS_PATH ?? '/var/lib/definity-dsp/validator-targets.json';
+const POOL = process.env.DEFINSOL_POOL ?? 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
+const GDI_POOL_PATH =
+  process.env.GDI_POOL_PATH ?? `/var/lib/sgdi/published/pools/${POOL}/latest.json`;
+
+type OptRow = { vote: string; name: string | null; directedSol: number; curveSol: number; totalSol: number; targetCurveSol: number; gradient: number };
+type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxStakeSol: number; curveK: number }; validators: OptRow[] };
+type GdiVal = { pubkey: string; g: number; r_country: number; r_city: number; r_asn: number; country: string | null; city: string | null; asn: string | null; asn_name: string | null; wiz_score: number | null; stake_sol: number };
+type GdiPool = { score: { gdi: number; epoch: number }; rank: number; total_ranked: number; validators: GdiVal[] };
+
+export async function GET() {
+  let opt: OptSnap;
+  try {
+    opt = JSON.parse(await readFile(TARGETS_PATH, 'utf8')) as OptSnap;
+  } catch {
+    return NextResponse.json({ unavailable: true, validators: [] }, { headers: { 'cache-control': 'no-store' } });
+  }
+
+  let gdiByVote = new Map<string, GdiVal>();
+  let pool: { gdi: number | null; rank: number | null; totalRanked: number | null } = { gdi: null, rank: null, totalRanked: null };
+  try {
+    const g = JSON.parse(await readFile(GDI_POOL_PATH, 'utf8')) as GdiPool;
+    gdiByVote = new Map(g.validators.map((v) => [v.pubkey, v]));
+    pool = { gdi: g.score?.gdi ?? null, rank: g.rank ?? null, totalRanked: g.total_ranked ?? null };
+  } catch {
+    /* published GDI unavailable — fall back to the optimiser's own gradient below */
+  }
+
+  const validators = opt.validators.map((o) => {
+    const g = gdiByVote.get(o.vote);
+    return {
+      vote: o.vote,
+      name: o.name,
+      // Geo + G + rarities from the published GDI (authoritative, gdindex-matching); the
+      // optimiser gradient is the fallback so a brand-new validator still shows a G.
+      country: g?.country ?? null,
+      city: g?.city ?? null,
+      asn: g?.asn ?? null,
+      asnName: g?.asn_name ?? null,
+      g: g?.g ?? o.gradient,
+      rCountry: g?.r_country ?? null,
+      rCity: g?.r_city ?? null,
+      rAsn: g?.r_asn ?? null,
+      wizScore: g?.wiz_score ?? null,
+      // Stake split + curve target: optimiser only.
+      totalSol: o.totalSol,
+      directedSol: o.directedSol,
+      curveSol: o.curveSol,
+      targetCurveSol: o.targetCurveSol,
+    };
+  }).sort((a, b) => b.totalSol - a.totalSol);
+
+  return NextResponse.json(
+    { epoch: opt.epoch, ts: opt.ts, params: opt.params, pool, validators },
+    { headers: { 'cache-control': 'no-store' } },
+  );
+}

@@ -135,11 +135,18 @@ export default function ValidatorsPage() {
           <div className="note-box">
             <h3>Operators: check where you stand</h3>
             <p>
-              Look up your validator on the public{' '}
+              Look up your validator in the Definity pool — how much stake you currently hold
+              (directed and curve), your G score, and the curve target the optimiser is steering
+              toward. The exact numbers the optimiser uses, updated each epoch.
+            </p>
+            <TrackedLink className="morelink" href="/validators/lookup" event="cta_validator_lookup">
+              Look up your pool position →
+            </TrackedLink>
+            <p style={{ marginTop: '14px' }}>
+              For your network-wide composite rarity, rank, and which dimensions (country, city, ASN)
+              to change, the public{' '}
               <TrackedLink href="https://gdindex.app/" event="outbound_gdindex" external>GDI index</TrackedLink>{' '}
-              to see your current composite rarity, network rank, and which dimensions (country,
-              city, ASN) are dragging your score up or down. If you’re in a saturated bucket and want
-              a path back into the active set, the index shows you which dimensions to change.
+              has the full breakdown:
             </p>
             <TrackedLink className="morelink" href="https://gdindex.app/validator" event="outbound_gdindex_validator" external>
               Open the GDI validator lookup →
