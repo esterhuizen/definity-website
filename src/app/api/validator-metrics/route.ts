@@ -16,8 +16,11 @@ const POOL = process.env.DEFINSOL_POOL ?? 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4
 const GDI_POOL_PATH =
   process.env.GDI_POOL_PATH ?? `/var/lib/sgdi/published/pools/${POOL}/latest.json`;
 
-type OptRow = { vote: string; name: string | null; directedSol: number; curveSol: number; totalSol: number; targetCurveSol: number; gradient: number };
-type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxStakeSol: number; curveK: number }; validators: OptRow[] };
+type OptRow = { vote: string; name: string | null; directedSol: number; curveSol: number; totalSol: number; targetCurveSol: number; gradient: number;
+  // Model B (two-book): curve-book gradient + curve target (independent of directed) + total target.
+  // Optional — absent in telemetry that predates model B, in which case the page falls back.
+  gradientCurve?: number; curveTargetSol?: number; totalTargetSol?: number };
+type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number }; validators: OptRow[] };
 type GdiVal = { pubkey: string; g: number; r_country: number; r_city: number; r_asn: number; country: string | null; city: string | null; asn: string | null; asn_name: string | null; wiz_score: number | null; stake_sol: number };
 type GdiPool = { score: { gdi: number; epoch: number }; rank: number; total_ranked: number; validators: GdiVal[] };
 
@@ -59,7 +62,10 @@ export async function GET() {
       totalSol: o.totalSol,
       directedSol: o.directedSol,
       curveSol: o.curveSol,
-      targetCurveSol: o.targetCurveSol,
+      targetCurveSol: o.targetCurveSol,                 // legacy total sigmoid (compat)
+      gradientCurve: o.gradientCurve ?? null,           // model B: curve-book gradient
+      curveTargetSol: o.curveTargetSol ?? null,         // model B: curve target (independent of directed)
+      totalTargetSol: o.totalTargetSol ?? null,         // model B: directed + curve target
     };
   }).sort((a, b) => b.totalSol - a.totalSol);
 
