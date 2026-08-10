@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'node:fs/promises';
+import { getGdiStanding } from '@/lib/gdi';
 
 // Joins TWO authoritative sources so the page shows exactly what each system says:
 //  · the optimiser's per-validator snapshot (validator-targets.json) — the ONLY source
@@ -32,12 +33,23 @@ export async function GET() {
     return NextResponse.json({ unavailable: true, validators: [] }, { headers: { 'cache-control': 'no-store' } });
   }
 
+  // Pool-level GDI + rank come from the TVL-floor-FILTERED standing (public/stats.json,
+  // written hourly by the collector with the ≥100k-SOL pool floor) — this is what the
+  // footer shows and what the public gdindex leaderboard ranks. The pool file's own
+  // rank/total_ranked is UNFILTERED (counts sub-scale pools), so it disagrees with what
+  // a validator sees on gdindex; we use it only as a fallback for the per-validator join.
+  const standing = await getGdiStanding();
   let gdiByVote = new Map<string, GdiVal>();
-  let pool: { gdi: number | null; rank: number | null; totalRanked: number | null } = { gdi: null, rank: null, totalRanked: null };
+  let pool: { gdi: number | null; rank: number | null; totalRanked: number | null } =
+    { gdi: standing?.gdi ?? null, rank: standing?.rank ?? null, totalRanked: standing?.total ?? null };
   try {
     const g = JSON.parse(await readFile(GDI_POOL_PATH, 'utf8')) as GdiPool;
     gdiByVote = new Map(g.validators.map((v) => [v.pubkey, v]));
-    pool = { gdi: g.score?.gdi ?? null, rank: g.rank ?? null, totalRanked: g.total_ranked ?? null };
+    pool = {
+      gdi: standing?.gdi ?? g.score?.gdi ?? null,
+      rank: standing?.rank ?? g.rank ?? null,
+      totalRanked: standing?.total ?? g.total_ranked ?? null,
+    };
   } catch {
     /* published GDI unavailable — fall back to the optimiser's own gradient below */
   }

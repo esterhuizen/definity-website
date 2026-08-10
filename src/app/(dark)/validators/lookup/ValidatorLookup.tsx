@@ -34,6 +34,9 @@ type Data = {
 const fmt = (n: number, d = 0) => n.toLocaleString('en-US', { maximumFractionDigits: d });
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
 const geo = (v: Row) => [v.city, v.country, v.asn].filter(Boolean).join(' · ') || '—';
+// Open GDI (gdindex.app) — the pool's page (where each validator lands) and a validator's own profile.
+const GDI_POOL_URL = 'https://gdindex.app/pools/Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
+const gdiValidatorUrl = (vote: string) => `https://gdindex.app/validator/${vote}`;
 function ago(ts: string | null): string {
   if (!ts) return '—';
   const s = Math.max(0, Math.floor((Date.now() - new Date(ts).getTime()) / 1000));
@@ -136,7 +139,10 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
           <div>
             <div style={{ ...SERIF, fontWeight: 600, fontSize: 30, lineHeight: 1 }}>{v.name || short(v.vote)}</div>
             <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--dim)' }}>{geo(v)}{v.asnName ? ` · ${v.asnName}` : ''}</div>
-            <a href={`https://solscan.io/account/${v.vote}`} target="_blank" rel="noreferrer" style={{ marginTop: 8, display: 'inline-block', fontSize: 11, color: 'var(--faint)', textDecoration: 'none', letterSpacing: '.04em' }}>{short(v.vote)} ↗</a>
+            <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'baseline' }}>
+              <a href={`https://solscan.io/account/${v.vote}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--faint)', textDecoration: 'none', letterSpacing: '.04em' }}>{short(v.vote)} ↗</a>
+              <a href={gdiValidatorUrl(v.vote)} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--teal)', textDecoration: 'none', letterSpacing: '.04em' }}>GDI profile — your rank &amp; rarity ↗</a>
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={LABEL}>G score</div>
@@ -327,10 +333,15 @@ export default function ValidatorLookup() {
         </div>
 
         {pool?.gdi != null ? (
-          <div className="loopnote" style={{ marginTop: 30 }}>
-            definSOL pool · GDI <b>{pool.gdi.toFixed(2)}</b>{pool.rank != null ? <> · rank <b>#{pool.rank}</b> of {pool.totalRanked}</> : null}
-            {data?.epoch != null ? <> · epoch {data.epoch}</> : null} · {data?.validators.length ?? 0} validators
-          </div>
+          <>
+            <div className="loopnote" style={{ marginTop: 30 }}>
+              definSOL pool · GDI <b>{pool.gdi.toFixed(2)}</b>{pool.rank != null ? <> · rank <b>#{pool.rank}</b> of {pool.totalRanked} pools</> : null}
+              {data?.epoch != null ? <> · epoch {data.epoch}</> : null} · {data?.validators.length ?? 0} validators
+            </div>
+            <a className="morelink" href={GDI_POOL_URL} target="_blank" rel="noreferrer" style={{ marginTop: 12 }}>
+              See the definSOL pool on gdindex — the open leaderboard, where each validator lands →
+            </a>
+          </>
         ) : null}
 
         {!selected ? (
