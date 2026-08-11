@@ -56,6 +56,15 @@ export async function GET() {
 
   const validators = opt.validators.map((o) => {
     const g = gdiByVote.get(o.vote);
+    // CURRENT stake is read LIVE from the SGDI pool file (`stake_sol`, ≈30-min fresh)
+    // instead of the optimiser's per-epoch snapshot, which is only rewritten when a plan
+    // is generated (≥36h-gated) and so shows a stale, pre-execution number between epochs.
+    // Directed comes from the optimiser telemetry (changes only per-epoch), capped at the
+    // fresh total so the split stays consistent (directed ≤ total, curve = total − directed).
+    // Falls back to the optimiser total when the SGDI figure is absent (brand-new validator).
+    const freshTotal = g?.stake_sol ?? o.totalSol;
+    const directed = Math.min(o.directedSol, freshTotal);
+    const curve = Math.max(0, freshTotal - directed);
     return {
       vote: o.vote,
       name: o.name,
@@ -70,10 +79,10 @@ export async function GET() {
       rCity: g?.r_city ?? null,
       rAsn: g?.r_asn ?? null,
       wizScore: g?.wiz_score ?? null,
-      // Stake split + curve target: optimiser only.
-      totalSol: o.totalSol,
-      directedSol: o.directedSol,
-      curveSol: o.curveSol,
+      // Current stake split: SGDI-fresh total + optimiser directed (see above).
+      totalSol: freshTotal,
+      directedSol: directed,
+      curveSol: curve,
       targetCurveSol: o.targetCurveSol,                 // legacy total sigmoid (compat)
       gradientCurve: o.gradientCurve ?? null,           // model B: curve-book gradient
       curveTargetSol: o.curveTargetSol ?? null,         // model B: curve target (independent of directed)
