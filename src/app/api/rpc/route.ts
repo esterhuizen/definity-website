@@ -42,14 +42,24 @@ const ALLOWED_METHODS = new Set([
 const CORS_HEADERS: Record<string, string> = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'POST, OPTIONS',
-  'access-control-allow-headers': 'content-type',
+  // @solana/web3.js adds a `solana-client` header to every RPC request; a
+  // cross-origin embed (partner-hosted widget) preflights the POST, so this MUST
+  // be allowlisted or the browser blocks it ("Request header field solana-client
+  // is not allowed by Access-Control-Allow-Headers").
+  'access-control-allow-headers': 'content-type, solana-client',
   'access-control-max-age': '86400',
 };
 
 // Embeds on validator domains call this proxy cross-origin (read-only methods
-// only — the wallet submits the signed tx itself), so allow CORS.
-export function OPTIONS(): Response {
-  return new Response(null, { status: 204, headers: CORS_HEADERS });
+// only — the wallet submits the signed tx itself), so allow CORS. Echo back
+// whatever headers the preflight requests (falling back to the static allowlist)
+// so a future web3.js header addition can't silently re-break embeds.
+export function OPTIONS(req: Request): Response {
+  const requested = req.headers.get('access-control-request-headers');
+  return new Response(null, {
+    status: 204,
+    headers: { ...CORS_HEADERS, ...(requested ? { 'access-control-allow-headers': requested } : {}) },
+  });
 }
 
 export async function POST(req: Request): Promise<Response> {
