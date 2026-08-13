@@ -13,6 +13,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const TARGETS_PATH = process.env.VALIDATOR_TARGETS_PATH ?? '/var/lib/definity-dsp/validator-targets.json';
+// Verified on-chain directed stake per vote ({ vote: directedSol }), rewritten by the DSP
+// at DEPLOYMENT+verification time — fresher than the optimiser's plan-time snapshot below.
+const DIRECTED_VERIFIED_PATH = process.env.DIRECTED_VERIFIED_PATH ?? '/var/lib/definity-dsp/directed-verified.json';
 const POOL = process.env.DEFINSOL_POOL ?? 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const GDI_POOL_PATH =
   process.env.GDI_POOL_PATH ?? `/var/lib/sgdi/published/pools/${POOL}/latest.json`;
@@ -21,7 +24,8 @@ type OptRow = { vote: string; name: string | null; directedSol: number; curveSol
   // Model B (two-book): curve-book gradient + curve target (independent of directed) + total target.
   // Optional — absent in telemetry that predates model B, in which case the page falls back.
   gradientCurve?: number; curveTargetSol?: number; totalTargetSol?: number };
-type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number }; validators: OptRow[] };
+type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number;
+  curveCapSol?: number; directedCapSol?: number; totalCapSol?: number; curveScale?: number; availableCurveSol?: number }; validators: OptRow[] };
 type GdiVal = { pubkey: string; g: number; r_country: number; r_city: number; r_asn: number; country: string | null; city: string | null; asn: string | null; asn_name: string | null; wiz_score: number | null; stake_sol: number };
 type GdiPool = { score: { gdi: number; epoch: number }; rank: number; total_ranked: number; validators: GdiVal[] };
 
@@ -31,6 +35,18 @@ export async function GET() {
     opt = JSON.parse(await readFile(TARGETS_PATH, 'utf8')) as OptSnap;
   } catch {
     return NextResponse.json({ unavailable: true, validators: [] }, { headers: { 'cache-control': 'no-store' } });
+  }
+
+  // VERIFIED directed (deployment-time) overrides the optimiser's plan-time directedSol, which
+  // lags whenever directed is deployed AFTER the plan is written: the plan snapshot keeps the old
+  // directed while the SGDI total (below) already reflects the freshly-landed stake, so total −
+  // stale-directed dumps the new directed into CURVE (Hive epoch 1015→16: plan 6,802 vs verified
+  // 18,000 → 11.2k phantom curve). Falls back to the telemetry figure per-validator when absent.
+  let verifiedDirected: Record<string, number> = {};
+  try {
+    verifiedDirected = JSON.parse(await readFile(DIRECTED_VERIFIED_PATH, 'utf8')) as Record<string, number>;
+  } catch {
+    /* verified-directed unavailable — every validator falls back to its plan-time directedSol */
   }
 
   // Pool-level GDI + rank come from the TVL-floor-FILTERED standing (public/stats.json,
@@ -59,11 +75,13 @@ export async function GET() {
     // CURRENT stake is read LIVE from the SGDI pool file (`stake_sol`, ≈30-min fresh)
     // instead of the optimiser's per-epoch snapshot, which is only rewritten when a plan
     // is generated (≥36h-gated) and so shows a stale, pre-execution number between epochs.
-    // Directed comes from the optimiser telemetry (changes only per-epoch), capped at the
-    // fresh total so the split stays consistent (directed ≤ total, curve = total − directed).
+    // Directed comes from the VERIFIED on-chain map (deployment-fresh), falling back to the
+    // optimiser telemetry, capped at the fresh total so the split stays consistent
+    // (directed ≤ total, curve = total − directed).
     // Falls back to the optimiser total when the SGDI figure is absent (brand-new validator).
     const freshTotal = g?.stake_sol ?? o.totalSol;
-    const directed = Math.min(o.directedSol, freshTotal);
+    const directedRaw = verifiedDirected[o.vote] ?? o.directedSol;   // prefer verified on-chain directed
+    const directed = Math.min(directedRaw, freshTotal);
     const curve = Math.max(0, freshTotal - directed);
     return {
       vote: o.vote,
