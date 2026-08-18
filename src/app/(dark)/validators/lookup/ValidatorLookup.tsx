@@ -25,7 +25,8 @@ type Row = {
 type Data = {
   epoch: number | null;
   ts: string | null;
-  params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number } | null;
+  params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number;
+            curveCapSol?: number; directedCapSol?: number; totalCapSol?: number; curveScale?: number; availableCurveSol?: number } | null;
   pool: { gdi: number | null; rank: number | null; totalRanked: number | null } | null;
   validators: Row[];
   unavailable?: boolean;
@@ -45,20 +46,22 @@ function ago(ts: string | null): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-// ── Four-state classifier — mirrors the optimiser's Phase 3, model B (two-book) ──
-// Directed is a SEPARATE protected layer that never moves and no longer affects curve.
-// The optimiser ranks + steers the CURVE on the curve book ALONE (gradientCurve),
-// toward its own curve target (curveTargetSol ∈ [floor, ceil]) — independent of directed.
-// Total = directed + curve (≤ directed_cap + ceil). By the curve-book gradient:
-//   Building  gc ≥ incGradMin, curve < ceil → builds curve toward the CEILING.
-//   Untouched gc ≥ incGradMin, curve ≥ ceil → at the ceiling, held.
-//   Trimming  gc < incGradMin, curve > curveTarget + minMove → trims toward curveTarget.
-//   Parked/Held gc < incGradMin, curve ≤ curveTarget → held (below → earns no reserve).
+// ── Curve tier classifier — mirrors the optimiser's Phase 3, model B (curve book) ──
+// Directed is a SEPARATE protected layer (its own cap) that no longer affects curve.
+// The optimiser ranks + steers the CURVE on the curve book ALONE (gradientCurve), toward its
+// (normalised) curve target curveTargetSol. By the curve-book gradient and where the curve sits:
+//   Building    gc ≥ incGradMin, curve < curveCap → builds ABOVE the target toward the cap.
+//   At cap      gc ≥ incGradMin, curve ≥ curveCap → at the cap, held.
+//   Allocating  curve < curveTarget → funded toward curveTarget, REGARDLESS of the gradient bar.
+//               The optimiser allocates EVERY below-target seat (reserve-limited, so a seat can
+//               be owed allocation yet show no movement in a tight epoch).
+//   Trimming    gc < incGradMin, curve − curveTarget > minMove → trims toward curveTarget.
+//   At target   within the dead-band.
 // Fallback (telemetry predating model B): legacy total-sigmoid target max(0, σ − directed).
 const DUST = 100;                             // SOL — mirrors scenario.ts DUST
 const INC_GRAD_MIN = 1.05, MIN_MOVE = 750;    // fallbacks if telemetry lacks the params
 
-type State = 'building' | 'untouched' | 'trimming' | 'parked' | 'held';
+type State = 'building' | 'untouched' | 'trimming' | 'allocating' | 'held';
 type Steer = { state: State; label: string; arrow: string; dir: -1 | 0 | 1; target: number | null; mag: number };
 
 // Curve target + the gradient that ranks the curve, under model B — falling back to
@@ -71,27 +74,30 @@ function curveModel(v: Row): { gc: number; curveTgt: number; isB: boolean } {
 }
 
 function classify(v: Row, p: Data['params']): Steer {
-  const ceil = p?.maxStakeSol ?? 20000;
+  const cap = p?.curveCapSol ?? p?.maxStakeSol ?? 20000;   // curve cap — Building fills toward it
   const incGradMin = p?.incGradMin ?? INC_GRAD_MIN;
   const minMove = p?.minMove ?? MIN_MOVE;
   const curve = v.curveSol;
   const { gc, curveTgt } = curveModel(v);
   if (gc >= incGradMin) {
-    if (ceil - curve > DUST) {
-      return { state: 'building', label: 'Building', arrow: '▲', dir: -1, target: ceil, mag: ceil - curve };
+    if (cap - curve > DUST) {
+      return { state: 'building', label: 'Building', arrow: '▲', dir: -1, target: cap, mag: cap - curve };
     }
-    return { state: 'untouched', label: 'At ceiling', arrow: '—', dir: 0, target: null, mag: 0 };
+    return { state: 'untouched', label: 'At cap', arrow: '—', dir: 0, target: null, mag: 0 };
   }
   const over = curve - curveTgt;
   if (over > minMove) {
     return { state: 'trimming', label: 'Trimming', arrow: '▼', dir: 1, target: curveTgt, mag: over };
   }
-  if (over < -DUST) return { state: 'parked', label: 'Held', arrow: '—', dir: 0, target: null, mag: 0 };
+  // Below target → the optimiser allocates toward curveTarget regardless of the gradient bar.
+  if (over < -DUST) {
+    return { state: 'allocating', label: 'Allocating', arrow: '▲', dir: -1, target: curveTgt, mag: -over };
+  }
   return { state: 'held', label: 'At target', arrow: '—', dir: 0, target: null, mag: 0 };
 }
 
 function steerText(v: Row, s: Steer, p: Data['params']): string {
-  const ceil = p?.maxStakeSol ?? 20000;
+  const cap = p?.curveCapSol ?? p?.maxStakeSol ?? 20000;
   const { curveTgt, isB } = curveModel(v);
   const dir = `Your directed commitment of ${fmt(v.directedSol)} ◎ is protected and never moves`;
   const indep = isB ? ' — computed on the curve book alone, independent of your directed' : '';
@@ -101,13 +107,13 @@ function steerText(v: Row, s: Steer, p: Data['params']): string {
   }
   switch (s.state) {
     case 'building':
-      return `${dir}. Your curve-book rarity clears the growth threshold, so the optimiser builds your curve toward the ${fmt(ceil)} ◎ ceiling${indep}, gradually as reserve allows.`;
+      return `${dir}. Your curve-book rarity clears the growth threshold, so the optimiser builds your curve toward the ${fmt(cap)} ◎ cap${indep}, gradually as reserve allows.`;
     case 'untouched':
-      return `${dir}. Your curve is at the ${fmt(ceil)} ◎ per-validator ceiling — the optimiser holds it.`;
+      return `${dir}. Your curve is at the ${fmt(cap)} ◎ per-validator cap — the optimiser holds it.`;
     case 'trimming':
       return `${dir}. The optimiser trims your curve by ${fmt(s.mag)} ◎ toward its GDI target of ${fmt(curveTgt)} ◎ — your own curve-book share${indep}.`;
-    case 'parked':
-      return `${dir}. Your curve (${fmt(v.curveSol)} ◎) is below its GDI target of ${fmt(curveTgt)} ◎, but under the growth threshold it earns no new reserve — held in place.`;
+    case 'allocating':
+      return `${dir}. Your curve (${fmt(v.curveSol)} ◎) is below your GDI target of ${fmt(curveTgt)} ◎ — the optimiser is allocating ${fmt(s.mag)} ◎ toward it${indep}, gradually as reserve allows (a tight epoch may fund part of it).`;
     default: // held — at its curve target
       return `${dir}. Your curve is at its GDI target of ${fmt(curveTgt)} ◎${indep}, so the optimiser holds it steady.`;
   }
@@ -123,7 +129,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   const s = classify(v, data.params);
   const total = v.totalSol;
   const curve = v.curveSol;
-  const ct = s.target;                       // curve target — null for untouched/parked/held
+  const ct = s.target;                       // curve target — null for untouched/held (allocating & building carry one)
   const drainToZero = ct != null && ct < DUST; // directed ≥ GDI target → curve is all excess
   const dFrac = total > 0 ? v.directedSol / total : 0;
   const cScale = Math.max(curve, ct ?? 0, 1);
@@ -175,7 +181,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
           </div>
         </div>
 
-        {/* CURVE — state-aware: builds toward ceiling, trims toward sigmoid, or held */}
+        {/* CURVE — state-aware: allocates/builds toward target-or-cap, trims toward sigmoid, or held */}
         <div style={{ padding: '24px 26px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
             <div style={LABEL}>Curve stake{ct != null ? ' — current vs target' : ''}</div>
@@ -220,7 +226,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
                 <div style={{ ...SERIF, fontSize: 40, fontWeight: 600, lineHeight: 1 }}>{fmt(curve)} <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--dim)' }}>◎</span></div>
               </div>
               <div style={{ marginLeft: 'auto', textAlign: 'right', fontSize: 11.5, color: 'var(--faint)', maxWidth: 280, lineHeight: 1.5 }}>
-                {s.state === 'untouched' ? 'At the per-validator ceiling — the optimiser holds it; not trimmed.' : s.state === 'parked' ? 'Below its GDI target — held in place; earns no new stake.' : v.directedSol >= v.targetCurveSol ? 'Directed already meets your GDI target — no discretionary curve held.' : 'At its GDI target — held steady.'}
+                {s.state === 'untouched' ? 'At the per-validator cap — the optimiser holds it; not trimmed.' : 'At your GDI target — the optimiser holds it steady.'}
               </div>
             </div>
           )}
@@ -229,7 +235,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
       </div>
 
       <p style={{ marginTop: 16, fontSize: 11.5, color: 'var(--faint)', lineHeight: 1.7, maxWidth: 860 }}>
-        <span style={{ color: 'var(--dim)' }}>Directed</span> (your directed principal + matching) is a protected commitment — it never moves, and it no longer affects your curve. The optimiser ranks and steers your <span style={{ color: 'var(--dim)' }}>curve</span> on the <span style={{ color: 'var(--dim)' }}>curve book alone</span> — independent of directed — toward your own <span style={{ color: 'var(--dim)' }}>GDI target</span> (the sigmoid of your curve-book rarity{data.params ? `, ${fmt(data.params.minStakeSol)}–${fmt(data.params.maxStakeSol)} ◎` : ''}): above it your curve is <span style={{ color: 'var(--dim)' }}>trimmed</span> toward the target, a rare curve-book seat <span style={{ color: 'var(--dim)' }}>builds</span> toward the ceiling, otherwise it's <span style={{ color: 'var(--dim)' }}>held</span>. Your total is directed + curve.
+        <span style={{ color: 'var(--dim)' }}>Directed</span> (your directed principal + matching) is a protected commitment — it never moves, and it no longer affects your curve. The optimiser ranks and steers your <span style={{ color: 'var(--dim)' }}>curve</span> on the <span style={{ color: 'var(--dim)' }}>curve book alone</span> — independent of directed — toward your own <span style={{ color: 'var(--dim)' }}>GDI target</span> (the sigmoid of your curve-book rarity{data.params ? `, ${fmt(data.params.minStakeSol)}–${fmt(data.params.maxStakeSol)} ◎` : ''}): below it the optimiser <span style={{ color: 'var(--dim)' }}>allocates</span> stake toward the target (a rare curve-book seat <span style={{ color: 'var(--dim)' }}>builds</span> further, toward the cap); above it your curve is <span style={{ color: 'var(--dim)' }}>trimmed</span> toward the target; at it, <span style={{ color: 'var(--dim)' }}>held</span>. Your total is directed + curve.{data.params?.curveScale != null && data.params.curveScale < 0.99 ? ` Targets are pool-wide normalised (×${data.params.curveScale.toFixed(2)}) so they sum to the available curve.` : ''}{' '}
         Rebalancing is gradual and operator-approved each epoch. As of epoch {data.epoch ?? '—'}{data.ts ? ` · ${ago(data.ts)}` : ''}.
       </p>
     </div>
