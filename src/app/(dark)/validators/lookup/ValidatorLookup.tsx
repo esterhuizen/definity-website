@@ -48,21 +48,20 @@ function ago(ts: string | null): string {
 
 // ── Curve tier classifier — mirrors the optimiser's Phase 3, model B (curve book) ──
 // Directed is a SEPARATE protected layer (its own cap) that no longer affects curve.
-// The optimiser ranks + steers the CURVE on the curve book ALONE (gradientCurve), toward its
-// (normalised) curve target curveTargetSol. By the curve-book gradient and where the curve sits:
-//   Building    gc ≥ incGradMin, curve < curveCap → builds ABOVE the target toward the cap.
-//   At cap      gc ≥ incGradMin, curve ≥ curveCap → at the cap, held.
-//   Allocating  curve < curveTarget → funded toward curveTarget, REGARDLESS of the gradient bar.
-//               The optimiser allocates EVERY below-target seat (reserve-limited, so a seat can
-//               be owed allocation yet show no movement in a tight epoch).
-//   Trimming    gc < incGradMin, curve − curveTarget > minMove → trims toward curveTarget.
+// The optimiser steers the CURVE toward its NORMALISED curve target curveTargetSol — the SAME
+// target the /curve-allocation view shows. The displayed target is ALWAYS curveTargetSol, so the
+// two pages agree to the SOL. Classified by where the curve sits relative to that target:
+//   Building    curve < curveTarget, gc ≥ incGradMin → funded toward the target with priority
+//               (a high-conviction seat also fills above it, toward the cap).
+//   Allocating  curve < curveTarget, gc < incGradMin → funded toward the target, reserve-limited.
+//   Trimming    curve − curveTarget > minMove → trimmed back toward the target.
 //   At target   within the dead-band.
 // Fallback (telemetry predating model B): legacy total-sigmoid target max(0, σ − directed).
 const DUST = 100;                             // SOL — mirrors scenario.ts DUST
 const INC_GRAD_MIN = 1.05, MIN_MOVE = 750;    // fallbacks if telemetry lacks the params
 
-type State = 'building' | 'untouched' | 'trimming' | 'allocating' | 'held';
-type Steer = { state: State; label: string; arrow: string; dir: -1 | 0 | 1; target: number | null; mag: number };
+type State = 'building' | 'trimming' | 'allocating' | 'held';
+type Steer = { state: State; label: string; arrow: string; dir: -1 | 0 | 1; target: number; mag: number };
 
 // Curve target + the gradient that ranks the curve, under model B — falling back to
 // the legacy total-sigmoid model when the optimiser telemetry predates model B.
@@ -74,30 +73,24 @@ function curveModel(v: Row): { gc: number; curveTgt: number; isB: boolean } {
 }
 
 function classify(v: Row, p: Data['params']): Steer {
-  const cap = p?.curveCapSol ?? p?.maxStakeSol ?? 20000;   // curve cap — Building fills toward it
   const incGradMin = p?.incGradMin ?? INC_GRAD_MIN;
   const minMove = p?.minMove ?? MIN_MOVE;
   const curve = v.curveSol;
   const { gc, curveTgt } = curveModel(v);
-  if (gc >= incGradMin) {
-    if (cap - curve > DUST) {
-      return { state: 'building', label: 'Building', arrow: '▲', dir: -1, target: cap, mag: cap - curve };
-    }
-    return { state: 'untouched', label: 'At cap', arrow: '—', dir: 0, target: null, mag: 0 };
+  const over = curve - curveTgt;             // + above the normalised target, − below it
+  if (over < -DUST) {
+    // Below the normalised curve target → funded toward it. Clearing the growth threshold funds
+    // with priority (Building); below it, funded as reserve allows (Allocating). Both aim at curveTgt.
+    const priority = gc >= incGradMin;
+    return { state: priority ? 'building' : 'allocating', label: priority ? 'Building' : 'Allocating', arrow: '▲', dir: -1, target: curveTgt, mag: -over };
   }
-  const over = curve - curveTgt;
   if (over > minMove) {
     return { state: 'trimming', label: 'Trimming', arrow: '▼', dir: 1, target: curveTgt, mag: over };
   }
-  // Below target → the optimiser allocates toward curveTarget regardless of the gradient bar.
-  if (over < -DUST) {
-    return { state: 'allocating', label: 'Allocating', arrow: '▲', dir: -1, target: curveTgt, mag: -over };
-  }
-  return { state: 'held', label: 'At target', arrow: '—', dir: 0, target: null, mag: 0 };
+  return { state: 'held', label: 'At target', arrow: '—', dir: 0, target: curveTgt, mag: 0 };
 }
 
-function steerText(v: Row, s: Steer, p: Data['params']): string {
-  const cap = p?.curveCapSol ?? p?.maxStakeSol ?? 20000;
+function steerText(v: Row, s: Steer): string {
   const { curveTgt, isB } = curveModel(v);
   const dir = `Your directed commitment of ${fmt(v.directedSol)} ◎ is protected and never moves`;
   const indep = isB ? ' — computed on the curve book alone, independent of your directed' : '';
@@ -107,13 +100,11 @@ function steerText(v: Row, s: Steer, p: Data['params']): string {
   }
   switch (s.state) {
     case 'building':
-      return `${dir}. Your curve-book rarity clears the growth threshold, so the optimiser builds your curve toward the ${fmt(cap)} ◎ cap${indep}, gradually as reserve allows.`;
-    case 'untouched':
-      return `${dir}. Your curve is at the ${fmt(cap)} ◎ per-validator cap — the optimiser holds it.`;
-    case 'trimming':
-      return `${dir}. The optimiser trims your curve by ${fmt(s.mag)} ◎ toward its GDI target of ${fmt(curveTgt)} ◎ — your own curve-book share${indep}.`;
+      return `${dir}. Your curve-book rarity clears the growth threshold, so the optimiser is building your curve toward your GDI target of ${fmt(curveTgt)} ◎${indep}, gradually as reserve allows.`;
     case 'allocating':
       return `${dir}. Your curve (${fmt(v.curveSol)} ◎) is below your GDI target of ${fmt(curveTgt)} ◎ — the optimiser is allocating ${fmt(s.mag)} ◎ toward it${indep}, gradually as reserve allows (a tight epoch may fund part of it).`;
+    case 'trimming':
+      return `${dir}. Your curve (${fmt(v.curveSol)} ◎) is ${fmt(s.mag)} ◎ above your GDI target of ${fmt(curveTgt)} ◎ — the optimiser trims it back toward the target${indep}.`;
     default: // held — at its curve target
       return `${dir}. Your curve is at its GDI target of ${fmt(curveTgt)} ◎${indep}, so the optimiser holds it steady.`;
   }
@@ -129,10 +120,10 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   const s = classify(v, data.params);
   const total = v.totalSol;
   const curve = v.curveSol;
-  const ct = s.target;                       // curve target — null for untouched/held (allocating & building carry one)
-  const drainToZero = ct != null && ct < DUST; // directed ≥ GDI target → curve is all excess
+  const ct = s.target;                       // normalised curve target — always shown (matches /curve-allocation)
+  const drainToZero = ct < DUST;             // directed ≥ GDI target → curve is all excess (legacy fallback only)
   const dFrac = total > 0 ? v.directedSol / total : 0;
-  const cScale = Math.max(curve, ct ?? 0, 1);
+  const cScale = Math.max(curve, ct, 1);
   // teal = building (good), muted = trimming, dim = held
   const deltaTone = s.dir === -1 ? 'var(--teal)' : s.dir === 1 ? 'var(--faint)' : 'var(--dim)';
   return (
@@ -181,14 +172,13 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
           </div>
         </div>
 
-        {/* CURVE — state-aware: allocates/builds toward target-or-cap, trims toward sigmoid, or held */}
+        {/* CURVE — current curve vs its normalised target (curveTargetSol); builds/allocates/trims toward it */}
         <div style={{ padding: '24px 26px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-            <div style={LABEL}>Curve stake{ct != null ? ' — current vs target' : ''}</div>
-            {ct == null ? <div style={{ fontSize: 10.5, color: deltaTone, letterSpacing: '.1em', textTransform: 'uppercase' }}>{s.label}</div> : null}
+            <div style={LABEL}>Curve stake — current vs target</div>
           </div>
 
-          {ct != null ? (
+          {(
             <>
               <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 18 }}>
                 <div>
@@ -219,18 +209,8 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
                 </div>
               </div>
             </>
-          ) : (
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontSize: 10.5, color: 'var(--faint)' }}>Current curve</div>
-                <div style={{ ...SERIF, fontSize: 40, fontWeight: 600, lineHeight: 1 }}>{fmt(curve)} <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--dim)' }}>◎</span></div>
-              </div>
-              <div style={{ marginLeft: 'auto', textAlign: 'right', fontSize: 11.5, color: 'var(--faint)', maxWidth: 280, lineHeight: 1.5 }}>
-                {s.state === 'untouched' ? 'At the per-validator cap — the optimiser holds it; not trimmed.' : 'At your GDI target — the optimiser holds it steady.'}
-              </div>
-            </div>
           )}
-          <p style={{ marginTop: 15, fontSize: 13, color: 'var(--dim)', lineHeight: 1.7 }}>{steerText(v, s, data.params)}</p>
+          <p style={{ marginTop: 15, fontSize: 13, color: 'var(--dim)', lineHeight: 1.7 }}>{steerText(v, s)}</p>
         </div>
       </div>
 
