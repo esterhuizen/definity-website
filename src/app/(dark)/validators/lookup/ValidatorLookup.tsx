@@ -17,6 +17,7 @@ type Row = {
   totalSol: number;
   directedSol: number;
   curveSol: number;
+  stale?: boolean;                      // this validator moved since the plan → its target is held back
   targetCurveSol: number | null;        // legacy total sigmoid (compat / fallback); null when stale
   gradientCurve?: number | null;        // model B: curve-book gradient
   curveTargetSol?: number | null;       // model B: curve target (independent of directed)
@@ -24,7 +25,8 @@ type Row = {
 };
 type Data = {
   epoch: number | null;
-  liveEpoch: number | null;   // current network/scoring epoch; if > epoch, the plan (targets) is stale
+  liveEpoch: number | null;   // current network/scoring epoch; if > epoch, the plan (targets) is behind
+  stale?: boolean;            // true iff ≥1 validator moved since the plan (drives the banner)
   ts: string | null;
   params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number;
             curveCapSol?: number; directedCapSol?: number; totalCapSol?: number; curveScale?: number; availableCurveSol?: number } | null;
@@ -128,10 +130,11 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   // teal = building (good), muted = trimming, dim = held
   const deltaTone = s.dir === -1 ? 'var(--teal)' : s.dir === 1 ? 'var(--faint)' : 'var(--dim)';
   // Targets (gradient/curveTargetSol) come from the plan (data.epoch); geo comes from the live
-  // index (data.liveEpoch). When the plan predates the live epoch, a validator that changed
-  // location carries a stale gradient/target — so we SUPPRESS the specific target rather than
-  // show a number a partner would act on. A wrong target is worse than no target.
-  const stale = data.epoch != null && data.liveEpoch != null && data.epoch < data.liveEpoch;
+  // index (data.liveEpoch). Stale is PER-VALIDATOR (set by the API): only a validator that changed
+  // location since the plan carries a stale gradient/target — for it we SUPPRESS the specific
+  // target rather than show a number a partner would act on. A wrong target is worse than no
+  // target. An unmoved validator's target is still valid even when the plan epoch is behind.
+  const stale = v.stale ?? false;
   return (
     <div style={{ marginTop: 30 }}>
       <button type="button" onClick={onBack} className="morelink" style={{ marginTop: 0, background: 'none', cursor: 'pointer' }}>← All validators</button>
@@ -191,7 +194,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
                 <div style={{ ...SERIF, fontSize: 40, fontWeight: 600, lineHeight: 1 }}>{fmt(curve)} <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--dim)' }}>◎</span></div>
               </div>
               <p style={{ marginTop: 15, fontSize: 13, color: 'var(--faint)', lineHeight: 1.7 }}>
-                Your curve target is <span style={{ color: '#fff' }}>recomputing for epoch {data.liveEpoch}</span>. The last plan (epoch {data.epoch}) predates the current epoch, and the target is set by your geographic rarity — so it isn&apos;t shown until the next plan, because a validator whose location has changed can see its target move materially.
+                Your curve target is <span style={{ color: '#fff' }}>recomputing for epoch {data.liveEpoch}</span>. Your location has changed since the last plan (epoch {data.epoch}), and the target is set by your geographic rarity — so it&apos;s held back until the next plan (usually within a day), because the move can shift your target materially. Your current stake, directed and geo above are live.
               </p>
             </>
           ) : (
@@ -238,7 +241,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   );
 }
 
-function Browse({ rows, onPick, params, stale }: { rows: Row[]; onPick: (vote: string) => void; params: Data['params']; stale: boolean }) {
+function Browse({ rows, onPick, params }: { rows: Row[]; onPick: (vote: string) => void; params: Data['params'] }) {
   const th: React.CSSProperties = { ...LABEL, padding: '14px 18px', fontWeight: 400, textAlign: 'right' };
   const td: React.CSSProperties = { padding: '13px 18px', textAlign: 'right', fontFamily: 'var(--mono)' };
   return (
@@ -258,6 +261,7 @@ function Browse({ rows, onPick, params, stale }: { rows: Row[]; onPick: (vote: s
           <tbody>
             {rows.map((v) => {
               const s = classify(v, params);
+              const stale = v.stale ?? false;   // per-validator: moved since the plan → Δ suppressed
               const dTone = s.dir === -1 ? 'var(--teal)' : s.dir === 1 ? 'var(--faint)' : 'var(--dim)';
               return (
                 <tr
@@ -321,8 +325,10 @@ export default function ValidatorLookup() {
 
   const selected = useMemo(() => data?.validators.find((v) => v.vote === sel) ?? null, [sel, data]);
   const pool = data?.pool;
-  // Plan behind the live network → targets/gradient are stale (geo has moved); flag + suppress them.
-  const stale = data?.epoch != null && data?.liveEpoch != null && data.epoch < data.liveEpoch;
+  // Banner shows only when the API flags ≥1 validator as actually moved since the plan (not merely
+  // because the plan epoch is behind — that's the normal state for most of every epoch). Per-
+  // validator suppression is handled in the row/detail via each row's own `stale`.
+  const anyStale = data?.stale ?? false;
 
   return (
     <section className="sec" style={{ borderTop: 0 }}>
@@ -348,9 +354,9 @@ export default function ValidatorLookup() {
           </>
         ) : null}
 
-        {stale ? (
+        {data && anyStale ? (
           <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
-            <b style={{ color: '#f2b366' }}>Curve targets are an epoch behind.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that has changed location since the plan can carry an out-of-date one — those are held back until the next plan (usually within a day). Current stake, directed and geo shown here are live.
+            <b style={{ color: '#f2b366' }}>A validator has moved since the last plan.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that changed location since the plan carries an out-of-date one — <b>only those</b> have their target held back until the next plan (usually within a day). Every other validator&apos;s target is current, and all stake, directed and geo shown here are live.
           </div>
         ) : null}
 
@@ -374,7 +380,7 @@ export default function ValidatorLookup() {
         {selected ? (
           <Detail v={selected} data={data!} onBack={() => pick(null)} />
         ) : data && !data.unavailable ? (
-          <Browse rows={rows} onPick={pick} params={data.params} stale={stale} />
+          <Browse rows={rows} onPick={pick} params={data.params} />
         ) : !err ? (
           <p style={{ marginTop: 24, color: 'var(--faint)', fontSize: 13 }}>Loading…</p>
         ) : null}

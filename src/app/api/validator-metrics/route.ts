@@ -21,6 +21,9 @@ const GDI_POOL_PATH =
   process.env.GDI_POOL_PATH ?? `/var/lib/sgdi/published/pools/${POOL}/latest.json`;
 
 type OptRow = { vote: string; name: string | null; directedSol: number; curveSol: number; totalSol: number; targetCurveSol: number; gradient: number;
+  // Plan-time geo (what the target/gradient were computed on). Compared against the LIVE geo
+  // below to detect a validator that has moved since the plan — only those carry a stale target.
+  country?: string | null; city?: string | null; asn?: string | null;
   // Model B (two-book): curve-book gradient + curve target (independent of directed) + total target.
   // Optional — absent in telemetry that predates model B, in which case the page falls back.
   gradientCurve?: number; curveTargetSol?: number; totalTargetSol?: number };
@@ -76,13 +79,24 @@ export async function GET() {
     /* published GDI unavailable — fall back to the optimiser's own gradient below */
   }
 
-  // When the plan predates the live epoch, every target/gradient is computed on stale geo.
-  // Null them at the SOURCE (not just the page) so no direct consumer — the embed widget, a
-  // partner integration, a future page — reads an authoritative-looking wrong number. Current
-  // stake / directed / geo / G stay live.
-  const stale = opt.epoch != null && liveEpoch != null && opt.epoch < liveEpoch;
+  // A target/gradient is geo-derived and computed at plan time, so it is stale ONLY for a
+  // validator whose LOCATION has changed since the plan — not for the whole pool just because
+  // the plan epoch is behind. (The plan is normally an epoch behind for most of every epoch: it
+  // re-runs ≥36h in, so a global "everything is stale" flag would blank the whole table ~most of
+  // the time.) We flag a validator PER-VALIDATOR when its plan-time geo differs from live geo,
+  // and only while the plan is actually behind. For a flagged validator we null the target at the
+  // SOURCE (not just the page) so no direct consumer — embed, partner integration — reads an
+  // authoritative-looking wrong number. Current stake / directed / geo / G stay live throughout.
+  const planBehind = opt.epoch != null && liveEpoch != null && opt.epoch < liveEpoch;
+  const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
   const validators = opt.validators.map((o) => {
     const g = gdiByVote.get(o.vote);
+    // Moved iff we have live geo AND any dimension (country / city / ASN) differs from plan geo.
+    const moved = planBehind && g != null && (
+      norm(o.country) !== norm(g.country) ||
+      norm(o.city) !== norm(g.city) ||
+      norm(o.asn) !== norm(g.asn)
+    );
     // CURRENT stake is read LIVE from the SGDI pool file (`stake_sol`, ≈30-min fresh)
     // instead of the optimiser's per-epoch snapshot, which is only rewritten when a plan
     // is generated (≥36h-gated) and so shows a stale, pre-execution number between epochs.
@@ -112,14 +126,17 @@ export async function GET() {
       totalSol: freshTotal,
       directedSol: directed,
       curveSol: curve,
-      // Geo-derived + plan-time — nulled when the plan is stale (see `stale` above).
-      targetCurveSol: stale ? null : o.targetCurveSol,               // legacy total sigmoid (compat)
-      gradientCurve: stale ? null : (o.gradientCurve ?? null),       // model B: curve-book gradient
-      curveTargetSol: stale ? null : (o.curveTargetSol ?? null),     // model B: curve target
-      totalTargetSol: stale ? null : (o.totalTargetSol ?? null),     // model B: directed + curve target
+      // Geo-derived + plan-time — nulled only for THIS validator when it has moved (see `moved`).
+      stale: moved,                                                  // per-validator: target held back
+      targetCurveSol: moved ? null : o.targetCurveSol,               // legacy total sigmoid (compat)
+      gradientCurve: moved ? null : (o.gradientCurve ?? null),       // model B: curve-book gradient
+      curveTargetSol: moved ? null : (o.curveTargetSol ?? null),     // model B: curve target
+      totalTargetSol: moved ? null : (o.totalTargetSol ?? null),     // model B: directed + curve target
     };
   }).sort((a, b) => b.totalSol - a.totalSol);
 
+  // Top-level flag drives the page banner: true iff at least one validator actually moved.
+  const stale = validators.some((v) => v.stale);
   return NextResponse.json(
     { epoch: opt.epoch, liveEpoch, stale, ts: opt.ts, params: opt.params, pool, validators },
     { headers: { 'cache-control': 'no-store' } },
