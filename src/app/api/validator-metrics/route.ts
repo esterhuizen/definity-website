@@ -56,11 +56,17 @@ export async function GET() {
   // a validator sees on gdindex; we use it only as a fallback for the per-validator join.
   const standing = await getGdiStanding();
   let gdiByVote = new Map<string, GdiVal>();
+  // The CURRENT network/scoring epoch (published GDI pool file). The optimiser targets below
+  // (validator-targets.json) are AS-OF `epoch`; geo/rarity here are as-of liveEpoch. When
+  // epoch < liveEpoch the plan predates the live geo — a validator that changed location since
+  // then carries a stale gradient/target (gradient ranks on geo rarity), so the page must flag it.
+  let liveEpoch: number | null = null;
   let pool: { gdi: number | null; rank: number | null; totalRanked: number | null } =
     { gdi: standing?.gdi ?? null, rank: standing?.rank ?? null, totalRanked: standing?.total ?? null };
   try {
     const g = JSON.parse(await readFile(GDI_POOL_PATH, 'utf8')) as GdiPool;
     gdiByVote = new Map(g.validators.map((v) => [v.pubkey, v]));
+    liveEpoch = g.score?.epoch ?? null;
     pool = {
       gdi: standing?.gdi ?? g.score?.gdi ?? null,
       rank: standing?.rank ?? g.rank ?? null,
@@ -70,6 +76,11 @@ export async function GET() {
     /* published GDI unavailable — fall back to the optimiser's own gradient below */
   }
 
+  // When the plan predates the live epoch, every target/gradient is computed on stale geo.
+  // Null them at the SOURCE (not just the page) so no direct consumer — the embed widget, a
+  // partner integration, a future page — reads an authoritative-looking wrong number. Current
+  // stake / directed / geo / G stay live.
+  const stale = opt.epoch != null && liveEpoch != null && opt.epoch < liveEpoch;
   const validators = opt.validators.map((o) => {
     const g = gdiByVote.get(o.vote);
     // CURRENT stake is read LIVE from the SGDI pool file (`stake_sol`, ≈30-min fresh)
@@ -101,15 +112,16 @@ export async function GET() {
       totalSol: freshTotal,
       directedSol: directed,
       curveSol: curve,
-      targetCurveSol: o.targetCurveSol,                 // legacy total sigmoid (compat)
-      gradientCurve: o.gradientCurve ?? null,           // model B: curve-book gradient
-      curveTargetSol: o.curveTargetSol ?? null,         // model B: curve target (independent of directed)
-      totalTargetSol: o.totalTargetSol ?? null,         // model B: directed + curve target
+      // Geo-derived + plan-time — nulled when the plan is stale (see `stale` above).
+      targetCurveSol: stale ? null : o.targetCurveSol,               // legacy total sigmoid (compat)
+      gradientCurve: stale ? null : (o.gradientCurve ?? null),       // model B: curve-book gradient
+      curveTargetSol: stale ? null : (o.curveTargetSol ?? null),     // model B: curve target
+      totalTargetSol: stale ? null : (o.totalTargetSol ?? null),     // model B: directed + curve target
     };
   }).sort((a, b) => b.totalSol - a.totalSol);
 
   return NextResponse.json(
-    { epoch: opt.epoch, ts: opt.ts, params: opt.params, pool, validators },
+    { epoch: opt.epoch, liveEpoch, stale, ts: opt.ts, params: opt.params, pool, validators },
     { headers: { 'cache-control': 'no-store' } },
   );
 }

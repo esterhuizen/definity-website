@@ -17,13 +17,14 @@ type Row = {
   totalSol: number;
   directedSol: number;
   curveSol: number;
-  targetCurveSol: number;               // legacy total sigmoid (compat / fallback)
+  targetCurveSol: number | null;        // legacy total sigmoid (compat / fallback); null when stale
   gradientCurve?: number | null;        // model B: curve-book gradient
   curveTargetSol?: number | null;       // model B: curve target (independent of directed)
   totalTargetSol?: number | null;       // model B: directed + curve target
 };
 type Data = {
   epoch: number | null;
+  liveEpoch: number | null;   // current network/scoring epoch; if > epoch, the plan (targets) is stale
   ts: string | null;
   params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number;
             curveCapSol?: number; directedCapSol?: number; totalCapSol?: number; curveScale?: number; availableCurveSol?: number } | null;
@@ -69,7 +70,7 @@ function curveModel(v: Row): { gc: number; curveTgt: number; isB: boolean } {
   const isB = v.curveTargetSol != null && v.gradientCurve != null;
   return isB
     ? { gc: v.gradientCurve as number, curveTgt: v.curveTargetSol as number, isB: true }
-    : { gc: v.g, curveTgt: Math.max(0, v.targetCurveSol - v.directedSol), isB: false };
+    : { gc: v.g, curveTgt: Math.max(0, (v.targetCurveSol ?? 0) - v.directedSol), isB: false };
 }
 
 function classify(v: Row, p: Data['params']): Steer {
@@ -96,7 +97,7 @@ function steerText(v: Row, s: Steer): string {
   const indep = isB ? ' — computed on the curve book alone, independent of your directed' : '';
   // Fallback drain-to-zero narrative (legacy telemetry only; under B curveTgt ≥ floor).
   if (!isB && s.state === 'trimming' && curveTgt <= DUST) {
-    return `${dir}. GDI target ${fmt(v.targetCurveSol)} ◎ · your directed ${fmt(v.directedSol)} ◎ already exceeds it, so curve → 0.`;
+    return `${dir}. GDI target ${fmt(v.targetCurveSol ?? 0)} ◎ · your directed ${fmt(v.directedSol)} ◎ already exceeds it, so curve → 0.`;
   }
   switch (s.state) {
     case 'building':
@@ -126,6 +127,11 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   const cScale = Math.max(curve, ct, 1);
   // teal = building (good), muted = trimming, dim = held
   const deltaTone = s.dir === -1 ? 'var(--teal)' : s.dir === 1 ? 'var(--faint)' : 'var(--dim)';
+  // Targets (gradient/curveTargetSol) come from the plan (data.epoch); geo comes from the live
+  // index (data.liveEpoch). When the plan predates the live epoch, a validator that changed
+  // location carries a stale gradient/target — so we SUPPRESS the specific target rather than
+  // show a number a partner would act on. A wrong target is worse than no target.
+  const stale = data.epoch != null && data.liveEpoch != null && data.epoch < data.liveEpoch;
   return (
     <div style={{ marginTop: 30 }}>
       <button type="button" onClick={onBack} className="morelink" style={{ marginTop: 0, background: 'none', cursor: 'pointer' }}>← All validators</button>
@@ -175,10 +181,20 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
         {/* CURVE — current curve vs its normalised target (curveTargetSol); builds/allocates/trims toward it */}
         <div style={{ padding: '24px 26px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-            <div style={LABEL}>Curve stake — current vs target</div>
+            <div style={LABEL}>Curve stake{stale ? '' : ' — current vs target'}</div>
           </div>
 
-          {(
+          {stale ? (
+            <>
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 10.5, color: 'var(--faint)' }}>Current curve</div>
+                <div style={{ ...SERIF, fontSize: 40, fontWeight: 600, lineHeight: 1 }}>{fmt(curve)} <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--dim)' }}>◎</span></div>
+              </div>
+              <p style={{ marginTop: 15, fontSize: 13, color: 'var(--faint)', lineHeight: 1.7 }}>
+                Your curve target is <span style={{ color: '#fff' }}>recomputing for epoch {data.liveEpoch}</span>. The last plan (epoch {data.epoch}) predates the current epoch, and the target is set by your geographic rarity — so it isn&apos;t shown until the next plan, because a validator whose location has changed can see its target move materially.
+              </p>
+            </>
+          ) : (
             <>
               <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 18 }}>
                 <div>
@@ -188,7 +204,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
                 {!drainToZero ? <div style={{ ...SERIF, fontSize: 28, color: 'var(--faint)', lineHeight: 1.4 }}>→</div> : null}
                 <div>
                   <div style={{ fontSize: 10.5, color: 'var(--faint)' }}>{drainToZero ? 'GDI target' : 'Target curve'}</div>
-                  <div style={{ ...SERIF, fontSize: 40, fontWeight: 600, lineHeight: 1 }}>{fmt(drainToZero ? v.targetCurveSol : (ct ?? 0))} <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--dim)' }}>◎</span></div>
+                  <div style={{ ...SERIF, fontSize: 40, fontWeight: 600, lineHeight: 1 }}>{fmt(drainToZero ? (v.targetCurveSol ?? 0) : (ct ?? 0))} <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--dim)' }}>◎</span></div>
                 </div>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                   <div style={{ fontFamily: 'var(--mono)', fontSize: 18, color: deltaTone, letterSpacing: '.02em' }}>{s.arrow} {fmt(s.mag)} ◎</div>
@@ -210,19 +226,19 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
               </div>
             </>
           )}
-          <p style={{ marginTop: 15, fontSize: 13, color: 'var(--dim)', lineHeight: 1.7 }}>{steerText(v, s)}</p>
+          {!stale ? <p style={{ marginTop: 15, fontSize: 13, color: 'var(--dim)', lineHeight: 1.7 }}>{steerText(v, s)}</p> : null}
         </div>
       </div>
 
       <p style={{ marginTop: 16, fontSize: 11.5, color: 'var(--faint)', lineHeight: 1.7, maxWidth: 860 }}>
         <span style={{ color: 'var(--dim)' }}>Directed</span> (your directed principal + matching) is a protected commitment — it never moves, and it no longer affects your curve. The optimiser ranks and steers your <span style={{ color: 'var(--dim)' }}>curve</span> on the <span style={{ color: 'var(--dim)' }}>curve book alone</span> — independent of directed — toward your own <span style={{ color: 'var(--dim)' }}>GDI target</span> — sized by your marginal contribution to the <span style={{ color: 'var(--dim)' }}>published GDI</span> the pool is ranked on (your country · city · ASN rarity, the same index as your G score above){data.params ? `, shaped to a ${fmt(data.params.minStakeSol)}–${fmt(data.params.maxStakeSol)} ◎ sigmoid` : ''}: below it the optimiser <span style={{ color: 'var(--dim)' }}>allocates</span> stake toward the target (a rare curve-book seat <span style={{ color: 'var(--dim)' }}>builds</span> further, toward the cap); above it your curve is <span style={{ color: 'var(--dim)' }}>trimmed</span> toward the target; at it, <span style={{ color: 'var(--dim)' }}>held</span>. Your total is directed + curve.{data.params?.curveScale != null && data.params.curveScale < 0.99 ? ` Targets are pool-wide normalised (×${data.params.curveScale.toFixed(2)}) so they sum to the available curve.` : ''}{' '}
-        Rebalancing is gradual and operator-approved each epoch. As of epoch {data.epoch ?? '—'}{data.ts ? ` · ${ago(data.ts)}` : ''}.
+        Rebalancing is gradual and operator-approved each epoch. As of plan epoch {data.epoch ?? '—'}{data.ts ? ` · ${ago(data.ts)}` : ''}{stale ? `; the network is now on epoch ${data.liveEpoch} — your target is held back until the plan catches up (targets track your live location)` : ''}.
       </p>
     </div>
   );
 }
 
-function Browse({ rows, onPick, params }: { rows: Row[]; onPick: (vote: string) => void; params: Data['params'] }) {
+function Browse({ rows, onPick, params, stale }: { rows: Row[]; onPick: (vote: string) => void; params: Data['params']; stale: boolean }) {
   const th: React.CSSProperties = { ...LABEL, padding: '14px 18px', fontWeight: 400, textAlign: 'right' };
   const td: React.CSSProperties = { padding: '13px 18px', textAlign: 'right', fontFamily: 'var(--mono)' };
   return (
@@ -258,7 +274,7 @@ function Browse({ rows, onPick, params }: { rows: Row[]; onPick: (vote: string) 
                   <td style={{ ...td, color: '#fff' }}>{fmt(v.totalSol)}</td>
                   <td style={{ ...td, color: 'var(--dim)' }}>{fmt(v.directedSol)}</td>
                   <td style={{ ...td, color: 'var(--dim)' }}>{fmt(v.curveSol)}</td>
-                  <td style={{ ...td, color: dTone }}>{s.dir === 0 ? '—' : `${s.arrow} ${fmt(s.mag)}`}</td>
+                  <td style={{ ...td, color: stale ? 'var(--faint)' : dTone }}>{stale || s.dir === 0 ? '—' : `${s.arrow} ${fmt(s.mag)}`}</td>
                   <td style={{ ...td, color: '#fff' }}>{v.g.toFixed(3)}</td>
                 </tr>
               );
@@ -305,6 +321,8 @@ export default function ValidatorLookup() {
 
   const selected = useMemo(() => data?.validators.find((v) => v.vote === sel) ?? null, [sel, data]);
   const pool = data?.pool;
+  // Plan behind the live network → targets/gradient are stale (geo has moved); flag + suppress them.
+  const stale = data?.epoch != null && data?.liveEpoch != null && data.epoch < data.liveEpoch;
 
   return (
     <section className="sec" style={{ borderTop: 0 }}>
@@ -330,6 +348,12 @@ export default function ValidatorLookup() {
           </>
         ) : null}
 
+        {stale ? (
+          <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
+            <b style={{ color: '#f2b366' }}>Curve targets are an epoch behind.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that has changed location since the plan can carry an out-of-date one — those are held back until the next plan (usually within a day). Current stake, directed and geo shown here are live.
+          </div>
+        ) : null}
+
         {!selected ? (
           <input
             className="wl-input"
@@ -350,7 +374,7 @@ export default function ValidatorLookup() {
         {selected ? (
           <Detail v={selected} data={data!} onBack={() => pick(null)} />
         ) : data && !data.unavailable ? (
-          <Browse rows={rows} onPick={pick} params={data.params} />
+          <Browse rows={rows} onPick={pick} params={data.params} stale={stale} />
         ) : !err ? (
           <p style={{ marginTop: 24, color: 'var(--faint)', fontSize: 13 }}>Loading…</p>
         ) : null}
