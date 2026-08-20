@@ -135,6 +135,10 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   // target rather than show a number a partner would act on. A wrong target is worse than no
   // target. An unmoved validator's target is still valid even when the plan epoch is behind.
   const stale = v.stale ?? false;
+  // Plan behind the live epoch (but this validator didn't move): its target is still shown, but it
+  // was normalised pool-wide at plan time and re-prices a little whenever ANY validator moves — so
+  // it's a close guide, exact only as of the plan epoch, not a suppression case.
+  const planBehind = data.epoch != null && data.liveEpoch != null && data.epoch < data.liveEpoch;
   return (
     <div style={{ marginTop: 30 }}>
       <button type="button" onClick={onBack} className="morelink" style={{ marginTop: 0, background: 'none', cursor: 'pointer' }}>← All validators</button>
@@ -235,7 +239,7 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
 
       <p style={{ marginTop: 16, fontSize: 11.5, color: 'var(--faint)', lineHeight: 1.7, maxWidth: 860 }}>
         <span style={{ color: 'var(--dim)' }}>Directed</span> (your directed principal + matching) is a protected commitment — it never moves, and it no longer affects your curve. The optimiser ranks and steers your <span style={{ color: 'var(--dim)' }}>curve</span> on the <span style={{ color: 'var(--dim)' }}>curve book alone</span> — independent of directed — toward your own <span style={{ color: 'var(--dim)' }}>GDI target</span> — sized by your marginal contribution to the <span style={{ color: 'var(--dim)' }}>published GDI</span> the pool is ranked on (your country · city · ASN rarity, the same index as your G score above){data.params ? `, shaped to a ${fmt(data.params.minStakeSol)}–${fmt(data.params.maxStakeSol)} ◎ sigmoid` : ''}: below it the optimiser <span style={{ color: 'var(--dim)' }}>allocates</span> stake toward the target (a rare curve-book seat <span style={{ color: 'var(--dim)' }}>builds</span> further, toward the cap); above it your curve is <span style={{ color: 'var(--dim)' }}>trimmed</span> toward the target; at it, <span style={{ color: 'var(--dim)' }}>held</span>. Your total is directed + curve.{data.params?.curveScale != null && data.params.curveScale < 0.99 ? ` Targets are pool-wide normalised (×${data.params.curveScale.toFixed(2)}) so they sum to the available curve.` : ''}{' '}
-        Rebalancing is gradual and operator-approved each epoch. As of plan epoch {data.epoch ?? '—'}{data.ts ? ` · ${ago(data.ts)}` : ''}{stale ? `; the network is now on epoch ${data.liveEpoch} — your target is held back until the plan catches up (targets track your live location)` : ''}.
+        Rebalancing is gradual and operator-approved each epoch. As of plan epoch {data.epoch ?? '—'}{data.ts ? ` · ${ago(data.ts)}` : ''}{stale ? `; the network is now on epoch ${data.liveEpoch} — your target is held back until the plan catches up (targets track your live location)` : (planBehind ? `; the network is now on epoch ${data.liveEpoch} — this is as of the last plan and, because targets are normalised across the pool, it re-prices slightly whenever any validator moves` : '')}.
       </p>
     </div>
   );
@@ -356,7 +360,7 @@ export default function ValidatorLookup() {
 
         {data && anyStale ? (
           <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
-            <b style={{ color: '#f2b366' }}>A validator has moved since the last plan.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that changed location since the plan carries an out-of-date one — <b>only those</b> have their target held back until the next plan (usually within a day). Every other validator&apos;s target is current, and all stake, directed and geo shown here are live.
+            <b style={{ color: '#f2b366' }}>A validator has moved since the last plan.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that changed location carries an out-of-date one — <b>those are held back</b> until the next plan (usually within a day). Targets are also normalised across the whole pool, so every other target re-prices slightly when the book changes — the rest are shown <b>as of epoch {data.epoch}</b>, a close guide that&apos;s exact at their plan. Stake, directed and geo here are live.
           </div>
         ) : null}
 
