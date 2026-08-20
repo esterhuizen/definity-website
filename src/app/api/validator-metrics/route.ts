@@ -13,6 +13,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const TARGETS_PATH = process.env.VALIDATOR_TARGETS_PATH ?? '/var/lib/definity-dsp/validator-targets.json';
+// LIVE curve targets — recomputed every 15 min from live stake+geo+rarities (definity-publish-
+// targets.timer). Same schema as the plan file. This is "what the curve would target right now",
+// so its numbers are correct all epoch; the plan file above lags for ~¾ of every epoch (≥36h gate).
+// Freshness is TIME-based on its `ts` (see GET): its `epoch` is the SGDI score epoch and stays put
+// when the publisher dies, so an epoch comparison cannot tell fresh from stalled.
+const LIVE_TARGETS_PATH = process.env.LIVE_TARGETS_PATH ?? '/var/lib/definity-targets/validator-targets-live.json';
 // Verified on-chain directed stake per vote ({ vote: directedSol }), rewritten by the DSP
 // at DEPLOYMENT+verification time — fresher than the optimiser's plan-time snapshot below.
 const DIRECTED_VERIFIED_PATH = process.env.DIRECTED_VERIFIED_PATH ?? '/var/lib/definity-dsp/directed-verified.json';
@@ -32,24 +38,60 @@ type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxSt
 type GdiVal = { pubkey: string; g: number; r_country: number; r_city: number; r_asn: number; country: string | null; city: string | null; asn: string | null; asn_name: string | null; wiz_score: number | null; stake_sol: number };
 type GdiPool = { score: { gdi: number; epoch: number }; rank: number; total_ranked: number; validators: GdiVal[] };
 
-export async function GET() {
-  let opt: OptSnap;
+const readSnap = async (path: string): Promise<OptSnap | null> => {
   try {
-    opt = JSON.parse(await readFile(TARGETS_PATH, 'utf8')) as OptSnap;
-  } catch {
+    const s = JSON.parse(await readFile(path, 'utf8')) as OptSnap;
+    // Guard a valid-JSON-but-malformed/torn snapshot (the live file is rewritten every 15 min):
+    // without a validators array the consumer would 500. Treat as absent → fall back to the other.
+    return Array.isArray(s?.validators) ? s : null;
+  } catch { return null; }
+};
+
+export async function GET() {
+  // TWO target sources, priority LIVE → PLAN:
+  //  · LIVE (validator-targets-live.json): recomputed every 15 min from the current book, so its
+  //    targets are correct all epoch. Used for display when fresh/stale (≤2h); when broken (>2h,
+  //    publisher dead) we do NOT show its numbers — a stale-live figure presented as live is the
+  //    exact failure it exists to remove.
+  //  · PLAN (validator-targets.json): what the last APPROVED plan computed. Lags ~¾ of every epoch
+  //    (≥36h gate). Kept as the >2h fallback + record of "targets as planned"; its `epoch` drives
+  //    planBehind + mover-suppression in that fallback path only. NEVER swap planBehind to live.
+  const [opt, liveRaw] = await Promise.all([readSnap(TARGETS_PATH), readSnap(LIVE_TARGETS_PATH)]);
+
+  // Live-file freshness — TIME-based on `ts` (spec): ≤30 min fresh · 30 min–2 h stale-but-shown ·
+  // >2 h broken → ignored for display (fall back to the plan file below).
+  let liveState: 'fresh' | 'stale' | null = null;
+  let liveAgeMinutes: number | null = null;
+  let liveTs: string | null = null;
+  if (liveRaw?.ts) {
+    const ms = Date.now() - Date.parse(liveRaw.ts);
+    if (Number.isFinite(ms)) {
+      liveAgeMinutes = Math.max(0, Math.round(ms / 60000));   // for display only
+      liveTs = liveRaw.ts;
+      // Compare the RAW age so the >2h "broken" cutoff is exact — rounding to minutes would leak
+      // ~30s past it, and the spec stresses "prefer nothing over a confident wrong number".
+      if (ms <= 30 * 60000) liveState = 'fresh';
+      else if (ms <= 120 * 60000) liveState = 'stale';
+    }
+  }
+  const live = liveState != null ? liveRaw : null;   // usable live snapshot (fresh or stale), else null
+  const useLive = live != null;
+  const src = useLive ? live! : opt;                 // drives displayed targets/params (+ stake when live)
+  if (src == null) {
     return NextResponse.json({ unavailable: true, validators: [] }, { headers: { 'cache-control': 'no-store' } });
   }
 
-  // VERIFIED directed (deployment-time) overrides the optimiser's plan-time directedSol, which
-  // lags whenever directed is deployed AFTER the plan is written: the plan snapshot keeps the old
-  // directed while the SGDI total (below) already reflects the freshly-landed stake, so total −
-  // stale-directed dumps the new directed into CURVE (Hive epoch 1015→16: plan 6,802 vs verified
-  // 18,000 → 11.2k phantom curve). Falls back to the telemetry figure per-validator when absent.
+  // VERIFIED directed (deployment-time) overrides the PLAN file's plan-time directedSol, which lags
+  // whenever directed is deployed AFTER the plan is written (Hive 1015→16: plan 6,802 vs verified
+  // 18,000 → 11.2k phantom curve). Only needed on the plan-fallback path — the live file's own split
+  // is already deployment-fresh. Falls back to the telemetry figure per-validator when absent.
   let verifiedDirected: Record<string, number> = {};
-  try {
-    verifiedDirected = JSON.parse(await readFile(DIRECTED_VERIFIED_PATH, 'utf8')) as Record<string, number>;
-  } catch {
-    /* verified-directed unavailable — every validator falls back to its plan-time directedSol */
+  if (!useLive) {
+    try {
+      verifiedDirected = JSON.parse(await readFile(DIRECTED_VERIFIED_PATH, 'utf8')) as Record<string, number>;
+    } catch {
+      /* verified-directed unavailable — every validator falls back to its plan-time directedSol */
+    }
   }
 
   // Pool-level GDI + rank come from the TVL-floor-FILTERED standing (public/stats.json,
@@ -79,40 +121,36 @@ export async function GET() {
     /* published GDI unavailable — fall back to the optimiser's own gradient below */
   }
 
-  // A target/gradient is geo-derived and computed at plan time, so it is stale ONLY for a
-  // validator whose LOCATION has changed since the plan — not for the whole pool just because
-  // the plan epoch is behind. (The plan is normally an epoch behind for most of every epoch: it
-  // re-runs ≥36h in, so a global "everything is stale" flag would blank the whole table ~most of
-  // the time.) We flag a validator PER-VALIDATOR when its plan-time geo differs from live geo,
-  // and only while the plan is actually behind. For a flagged validator we null the target at the
-  // SOURCE (not just the page) so no direct consumer — embed, partner integration — reads an
-  // authoritative-looking wrong number. Current stake / directed / geo / G stay live throughout.
-  const planBehind = opt.epoch != null && liveEpoch != null && opt.epoch < liveEpoch;
+  // PLAN-FALLBACK only: a plan-time target is geo-derived, so it's stale ONLY for a validator whose
+  // LOCATION changed since the plan — flag those PER-VALIDATOR (plan-geo vs live geo) and null just
+  // their targets. Not evaluated on the live path (a live target already reflects the move).
+  const planBehind = !useLive && opt != null && opt.epoch != null && liveEpoch != null && opt.epoch < liveEpoch;
   const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
-  const validators = opt.validators.map((o) => {
+
+  const validators = src.validators.map((o) => {
     const g = gdiByVote.get(o.vote);
-    // Moved iff we have live geo AND any dimension (country / city / ASN) differs from plan geo.
+    // Moved iff (plan path only) we have live geo AND any dimension differs from the plan-time geo.
     const moved = planBehind && g != null && (
       norm(o.country) !== norm(g.country) ||
       norm(o.city) !== norm(g.city) ||
       norm(o.asn) !== norm(g.asn)
     );
-    // CURRENT stake is read LIVE from the SGDI pool file (`stake_sol`, ≈30-min fresh)
-    // instead of the optimiser's per-epoch snapshot, which is only rewritten when a plan
-    // is generated (≥36h-gated) and so shows a stale, pre-execution number between epochs.
-    // Directed comes from the VERIFIED on-chain map (deployment-fresh), falling back to the
-    // optimiser telemetry, capped at the fresh total so the split stays consistent
-    // (directed ≤ total, curve = total − directed).
-    // Falls back to the optimiser total when the SGDI figure is absent (brand-new validator).
-    const freshTotal = g?.stake_sol ?? o.totalSol;
-    const directedRaw = verifiedDirected[o.vote] ?? o.directedSol;   // prefer verified on-chain directed
-    const directed = Math.min(directedRaw, freshTotal);
-    const curve = Math.max(0, freshTotal - directed);
+    // STAKE SPLIT.
+    //  · Live path: use the live file's own totalSol/directedSol/curveSol — recomputed with the
+    //    same book as its targets, so `totalTargetSol − totalSol` reconciles exactly (the delta the
+    //    spec defines) and directed is already deployment-fresh.
+    //  · Plan path: the plan snapshot's stake lags between epochs, so read the LIVE total from SGDI
+    //    (`stake_sol`, ~30-min) and directed from the VERIFIED on-chain map, capped at the total.
+    const total = useLive ? o.totalSol : (g?.stake_sol ?? o.totalSol);
+    const directed = useLive
+      ? Math.min(o.directedSol, total)
+      : Math.min(verifiedDirected[o.vote] ?? o.directedSol, total);
+    const curve = Math.max(0, total - directed);
     return {
       vote: o.vote,
       name: o.name,
-      // Geo + G + rarities from the published GDI (authoritative, gdindex-matching); the
-      // optimiser gradient is the fallback so a brand-new validator still shows a G.
+      // Geo + G + rarities always from the published GDI (authoritative, gdindex-matching); the
+      // source gradient is the fallback so a brand-new validator still shows a G.
       country: g?.country ?? null,
       city: g?.city ?? null,
       asn: g?.asn ?? null,
@@ -122,12 +160,12 @@ export async function GET() {
       rCity: g?.r_city ?? null,
       rAsn: g?.r_asn ?? null,
       wizScore: g?.wiz_score ?? null,
-      // Current stake split: SGDI-fresh total + optimiser directed (see above).
-      totalSol: freshTotal,
+      totalSol: total,
       directedSol: directed,
       curveSol: curve,
-      // Geo-derived + plan-time — nulled only for THIS validator when it has moved (see `moved`).
-      stale: moved,                                                  // per-validator: target held back
+      // Targets: live path serves them straight (correct all epoch, never suppressed); plan path
+      // nulls them only for a moved validator (its geo-derived target is genuinely stale).
+      stale: moved,                                                  // per-validator: plan target held back
       targetCurveSol: moved ? null : o.targetCurveSol,               // legacy total sigmoid (compat)
       gradientCurve: moved ? null : (o.gradientCurve ?? null),       // model B: curve-book gradient
       curveTargetSol: moved ? null : (o.curveTargetSol ?? null),     // model B: curve target
@@ -135,10 +173,27 @@ export async function GET() {
     };
   }).sort((a, b) => b.totalSol - a.totalSol);
 
-  // Top-level flag drives the page banner: true iff at least one validator actually moved.
-  const stale = validators.some((v) => v.stale);
+  // Banner flag: on the plan path, true iff ≥1 validator moved. On the live path there is nothing to
+  // flag — the numbers are current — so it's always false.
+  const stale = !useLive && validators.some((v) => v.stale);
   return NextResponse.json(
-    { epoch: opt.epoch, liveEpoch, stale, ts: opt.ts, params: opt.params, pool, validators },
+    {
+      source: useLive ? 'live' : 'plan',
+      epoch: src.epoch,                                  // display epoch (live score epoch, or plan epoch)
+      liveEpoch,                                         // SGDI score epoch
+      planEpoch: opt?.epoch ?? null,                     // last plan's epoch (fallback banner / record)
+      liveTargets: useLive ? { ts: liveTs, ageMinutes: liveAgeMinutes, state: liveState } : null,
+      // Fell back to the plan AND the plan is behind the live epoch → the numbers are stale and the
+      // live path is down. Keyed off planBehind (not "live file present"), so an ABSENT/torn live
+      // file surfaces the fallback banner too, instead of silently serving last-epoch numbers under
+      // the page's "live" promise. When the plan is current (plan==live epoch) no banner is needed.
+      liveTargetsDown: planBehind,
+      stale,
+      ts: src.ts,
+      params: src.params,
+      pool,
+      validators,
+    },
     { headers: { 'cache-control': 'no-store' } },
   );
 }

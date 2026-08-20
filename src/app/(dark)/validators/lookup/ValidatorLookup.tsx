@@ -24,9 +24,13 @@ type Row = {
   totalTargetSol?: number | null;       // model B: directed + curve target
 };
 type Data = {
+  source?: 'live' | 'plan';   // 'live' = 15-min live book drives the numbers; 'plan' = last-plan fallback
   epoch: number | null;
   liveEpoch: number | null;   // current network/scoring epoch; if > epoch, the plan (targets) is behind
-  stale?: boolean;            // true iff ≥1 validator moved since the plan (drives the banner)
+  planEpoch?: number | null;  // the last plan's epoch (shown in the fallback note)
+  liveTargets?: { ts: string | null; ageMinutes: number | null; state: 'fresh' | 'stale' } | null;
+  liveTargetsDown?: boolean;  // live file present but >2h old → showing the plan instead
+  stale?: boolean;            // plan path only: ≥1 validator moved since the plan (drives the mover banner)
   ts: string | null;
   params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number;
             curveCapSol?: number; directedCapSol?: number; totalCapSol?: number; curveScale?: number; availableCurveSol?: number } | null;
@@ -139,6 +143,11 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
   // was normalised pool-wide at plan time and re-prices a little whenever ANY validator moves — so
   // it's a close guide, exact only as of the plan epoch, not a suppression case.
   const planBehind = data.epoch != null && data.liveEpoch != null && data.epoch < data.liveEpoch;
+  // On the live path the numbers are the 15-min live book (no "plan epoch" framing); on the plan
+  // fallback they're the last plan's book. `liveStale` = live file 30–120 min old (shown, but the
+  // updater may be lagging) — the footnote softens its confidence to match the top banner.
+  const isLive = (data.source ?? 'plan') === 'live';
+  const liveStale = data.liveTargets?.state === 'stale';
   return (
     <div style={{ marginTop: 30 }}>
       <button type="button" onClick={onBack} className="morelink" style={{ marginTop: 0, background: 'none', cursor: 'pointer' }}>← All validators</button>
@@ -239,7 +248,9 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
 
       <p style={{ marginTop: 16, fontSize: 11.5, color: 'var(--faint)', lineHeight: 1.7, maxWidth: 860 }}>
         <span style={{ color: 'var(--dim)' }}>Directed</span> (your directed principal + matching) is a protected commitment — it never moves, and it no longer affects your curve. The optimiser ranks and steers your <span style={{ color: 'var(--dim)' }}>curve</span> on the <span style={{ color: 'var(--dim)' }}>curve book alone</span> — independent of directed — toward your own <span style={{ color: 'var(--dim)' }}>GDI target</span> — sized by your marginal contribution to the <span style={{ color: 'var(--dim)' }}>published GDI</span> the pool is ranked on (your country · city · ASN rarity, the same index as your G score above){data.params ? `, shaped to a ${fmt(data.params.minStakeSol)}–${fmt(data.params.maxStakeSol)} ◎ sigmoid` : ''}: below it the optimiser <span style={{ color: 'var(--dim)' }}>allocates</span> stake toward the target (a rare curve-book seat <span style={{ color: 'var(--dim)' }}>builds</span> further, toward the cap); above it your curve is <span style={{ color: 'var(--dim)' }}>trimmed</span> toward the target; at it, <span style={{ color: 'var(--dim)' }}>held</span>. Your total is directed + curve.{data.params?.curveScale != null && data.params.curveScale < 0.99 ? ` Targets are pool-wide normalised (×${data.params.curveScale.toFixed(2)}) so they sum to the available curve.` : ''}{' '}
-        Rebalancing is gradual and operator-approved each epoch. As of plan epoch {data.epoch ?? '—'}{data.ts ? ` · ${ago(data.ts)}` : ''}{stale ? `; the network is now on epoch ${data.liveEpoch} — your target is held back until the plan catches up (targets track your live location)` : (planBehind ? `; the network is now on epoch ${data.liveEpoch} — this is as of the last plan and, because targets are normalised across the pool, it re-prices slightly whenever any validator moves` : '')}.
+        {isLive
+          ? `This is a live target — what the curve would steer to now, recomputed every 15 minutes${data.ts ? ` (updated ${ago(data.ts)})` : ''}${liveStale ? ', though the updater may be lagging, so it could be slightly behind' : ''}. It is NOT a committed move: the epoch's actual rebalance is gradual, budget-limited, gate-checked and operator-approved, so being above or below target by N does not mean N will move. Because targets are normalised across the whole pool, this figure re-prices slightly whenever any validator's stake or location changes.`
+          : `Rebalancing is gradual and operator-approved each epoch. As of plan epoch ${data.epoch ?? '—'}${data.ts ? ` · ${ago(data.ts)}` : ''}${stale ? `; the network is now on epoch ${data.liveEpoch} — your target is held back until the plan catches up (targets track your live location)` : (planBehind ? `; the network is now on epoch ${data.liveEpoch} — this is as of the last plan and, because targets are normalised across the pool, it re-prices slightly whenever any validator moves` : '')}.`}
       </p>
     </div>
   );
@@ -329,10 +340,13 @@ export default function ValidatorLookup() {
 
   const selected = useMemo(() => data?.validators.find((v) => v.vote === sel) ?? null, [sel, data]);
   const pool = data?.pool;
-  // Banner shows only when the API flags ≥1 validator as actually moved since the plan (not merely
-  // because the plan epoch is behind — that's the normal state for most of every epoch). Per-
-  // validator suppression is handled in the row/detail via each row's own `stale`.
-  const anyStale = data?.stale ?? false;
+  // Freshness/source status. On the LIVE path the numbers are the 15-min live book — correct all
+  // epoch — so there's no mover banner; we show a small freshness line (and mark it if the updater
+  // is lagging). The mover banner + per-validator suppression only apply on the PLAN fallback path
+  // (live file missing or >2h old), which the API signals via source==='plan'.
+  const source = data?.source ?? 'plan';
+  const lt = data?.liveTargets ?? null;
+  const anyStale = source === 'plan' && (data?.stale ?? false);
 
   return (
     <section className="sec" style={{ borderTop: 0 }}>
@@ -358,9 +372,30 @@ export default function ValidatorLookup() {
           </>
         ) : null}
 
-        {data && anyStale ? (
+        {/* LIVE path — freshness line (+ the load-bearing "not a plan" caveat, visible in Browse too). */}
+        {source === 'live' && lt ? (
+          lt.state === 'stale' ? (
+            <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
+              <b style={{ color: '#f2b366' }}>Live targets are {lt.ageMinutes} min old.</b> They refresh every 15 minutes, so the updater may be lagging — treat these as slightly behind. This is what the curve would target now, not a committed move.
+            </div>
+          ) : (
+            <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid var(--teal)', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
+              <b style={{ color: 'var(--teal)' }}>Targets are live.</b> Recomputed from the current book every 15 minutes{lt.ageMinutes != null ? (lt.ageMinutes < 1 ? ', last refreshed moments ago' : `, last refreshed ${lt.ageMinutes} min ago`) : ''} — correct all epoch, not just after a plan. This is what the curve would target <b>now</b>, not a committed move: the epoch&apos;s actual rebalance is smaller — budget-limited, gate-checked and operator-approved, so being N above target doesn&apos;t mean N moves.
+            </div>
+          )
+        ) : null}
+
+        {/* PLAN fallback — live source down (>2h) or absent. */}
+        {source === 'plan' && data?.liveTargetsDown ? (
           <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
-            <b style={{ color: '#f2b366' }}>A validator has moved since the last plan.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that changed location carries an out-of-date one — <b>those are held back</b> until the next plan (usually within a day). Targets are also normalised across the whole pool, so every other target re-prices slightly when the book changes — the rest are shown <b>as of epoch {data.epoch}</b>, a close guide that&apos;s exact at their plan. Stake, directed and geo here are live.
+            <b style={{ color: '#f2b366' }}>Live target figures are temporarily unavailable.</b> Showing the last approved plan{data.planEpoch != null ? ` (epoch ${data.planEpoch})` : ''}, which may lag the current book — the live updater will resume shortly.
+          </div>
+        ) : null}
+
+        {/* PLAN fallback — a validator moved since that plan (its target is genuinely stale). */}
+        {source === 'plan' && data && anyStale ? (
+          <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
+            <b style={{ color: '#f2b366' }}>A validator has moved since the last plan.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that changed location carries an out-of-date one — <b>those are held back</b> until the next plan. Targets are also normalised across the whole pool, so every other target re-prices slightly when the book changes — the rest are shown <b>as of epoch {data.epoch}</b>, a close guide that&apos;s exact at their plan. Stake, directed and geo here are live.
           </div>
         ) : null}
 

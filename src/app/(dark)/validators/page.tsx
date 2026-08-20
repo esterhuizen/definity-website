@@ -137,7 +137,7 @@ export default function ValidatorsPage() {
             <p>
               Look up your validator in the Definity pool — how much stake you currently hold
               (directed and curve), your G score, and the curve target the optimiser is steering
-              toward. The exact numbers the optimiser uses, updated each epoch.
+              toward. The exact numbers the optimiser uses, recomputed live every 15 minutes.
             </p>
             <TrackedLink className="morelink" href="/validators/lookup" event="cta_validator_lookup">
               Look up your pool position →
