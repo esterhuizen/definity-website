@@ -17,11 +17,14 @@ const COINGECKO = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_c
 
 type Stats = { totalSol?: number; baseApyPct?: number; updatedAt?: string; gdi?: { epoch?: number } };
 
-async function fetchStats(reqUrl: string): Promise<Stats | null> {
-  // Read the site's own hourly stats.json over the same origin — robust across
-  // prod/staging/dev without hard-coding the release path.
+async function fetchStats(): Promise<Stats | null> {
+  // Read the site's own hourly stats.json over LOOPBACK — not the public hostname:
+  // behind Cloudflare (with a Cloudflare-only origin firewall) a server-side fetch of
+  // https://definity.finance/stats.json loops through the edge and fails. 127.0.0.1:PORT
+  // hits this same Next process directly and is robust across prod/staging/dev.
+  const url = process.env.STATS_JSON_URL || `http://127.0.0.1:${process.env.PORT || '3000'}/stats.json`;
   try {
-    const r = await fetch(new URL('/stats.json', reqUrl), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+    const r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
     if (!r.ok) return null;
     return (await r.json()) as Stats;
   } catch {
@@ -51,7 +54,7 @@ const numParam = (v: string | null): number | null => {
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const [stats, price] = await Promise.all([fetchStats(req.url), fetchSolPrice()]);
+  const [stats, price] = await Promise.all([fetchStats(), fetchSolPrice()]);
 
   const liveTvl = typeof stats?.totalSol === 'number' ? stats.totalSol : null;
   const liveApy = typeof stats?.baseApyPct === 'number' ? stats.baseApyPct : null;
