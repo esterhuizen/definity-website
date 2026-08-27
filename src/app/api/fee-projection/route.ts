@@ -23,7 +23,7 @@ const DEFAULT_EPOCH_DAYS = 1.83;        // measured fallback (epochs 1021–1022
 const SLOTS_PER_EPOCH = 432_000;
 const YEAR_DAYS = 365.25;
 const MONTH_DAYS = 30.4375;
-const COINGECKO = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,nzd';
+const COINGECKO = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd,nzd&include_last_updated_at=true';
 const PUBLIC_RPC = process.env.PUBLIC_SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 
 type Stats = { totalSol?: number; baseApyPct?: number; exchangeRate?: number; updatedAt?: string; gdi?: { epoch?: number } };
@@ -38,21 +38,24 @@ async function fetchStats(): Promise<Stats | null> {
   }
 }
 
-async function fetchSolPrice(): Promise<{ usd: number | null; nzd: number | null; source: string | null }> {
+async function fetchSolPrice(): Promise<{ usd: number | null; nzd: number | null; source: string | null; updatedAt: string | null }> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await fetch(COINGECKO, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const s = ((await r.json()) as { solana?: { usd?: number; nzd?: number } }).solana ?? {};
+      const s = ((await r.json()) as { solana?: { usd?: number; nzd?: number; last_updated_at?: number } }).solana ?? {};
       const usd = typeof s.usd === 'number' && s.usd > 0 ? s.usd : null;
       const nzd = typeof s.nzd === 'number' && s.nzd > 0 ? s.nzd : null;
       if (usd == null) throw new Error('no usd');
-      return { usd, nzd, source: 'coingecko' };
+      // CoinGecko's own last-updated time for the SOL price (when the datum was current, not just
+      // when we fetched it) — the honest "price as of" timestamp for the page.
+      const updatedAt = typeof s.last_updated_at === 'number' ? new Date(s.last_updated_at * 1000).toISOString() : null;
+      return { usd, nzd, source: 'coingecko', updatedAt };
     } catch {
       /* retry once, then give up gracefully */
     }
   }
-  return { usd: null, nzd: null, source: null };
+  return { usd: null, nzd: null, source: null, updatedAt: null };
 }
 
 async function fetchEpochDays(): Promise<{ days: number; source: 'live' | 'default' }> {
@@ -155,6 +158,7 @@ export async function GET(req: Request) {
         solUsd,
         solNzd,
         priceSource: price.source,
+        priceUpdatedAt: price.updatedAt,
         epochDays,
         epochDaysSource: url.searchParams.has('epochDays') ? 'override' : epochLen.source,
         epochsPerMonth,

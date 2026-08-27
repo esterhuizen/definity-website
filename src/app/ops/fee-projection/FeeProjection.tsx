@@ -18,6 +18,7 @@ type Data = {
     solUsd: number | null;
     solNzd: number | null;
     priceSource: string | null;
+    priceUpdatedAt: string | null;
     epochDays: number;
     epochDaysSource: 'live' | 'default' | 'override';
     epochsPerMonth: number;
@@ -49,6 +50,8 @@ function ago(iso: string | null): string {
   const h = Math.round(m / 60);
   return h < 48 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }
+// Absolute UTC clock (HH:MM:SS) for the price timestamp.
+const clockUTC = (iso: string | null): string => (iso ? `${new Date(iso).toISOString().slice(11, 19)} UTC` : '—');
 
 const CARD: React.CSSProperties = { background: 'rgba(8,16,90,.34)', border: '1px solid var(--hair)', padding: '26px 30px', flex: '1 1 300px' };
 const SERIF: React.CSSProperties = { fontFamily: 'var(--serif)' };
@@ -106,7 +109,7 @@ export function FeeProjection() {
         {i?.epoch != null ? <span>epoch {i.epoch}</span> : null}
         {i ? <span>epoch length {num(i.epochDays, 2)}d {i.epochDaysSource === 'live' ? '(live)' : i.epochDaysSource === 'override' ? '(set)' : '(est)'}</span> : null}
         {i?.statsUpdatedAt ? <span>stake/APY {ago(i.statsUpdatedAt)}</span> : null}
-        {i?.priceSource ? <span>price · {i.priceSource}</span> : null}
+        {i?.priceSource ? <span>SOL price · {i.priceSource}{i.priceUpdatedAt ? ` · ${ago(i.priceUpdatedAt)}` : ''}</span> : null}
         {whatIf ? <span style={{ color: '#f2b366' }}>what-if: {i?.overridden.join(', ')}</span> : null}
       </div>
 
@@ -153,7 +156,7 @@ export function FeeProjection() {
             <Row k="Definity fee / epoch" v={`${num(data?.perEpoch.defSol ?? null, 2)} definSOL · ${sol(data?.perEpoch.sol ?? null)}`} />
             <Row k="Epoch length" v={`${num(i?.epochDays ?? null, 2)} days`} note={`${num(i?.epochsPerMonth ?? null, 2)} epochs / month`} />
             <Row k="Definity fee / month" v={`${num(data?.monthly.defSol ?? null, 1)} definSOL · ${sol(data?.monthly.sol ?? null)}`} />
-            <Row k="SOL price" v={i?.solUsd != null ? `US$${num(i.solUsd)} · NZ$${num(i?.solNzd ?? null)}` : '—'} />
+            <Row k="SOL price" v={i?.solUsd != null ? `US$${num(i.solUsd)} · NZ$${num(i?.solNzd ?? null)}` : '—'} note={i?.priceUpdatedAt ? `${i.priceSource ?? 'live'} · as of ${clockUTC(i.priceUpdatedAt)} · ${ago(i.priceUpdatedAt)}` : (i?.priceSource ?? undefined)} />
           </tbody>
         </table>
       </div>
