@@ -1,24 +1,25 @@
 import { NextResponse } from 'next/server';
 
-// Live pool-fee projection for the unlisted /ops/fee-projection page.
+// Live projection of DEFINITY's pool-fee income for the unlisted /ops/fee-projection page.
 //
-// TWO figures, deliberately:
-//  · OBSERVED (headline, accurate): the operator's actual take, ~3.4 definSOL/epoch,
-//    projected to a month using the live epoch cadence. This is ground truth.
-//  · APY MODEL (cross-check): TVL × gross APY × 7.5% fee. Gross = net / (1 − fee),
-//    since the 7.5% is skimmed off gross staking rewards. This runs ~40% hot versus
-//    the observed take (baseApyPct overstates the pool's realised yield), so it's shown
-//    only as a sanity comparison, not the headline.
+// The pool charges a 7.5% fee on gross staking rewards; of that, Definity keeps 5% and
+// Sanctum takes 2.5%. So Definity's income is:
 //
-// TVL, APY and the definSOL⇄SOL exchange rate come from the site's hourly stats.json;
-// SOL→USD/NZD from CoinGecko; epoch length live from slot time. Everything overridable
-// via query (?perEpoch=&apy=&fee=&tvl=&sol=&nzd=&epochDays=).
+//   Definity annual (SOL) = TVL × grossAPY × 5%
+//   grossAPY = netAPY / (1 − 7.5%)          (definSOL's published yield is net of the full fee)
+//   monthly  = annual / 12 ;  per-epoch uses the live epoch length
+//
+// This reconciles with the operator's observed ~3.4 definSOL/epoch (shown as a check).
+// TVL, netAPY and the definSOL⇄SOL rate come from the site's hourly stats.json; SOL→USD/NZD
+// from CoinGecko; epoch length live from slot time. Overridable via query
+// (?apy=&poolFee=&definityFee=&tvl=&sol=&nzd=&epochDays=&perEpoch=).
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_FEE_PCT = 7.5;
-const DEFAULT_PER_EPOCH_DEFSOL = 3.4;   // operator-observed, last 2 epochs (2026-08)
-const DEFAULT_EPOCH_DAYS = 1.83;        // measured fallback (epochs 1021–1022 ran 43.9 h)
+const DEFAULT_POOL_FEE_PCT = 7.5;       // total pool fee on rewards
+const DEFAULT_DEFINITY_FEE_PCT = 5.0;   // Definity's share (Sanctum takes the rest, 2.5%)
+const DEFAULT_OBSERVED_DEFSOL = 3.4;    // operator-observed Definity take, last 2 epochs (2026-08)
+const DEFAULT_EPOCH_DAYS = 1.83;        // measured fallback (epochs 1021–1022 ran ~43.9 h)
 const SLOTS_PER_EPOCH = 432_000;
 const YEAR_DAYS = 365.25;
 const MONTH_DAYS = 30.4375;
@@ -26,12 +27,9 @@ const COINGECKO = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_c
 const PUBLIC_RPC = process.env.PUBLIC_SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 
 type Stats = { totalSol?: number; baseApyPct?: number; exchangeRate?: number; updatedAt?: string; gdi?: { epoch?: number } };
-
 const loopback = (path: string) => `http://127.0.0.1:${process.env.PORT || '3000'}${path}`;
 
 async function fetchStats(): Promise<Stats | null> {
-  // Loopback, not the public hostname: behind Cloudflare + the Cloudflare-only origin
-  // firewall a server-side fetch of the public URL loops the edge and fails.
   try {
     const r = await fetch(loopback('/stats.json'), { cache: 'no-store', signal: AbortSignal.timeout(8000) });
     return r.ok ? ((await r.json()) as Stats) : null;
@@ -41,7 +39,6 @@ async function fetchStats(): Promise<Stats | null> {
 }
 
 async function fetchSolPrice(): Promise<{ usd: number | null; nzd: number | null; source: string | null }> {
-  // Two attempts — CoinGecko's free tier blips under bursty polling; one retry clears most.
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const r = await fetch(COINGECKO, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(8000) });
@@ -52,13 +49,12 @@ async function fetchSolPrice(): Promise<{ usd: number | null; nzd: number | null
       if (usd == null) throw new Error('no usd');
       return { usd, nzd, source: 'coingecko' };
     } catch {
-      /* retry once, then give up gracefully (SOL amounts still render; fiat shows —) */
+      /* retry once, then give up gracefully */
     }
   }
   return { usd: null, nzd: null, source: null };
 }
 
-// Live epoch length from recent slot time (public RPC); falls back to the measured default.
 async function fetchEpochDays(): Promise<{ days: number; source: 'live' | 'default' }> {
   try {
     const r = await fetch(PUBLIC_RPC, {
@@ -113,11 +109,12 @@ export async function GET(req: Request) {
 
   const tvlSol = numParam(url.searchParams.get('tvl')) ?? (typeof stats?.totalSol === 'number' ? stats.totalSol : null);
   const netApyPct = numParam(url.searchParams.get('apy')) ?? (typeof stats?.baseApyPct === 'number' ? stats.baseApyPct : null);
-  const feePct = numParam(url.searchParams.get('fee')) ?? DEFAULT_FEE_PCT;
+  const poolFeePct = numParam(url.searchParams.get('poolFee')) ?? DEFAULT_POOL_FEE_PCT;
+  const definityFeePct = numParam(url.searchParams.get('definityFee')) ?? DEFAULT_DEFINITY_FEE_PCT;
   const exchangeRate = typeof stats?.exchangeRate === 'number' && stats.exchangeRate > 0 ? stats.exchangeRate : 1;
   const solUsd = numParam(url.searchParams.get('sol')) ?? price.usd;
   const solNzd = numParam(url.searchParams.get('nzd')) ?? price.nzd;
-  const perEpochDefSol = numParam(url.searchParams.get('perEpoch')) ?? DEFAULT_PER_EPOCH_DEFSOL;
+  const observedPerEpochDefSol = numParam(url.searchParams.get('perEpoch')) ?? DEFAULT_OBSERVED_DEFSOL;
   const epochDays = numParam(url.searchParams.get('epochDays')) ?? epochLen.days;
 
   if (tvlSol == null || netApyPct == null) {
@@ -129,39 +126,19 @@ export async function GET(req: Request) {
 
   const epochsPerYear = YEAR_DAYS / epochDays;
   const epochsPerMonth = MONTH_DAYS / epochDays;
-  const feeFrac = feePct / 100;
-  const grossApyPct = netApyPct / (1 - feeFrac); // 7.5% skimmed off gross → gross = net / 0.925
+  const sanctumFeePct = Math.max(0, poolFeePct - definityFeePct);
+  const grossApyPct = netApyPct / (1 - poolFeePct / 100); // net yield is after the FULL pool fee
+
+  // Definity's income = gross rewards × Definity's share.
+  const annualSol = tvlSol * (grossApyPct / 100) * (definityFeePct / 100);
+  const monthlySol = annualSol / 12;
+  const perEpochSol = annualSol / epochsPerYear;
+  const perEpochDefSol = exchangeRate > 0 ? perEpochSol / exchangeRate : null;
   const usd = (sol: number) => (solUsd != null ? sol * solUsd : null);
   const nzd = (sol: number) => (solNzd != null ? sol * solNzd : null);
 
-  // OBSERVED (headline): the operator's actual take.
-  const obsEpochSol = perEpochDefSol * exchangeRate;
-  const obsMonthSol = obsEpochSol * epochsPerMonth;
-  const obsYearSol = obsEpochSol * epochsPerYear;
-  const observed = {
-    perEpochDefSol,
-    perEpochSol: obsEpochSol,
-    monthlyDefSol: perEpochDefSol * epochsPerMonth,
-    monthly: { sol: obsMonthSol, usd: usd(obsMonthSol), nzd: nzd(obsMonthSol) },
-    annual: { sol: obsYearSol, usd: usd(obsYearSol), nzd: nzd(obsYearSol) },
-  };
-
-  // APY MODEL (gross basis) — cross-check.
-  const mdlYearSol = tvlSol * (grossApyPct / 100) * feeFrac;
-  const mdlMonthSol = mdlYearSol / 12;
-  const mdlEpochSol = mdlYearSol / epochsPerYear;
-  const model = {
-    basis: 'gross',
-    grossApyPct,
-    netApyPct,
-    perEpochDefSol: exchangeRate > 0 ? mdlEpochSol / exchangeRate : null,
-    monthly: { sol: mdlMonthSol, usd: usd(mdlMonthSol), nzd: nzd(mdlMonthSol) },
-    annual: { sol: mdlYearSol, usd: usd(mdlYearSol), nzd: nzd(mdlYearSol) },
-  };
-
-  const modelVsObserved = observed.perEpochDefSol > 0 && model.perEpochDefSol != null
-    ? model.perEpochDefSol / observed.perEpochDefSol
-    : null;
+  const ratioModelToObserved =
+    perEpochDefSol != null && observedPerEpochDefSol > 0 ? perEpochDefSol / observedPerEpochDefSol : null;
 
   return NextResponse.json(
     {
@@ -171,7 +148,9 @@ export async function GET(req: Request) {
         tvlSol,
         netApyPct,
         grossApyPct,
-        feePct,
+        poolFeePct,
+        definityFeePct,
+        sanctumFeePct,
         exchangeRate,
         solUsd,
         solNzd,
@@ -182,11 +161,13 @@ export async function GET(req: Request) {
         epochsPerYear,
         epoch: chainEpoch ?? stats?.gdi?.epoch ?? null,
         statsUpdatedAt: stats?.updatedAt ?? null,
-        overridden: ['perEpoch', 'apy', 'fee', 'tvl', 'sol', 'nzd', 'epochDays'].filter((k) => url.searchParams.has(k)),
+        observedPerEpochDefSol,
+        overridden: ['apy', 'poolFee', 'definityFee', 'tvl', 'sol', 'nzd', 'epochDays', 'perEpoch'].filter((k) => url.searchParams.has(k)),
       },
-      observed,
-      model,
-      modelVsObserved,
+      perEpoch: { defSol: perEpochDefSol, sol: perEpochSol },
+      monthly: { sol: monthlySol, usd: usd(monthlySol), nzd: nzd(monthlySol), defSol: monthlySol / (exchangeRate || 1) },
+      annual: { sol: annualSol, usd: usd(annualSol), nzd: nzd(annualSol) },
+      check: { observedPerEpochDefSol, ratioModelToObserved },
     },
     { headers: { 'cache-control': 'no-store' } },
   );
