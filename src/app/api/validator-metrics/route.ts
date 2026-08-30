@@ -25,6 +25,12 @@ const DIRECTED_VERIFIED_PATH = process.env.DIRECTED_VERIFIED_PATH ?? '/var/lib/d
 const POOL = process.env.DEFINSOL_POOL ?? 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const GDI_POOL_PATH =
   process.env.GDI_POOL_PATH ?? `/var/lib/sgdi/published/pools/${POOL}/latest.json`;
+// LIVE geo — SGDI's flap-debounced current location per validator, republished every ~15 min.
+// The GDI pool file above is FROZEN per epoch: it says where a validator was when the score was
+// computed. This one says where it is NOW (a tuple only becomes "stable" after repeated sightings,
+// so a flapping IP does not move anyone). Freshness is TIME-based on `computed_at` — stamped at the
+// ingest tick — for the same reason as the live targets: its `epoch` stays put if the writer dies.
+const GEO_LIVE_PATH = process.env.GEO_LIVE_PATH ?? '/var/lib/sgdi/published/geo-live.json';
 
 type OptRow = { vote: string; name: string | null; directedSol: number; curveSol: number; totalSol: number; targetCurveSol: number; gradient: number;
   // Plan-time geo (what the target/gradient were computed on). Compared against the LIVE geo
@@ -37,6 +43,12 @@ type OptSnap = { epoch: number; ts: string; params: { minStakeSol: number; maxSt
   curveCapSol?: number; directedCapSol?: number; totalCapSol?: number; curveScale?: number; availableCurveSol?: number }; validators: OptRow[] };
 type GdiVal = { pubkey: string; g: number; r_country: number; r_city: number; r_asn: number; country: string | null; city: string | null; asn: string | null; asn_name: string | null; wiz_score: number | null; stake_sol: number };
 type GdiPool = { score: { gdi: number; epoch: number }; rank: number; total_ranked: number; validators: GdiVal[] };
+// Live-geo file: the `country/city/asn` on a row is the STABLE (confirmed) tuple = current location;
+// `candidate` is a location change seen but not yet confirmed, so it never replaces the stable one.
+type GeoLiveCand = { country: string | null; city: string | null; asn: string | null; asn_name: string | null; count: number; first_seen: string };
+type GeoLiveVal = { vote: string; country: string | null; city: string | null; asn: string | null; asn_name: string | null;
+  stable_since: string | null; observations: number; present: boolean; last_seen: string; moving?: boolean; candidate?: GeoLiveCand };
+type GeoLiveSnap = { schema: string; computed_at: string; published_at: string; epoch: number; stable_k: number; validators: GeoLiveVal[] };
 
 const readSnap = async (path: string): Promise<OptSnap | null> => {
   try {
@@ -44,6 +56,16 @@ const readSnap = async (path: string): Promise<OptSnap | null> => {
     // Guard a valid-JSON-but-malformed/torn snapshot (the live file is rewritten every 15 min):
     // without a validators array the consumer would 500. Treat as absent → fall back to the other.
     return Array.isArray(s?.validators) ? s : null;
+  } catch { return null; }
+};
+
+const readGeoLive = async (path: string): Promise<GeoLiveSnap | null> => {
+  try {
+    const s = JSON.parse(await readFile(path, 'utf8')) as GeoLiveSnap;
+    // Same torn-read guard as readSnap, plus the schema tag: this file is rewritten every ~15 min,
+    // and a shape we don't recognise must read as ABSENT (fall back to the frozen published geo)
+    // rather than as "nobody has a location".
+    return s?.schema === 'sgdi.geo-live/1' && Array.isArray(s?.validators) ? s : null;
   } catch { return null; }
 };
 
@@ -56,7 +78,7 @@ export async function GET() {
   //  · PLAN (validator-targets.json): what the last APPROVED plan computed. Lags ~¾ of every epoch
   //    (≥36h gate). Kept as the >2h fallback + record of "targets as planned"; its `epoch` drives
   //    planBehind + mover-suppression in that fallback path only. NEVER swap planBehind to live.
-  const [opt, liveRaw] = await Promise.all([readSnap(TARGETS_PATH), readSnap(LIVE_TARGETS_PATH)]);
+  const [opt, liveRaw, geoRaw] = await Promise.all([readSnap(TARGETS_PATH), readSnap(LIVE_TARGETS_PATH), readGeoLive(GEO_LIVE_PATH)]);
 
   // Live-file freshness — TIME-based on `ts` (spec): ≤30 min fresh · 30 min–2 h stale-but-shown ·
   // >2 h broken → ignored for display (fall back to the plan file below).
@@ -80,6 +102,24 @@ export async function GET() {
   if (src == null) {
     return NextResponse.json({ unavailable: true, validators: [] }, { headers: { 'cache-control': 'no-store' } });
   }
+
+  // Live-geo freshness — TIME-based on `computed_at`, on the SAME tiers as the live targets above
+  // (one freshness convention on this page): ≤30 min fresh · 30 min–2 h degraded (shown, the writer
+  // may be lagging) · >2 h broken → treated as ABSENT, so the page falls back to the frozen
+  // published geo instead of presenting a two-hour-old location as "current".
+  let geoState: 'fresh' | 'degraded' | null = null;
+  let geoAgeMinutes: number | null = null;
+  if (geoRaw?.computed_at) {
+    const ms = Date.now() - Date.parse(geoRaw.computed_at);
+    if (Number.isFinite(ms)) {
+      geoAgeMinutes = Math.max(0, Math.round(ms / 60000));   // for display only
+      // Raw-age comparison, as above, so the >2h cutoff is exact.
+      if (ms <= 30 * 60000) geoState = 'fresh';
+      else if (ms <= 120 * 60000) geoState = 'degraded';
+    }
+  }
+  const geoLive = geoState != null ? geoRaw : null;          // usable live-geo snapshot, else null
+  const geoByVote = new Map<string, GeoLiveVal>((geoLive?.validators ?? []).map((v) => [v.vote, v]));
 
   // VERIFIED directed (deployment-time) overrides the PLAN file's plan-time directedSol, which lags
   // whenever directed is deployed AFTER the plan is written (Hive 1015→16: plan 6,802 vs verified
@@ -126,15 +166,48 @@ export async function GET() {
   // their targets. Not evaluated on the live path (a live target already reflects the move).
   const planBehind = !useLive && opt != null && opt.epoch != null && liveEpoch != null && opt.epoch < liveEpoch;
   const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
+  // Geo comparison against the LIVE file. A dimension only counts when BOTH sides report it: the
+  // city is absent for ~1 in 4 validators (the MMDB has no city for that IP) and the two passes
+  // don't always agree on which — comparing an absent city reports a move for a validator that has
+  // not moved (that artifact is EVERY divergence in the pool today, 7 of 34). Absent ≠ changed.
+  type Geo3 = { country?: string | null; city?: string | null; asn?: string | null };
+  const dimDiffers = (a: string | null | undefined, b: string | null | undefined) =>
+    norm(a) !== '' && norm(b) !== '' && norm(a) !== norm(b);
+  const geoDiffers = (a: Geo3, b: Geo3) =>
+    dimDiffers(a.country, b.country) || dimDiffers(a.city, b.city) || dimDiffers(a.asn, b.asn);
 
   const validators = src.validators.map((o) => {
     const g = gdiByVote.get(o.vote);
-    // Moved iff (plan path only) we have live geo AND any dimension differs from the plan-time geo.
-    const moved = planBehind && g != null && (
-      norm(o.country) !== norm(g.country) ||
-      norm(o.city) !== norm(g.city) ||
-      norm(o.asn) !== norm(g.asn)
-    );
+    const gl = geoByVote.get(o.vote);
+    // Current location (stable tuple) + any unconfirmed change in flight. Null when the file is
+    // absent/broken/stale or this validator has no stable tuple yet — the page then shows published.
+    const liveGeo = gl == null ? null : {
+      country: gl.country ?? null,
+      city: gl.city ?? null,
+      asn: gl.asn ?? null,
+      asnName: gl.asn_name ?? null,
+      stableSince: gl.stable_since ?? null,
+      moving: gl.moving === true,
+      candidate: gl.candidate
+        ? { country: gl.candidate.country ?? null, city: gl.candidate.city ?? null, asn: gl.candidate.asn ?? null,
+            count: gl.candidate.count, firstSeen: gl.candidate.first_seen }
+        : null,
+    };
+    // Current location differs from the location the published score was computed on.
+    const geoDiverged = liveGeo != null && g != null && geoDiffers(liveGeo, g);
+    // Moved iff (plan path only) the validator's location differs from the plan-time geo. The
+    // question is "did this validator move since the plan was computed", and the LIVE geo answers
+    // it better than the published pool file — that file is itself frozen at the score epoch, so it
+    // misses a move made after it. The frozen comparison stays as the degraded-path answer, raw:
+    // both of its sides come out of the same enrichment pass, so an absent city means the same
+    // thing on each and the original all-dimension compare holds.
+    const moved = planBehind && (liveGeo != null
+      ? geoDiffers(liveGeo, o)
+      : g != null && (
+          norm(o.country) !== norm(g.country) ||
+          norm(o.city) !== norm(g.city) ||
+          norm(o.asn) !== norm(g.asn)
+        ));
     // STAKE SPLIT.
     //  · Live path: use the live file's own totalSol/directedSol/curveSol — recomputed with the
     //    same book as its targets, so `totalTargetSol − totalSol` reconciles exactly (the delta the
@@ -155,6 +228,10 @@ export async function GET() {
       city: g?.city ?? null,
       asn: g?.asn ?? null,
       asnName: g?.asn_name ?? null,
+      // Current location (live, ~15 min) alongside the published/frozen geo above — the page shows
+      // live as "where you are" and keeps published as "what the score was computed on".
+      liveGeo,
+      geoDiverged,
       g: g?.g ?? o.gradient,
       rCountry: g?.r_country ?? null,
       rCity: g?.r_city ?? null,
@@ -183,6 +260,8 @@ export async function GET() {
       liveEpoch,                                         // SGDI score epoch
       planEpoch: opt?.epoch ?? null,                     // last plan's epoch (fallback banner / record)
       liveTargets: useLive ? { ts: liveTs, ageMinutes: liveAgeMinutes, state: liveState } : null,
+      // Live-geo freshness (null = absent/broken/>2h → every row falls back to published geo).
+      geoLive: geoLive != null ? { computedAt: geoLive.computed_at, ageMinutes: geoAgeMinutes, state: geoState } : null,
       // Fell back to the plan AND the plan is behind the live epoch → the numbers are stale and the
       // live path is down. Keyed off planBehind (not "live file present"), so an ABSENT/torn live
       // file surfaces the fallback banner too, instead of silently serving last-epoch numbers under

@@ -9,6 +9,15 @@ type Row = {
   city: string | null;
   asn: string | null;
   asnName: string | null;
+  // Current location (SGDI live geo, ~15 min, flap-debounced). Null when that source is absent/
+  // stale or this validator has no confirmed location yet — the published fields above are then it.
+  liveGeo?: {
+    country: string | null; city: string | null; asn: string | null; asnName: string | null;
+    stableSince: string | null;
+    moving: boolean;                    // a location change is in flight, not yet confirmed
+    candidate: { country: string | null; city: string | null; asn: string | null; count: number; firstSeen: string } | null;
+  } | null;
+  geoDiverged?: boolean;                // current location ≠ the location the published score used
   g: number;
   rCountry: number | null;
   rCity: number | null;
@@ -30,6 +39,7 @@ type Data = {
   planEpoch?: number | null;  // the last plan's epoch (shown in the fallback note)
   liveTargets?: { ts: string | null; ageMinutes: number | null; state: 'fresh' | 'stale' } | null;
   liveTargetsDown?: boolean;  // live file present but >2h old → showing the plan instead
+  geoLive?: { computedAt: string | null; ageMinutes: number | null; state: 'fresh' | 'degraded' } | null;   // null → rows show published geo
   stale?: boolean;            // plan path only: ≥1 validator moved since the plan (drives the mover banner)
   ts: string | null;
   params: { minStakeSol: number; maxStakeSol: number; curveK: number; incGradMin?: number; minMove?: number;
@@ -41,7 +51,17 @@ type Data = {
 
 const fmt = (n: number, d = 0) => n.toLocaleString('en-US', { maximumFractionDigits: d });
 const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
-const geo = (v: Row) => [v.city, v.country, v.asn].filter(Boolean).join(' · ') || '—';
+// Displayed geo is LIVE-primary: an operator reading their own row means "where am I now", and the
+// published fields are frozen at the score epoch. Falls back to published whenever live is absent.
+const geo = (v: Row) => {
+  const l = v.liveGeo;
+  return (l ? [l.city, l.country, l.asn] : [v.city, v.country, v.asn]).filter(Boolean).join(' · ') || '—';
+};
+// The location the PUBLISHED score was computed on — shown next to the live one when they differ.
+const publishedGeo = (v: Row) => [v.city, v.country, v.asn].filter(Boolean).join(' · ') || '—';
+const asnNameOf = (v: Row) => v.liveGeo?.asnName ?? v.asnName;   // track whichever geo is displayed
+// Sightings needed before a location change is confirmed — geo-live.json `stable_k` (6).
+const GEO_STABLE_K = 6;
 // Open GDI (gdindex.app) — the pool's page (where each validator lands) and a validator's own profile.
 const GDI_POOL_URL = 'https://gdindex.app/pools/Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const gdiValidatorUrl = (vote: string) => `https://gdindex.app/validator/${vote}`;
@@ -157,7 +177,21 @@ function Detail({ v, data, onBack }: { v: Row; data: Data; onBack: () => void })
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: 'space-between', alignItems: 'flex-start', padding: '24px 26px', borderBottom: HAIR }}>
           <div>
             <div style={{ ...SERIF, fontWeight: 600, fontSize: 30, lineHeight: 1 }}>{v.name || short(v.vote)}</div>
-            <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--dim)' }}>{geo(v)}{v.asnName ? ` · ${v.asnName}` : ''}</div>
+            <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--dim)' }}>{geo(v)}{asnNameOf(v) ? ` · ${asnNameOf(v)}` : ''}{v.geoDiverged ? ' — current location' : ''}</div>
+            {/* Location moved since the published score. Both are shown: the score (and so the
+                target) is still derived from the frozen published location for this epoch.
+                TODO(S5): when the optimiser prices live geo, this becomes "used for your target". */}
+            {v.geoDiverged ? (
+              <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--faint)', lineHeight: 1.6, maxWidth: 560 }}>
+                The published score for epoch {data.liveEpoch ?? data.epoch} still uses <span style={{ color: 'var(--dim)' }}>{publishedGeo(v)}</span>; it re-derives at the next epoch from the then-current location.
+              </div>
+            ) : null}
+            {/* Unconfirmed change in flight — the shown location does not move until it confirms. */}
+            {v.liveGeo?.moving && v.liveGeo.candidate ? (
+              <div style={{ marginTop: 6, fontSize: 11.5, color: '#f2b366', lineHeight: 1.6, maxWidth: 560 }}>
+                Location change detected — {[...new Set([v.liveGeo.candidate.city, v.liveGeo.candidate.country].filter(Boolean))].join(', ') || 'new location'}, unconfirmed ({v.liveGeo.candidate.count} of {GEO_STABLE_K}). Shown location remains {geo(v)} until confirmed.
+              </div>
+            ) : null}
             <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'baseline' }}>
               <a href={`https://solscan.io/account/${v.vote}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--faint)', textDecoration: 'none', letterSpacing: '.04em' }}>{short(v.vote)} ↗</a>
               <a href={gdiValidatorUrl(v.vote)} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: 'var(--teal)', textDecoration: 'none', letterSpacing: '.04em' }}>GDI profile — your rank &amp; rarity ↗</a>
@@ -288,7 +322,10 @@ function Browse({ rows, onPick, params }: { rows: Row[]; onPick: (vote: string) 
                 >
                   <td style={{ padding: '13px 18px' }}>
                     <div style={{ color: '#fff' }}>{v.name || short(v.vote)}</div>
-                    <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{geo(v)}</div>
+                    {/* Live-primary geo; a quiet suffix when it differs from the published score's
+                        location — the Detail view explains which is which.
+                        TODO(S5): when the optimiser prices live geo, this divergence stops mattering. */}
+                    <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 3 }}>{geo(v)}{v.geoDiverged ? ' · moved' : ''}</div>
                   </td>
                   <td style={{ ...td, color: '#fff' }}>{fmt(v.totalSol)}</td>
                   <td style={{ ...td, color: 'var(--dim)' }}>{fmt(v.directedSol)}</td>
@@ -335,7 +372,9 @@ export default function ValidatorLookup() {
     const s = q.trim().toLowerCase();
     const all = data?.validators ?? [];
     if (!s) return all;
-    return all.filter((v) => `${v.name ?? ''} ${v.vote} ${v.city ?? ''} ${v.country ?? ''} ${v.asn ?? ''}`.toLowerCase().includes(s));
+    // Both locations are searchable: the rows DISPLAY live geo, so a search for what's on screen
+    // must hit — and the published one keeps matching for anyone searching the scored location.
+    return all.filter((v) => `${v.name ?? ''} ${v.vote} ${v.city ?? ''} ${v.country ?? ''} ${v.asn ?? ''} ${v.liveGeo?.city ?? ''} ${v.liveGeo?.country ?? ''} ${v.liveGeo?.asn ?? ''}`.toLowerCase().includes(s));
   }, [q, data]);
 
   const selected = useMemo(() => data?.validators.find((v) => v.vote === sel) ?? null, [sel, data]);
@@ -347,6 +386,17 @@ export default function ValidatorLookup() {
   const source = data?.source ?? 'plan';
   const lt = data?.liveTargets ?? null;
   const anyStale = source === 'plan' && (data?.stale ?? false);
+  // Live-location freshness. Locations fall back to the published (frozen) geo when the live source
+  // is absent or >2h old, so this is a quiet one-liner, not an alarm — nothing on the page breaks.
+  const geoLive = data?.geoLive ?? null;
+  const geoDegradedAge = geoLive?.state === 'degraded' ? geoLive.ageMinutes : null;
+  const geoNote = !data || data.unavailable
+    ? null
+    : geoLive == null
+      ? `Live location data unavailable — showing published (epoch ${data.liveEpoch ?? data.epoch ?? '—'}) locations.`
+      : geoDegradedAge != null
+        ? `Location data ${geoDegradedAge}m old.`
+        : null;
 
   return (
     <section className="sec" style={{ borderTop: 0 }}>
@@ -396,6 +446,13 @@ export default function ValidatorLookup() {
         {source === 'plan' && data && anyStale ? (
           <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
             <b style={{ color: '#f2b366' }}>A validator has moved since the last plan.</b> The last plan is epoch {data.epoch}; the network is on epoch {data.liveEpoch}. A target is set by geographic rarity, so a validator that changed location carries an out-of-date one — <b>those are held back</b> until the next plan. Targets are also normalised across the whole pool, so every other target re-prices slightly when the book changes — the rest are shown <b>as of epoch {data.epoch}</b>, a close guide that&apos;s exact at their plan. Stake, directed and geo here are live.
+          </div>
+        ) : null}
+
+        {/* Live-location source note (absent → published geo · degraded → shown but lagging). */}
+        {geoNote ? (
+          <div style={{ ...PANEL, marginTop: 18, padding: '14px 18px', borderLeft: '3px solid #f2b366', fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.6, maxWidth: 860 }}>
+            {geoNote}
           </div>
         ) : null}
 
