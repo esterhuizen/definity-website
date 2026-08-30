@@ -7,7 +7,7 @@
 // deposit earns 1× principal, plus retailMultiple× matching once it has matured
 // (slot < windowStartSlot). Holdings-capped.
 
-export const SLEEVE_CAP_SOL = 100_000; // program-wide directed-matching budget (display cap; 60k→100k 2026-08-08, matches api/direct-stake/requests SLEEVE_CAP_SOL after the Aug-5 9.7k directed principal). totalSol below = principal + matured matching (uncapped), so the full-sleeve 100k basis keeps the public hero card < 100%.
+export const SLEEVE_CAP_SOL = 135_000; // COMBINED-sleeve display cap (100k→135k 2026-08-29; must match api/direct-stake/requests SLEEVE_CAP_SOL). Re-derived for the optimiser's MAX_MATCHING_TOTAL 78k→90k (operator's ≥4.0× effective-multiple floor after Spectrum's 3k matured): totalSol below = principal + matured matching UNCAPPED, which was ~120.3k (26.7k + 93.55k) on 2026-08-29 — the old 100k basis was ALREADY over-full. 135k shows ~89% today and reaches 100% at ~105k matching demand, the same point where the optimiser's 4.0× floor breaks — so the hero card tracks the real economics. NEVER set equal to MAX_MATCHING_TOTAL (this is principal+matching; that is matching-only).
 
 /**
  * @param {{ signature: string, depositor: string, depositSol: number, slot: number }[]} deposits
