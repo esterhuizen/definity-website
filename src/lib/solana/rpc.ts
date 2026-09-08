@@ -25,31 +25,58 @@ export function getRpc() {
 }
 
 /**
- * Wait until a signature reaches `confirmed` (or better). Wallets resolve as
- * soon as a transaction is SUBMITTED, so reading balances immediately after
- * signAndSend returns pre-trade values — poll confirmation first, then read.
- * Resolves true on confirmation, false on timeout or on-chain error (callers
- * refresh either way; this only gates WHEN).
+ * Poll a signature to a terminal outcome. Wallets (and sendTransaction) resolve
+ * as soon as a transaction is SUBMITTED — a returned signature proves nothing
+ * about landing. Distinguishes the three ends a caller may need to render
+ * differently: 'confirmed' (reached confirmed/finalized), 'failed' (landed with
+ * an on-chain error — the transaction did NOT do what it said), and 'timeout'
+ * (unknown after the deadline — claim neither success nor failure).
  */
-export async function waitForConfirmation(
+export async function waitForSignatureOutcome(
   signature: string,
   { timeoutMs = 45_000, pollMs = 1_500 }: { timeoutMs?: number; pollMs?: number } = {},
-): Promise<boolean> {
+): Promise<'confirmed' | 'failed' | 'timeout'> {
   const deadline = Date.now() + timeoutMs;
   const sig = signature as Signature;
-  while (Date.now() < deadline) {
+  // Each poll gets its own abort deadline: without one, a hung fetch (stalled
+  // proxy/upstream) never resolves and every caller sits in "confirming"
+  // forever with no exit.
+  const poll = async (): Promise<'confirmed' | 'failed' | null> => {
     try {
-      const { value } = await getRpc().getSignatureStatuses([sig]).send();
+      const { value } = await getRpc()
+        .getSignatureStatuses([sig])
+        .send({ abortSignal: AbortSignal.timeout(10_000) });
       const status = value[0];
-      if (status?.err != null) return false;
+      if (status?.err != null) return 'failed';
       const cs = status?.confirmationStatus;
-      if (cs === 'confirmed' || cs === 'finalized') return true;
+      if (cs === 'confirmed' || cs === 'finalized') return 'confirmed';
     } catch {
       // transient proxy/network blip — keep polling until the deadline
     }
-    await new Promise((r) => setTimeout(r, pollMs));
+    return null;
+  };
+  while (Date.now() < deadline) {
+    const r = await poll();
+    if (r) return r;
+    await new Promise((res) => setTimeout(res, pollMs));
   }
-  return false;
+  // One last look before declaring unknown: a long timer tick (device sleep,
+  // wallet-app switch on mobile, background-tab throttling) can overshoot the
+  // deadline long after the transaction actually confirmed.
+  return (await poll()) ?? 'timeout';
+}
+
+/**
+ * Wait until a signature reaches `confirmed` (or better). Resolves true on
+ * confirmation, false on timeout or on-chain error (callers refresh either way;
+ * this only gates WHEN). Use waitForSignatureOutcome where failure and timeout
+ * must render differently.
+ */
+export async function waitForConfirmation(
+  signature: string,
+  opts: { timeoutMs?: number; pollMs?: number } = {},
+): Promise<boolean> {
+  return (await waitForSignatureOutcome(signature, opts)) === 'confirmed';
 }
 
 /** Native SOL balance in whole SOL (confirmed commitment, so fresh trades show). */
