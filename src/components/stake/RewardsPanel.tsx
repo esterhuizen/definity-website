@@ -14,7 +14,7 @@ import type { UiWalletAccount } from '@wallet-standard/react';
 import { ArrowUpRight, CalendarSync, ShieldCheck, X } from 'lucide-react';
 import { useSignAndSendTransaction } from '@solana/react';
 import { getBase58Decoder } from '@solana/kit';
-import { getDefinsolBalance, waitForConfirmation } from '@/lib/solana/rpc';
+import { getDefinsolBalance, waitForSignatureOutcome } from '@/lib/solana/rpc';
 import { hasTokenAccount, buildCreateAtaTransaction } from '@/lib/solana/ata';
 import {
   getUsdPrices, listRecurringOrders, createRecurringOrder, cancelRecurringOrder,
@@ -26,7 +26,7 @@ import {
   RECURRING_MIN_TOTAL_USD, RECURRING_MIN_CYCLE_USD,
 } from '@/lib/solana/constants';
 
-type Busy = 'idle' | 'preparing' | 'signing' | 'cancelling';
+type Busy = 'idle' | 'preparing' | 'signing' | 'confirming' | 'cancelling' | 'cancel-signing' | 'cancel-confirming';
 
 const HORIZONS = [
   { months: 3, label: '3 months' },
@@ -38,7 +38,7 @@ function fmtToken(uiAmount: number, maxDp = 3): string {
   return uiAmount.toLocaleString('en-US', { maximumFractionDigits: maxDp });
 }
 
-export function RewardsPanel({ account }: { account: UiWalletAccount }) {
+export function RewardsPanel({ account, onBusy }: { account: UiWalletAccount; onBusy?: (b: boolean) => void }) {
   const signAndSend = useSignAndSendTransaction(account, SOLANA_CHAIN);
 
   const [balance, setBalance] = useState<number | null>(null);
@@ -48,7 +48,9 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
   const [months, setMonths] = useState<number>(6);
   const [busy, setBusy] = useState<Busy>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [lastSig, setLastSig] = useState<string | null>(null);
+  // The tx note renders 'live' ONLY once the order tx confirms on-chain;
+  // 'confirming' and 'timeout' are honest intermediate/indeterminate states.
+  const [note, setNote] = useState<{ sig: string; kind: 'confirming' | 'live' | 'timeout'; what: 'ata' | 'order' | 'cancel' } | null>(null);
 
   const payoutToken = PAYOUT_TOKENS.find((t) => t.mint === payoutMint) ?? PAYOUT_TOKENS[0];
 
@@ -87,7 +89,8 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
   async function onCreate() {
     if (!plan) return;
     setError(null);
-    setLastSig(null);
+    setNote(null);
+    onBusy?.(true);
     try {
       // Step 1 (only when needed): make sure payouts have somewhere to land.
       setBusy('preparing');
@@ -95,7 +98,19 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
       if (!ataExists) {
         const ataTx = await buildCreateAtaTransaction(account.address, payoutMint);
         setBusy('signing');
-        await signAndSend({ transaction: ataTx });
+        const { signature: ataSignature } = await signAndSend({ transaction: ataTx });
+        setBusy('confirming');
+        // The order tx assumes the payout account exists — gate on it landing.
+        const ataSig = getBase58Decoder().decode(ataSignature);
+        const ataOutcome = await waitForSignatureOutcome(ataSig);
+        if (ataOutcome === 'failed') {
+          throw new Error('Setting up the payout account failed on-chain — no stream was created.');
+        }
+        if (ataOutcome === 'timeout') {
+          // Indeterminate, not a failure: surface amber, abort without a stream.
+          setNote({ sig: ataSig, kind: 'timeout', what: 'ata' });
+          return;
+        }
         setBusy('preparing');
       }
       // Step 2: the stream itself.
@@ -110,29 +125,51 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
       setBusy('signing');
       const { signature } = await signAndSend({ transaction: orderTx });
       const sig = getBase58Decoder().decode(signature);
-      setLastSig(sig);
-      await waitForConfirmation(sig);
+      // "Stream live" renders ONLY on confirmation (a silent failure here used
+      // to leave a green success banner over a stream that never existed).
+      setNote({ sig, kind: 'confirming', what: 'order' });
+      setBusy('confirming');
+      const outcome = await waitForSignatureOutcome(sig);
+      if (outcome === 'confirmed') {
+        setNote({ sig, kind: 'live', what: 'order' });
+      } else if (outcome === 'failed') {
+        setNote(null);
+        setError('The transaction failed on-chain — no payout stream was created (only the network fee was spent).');
+      } else {
+        setNote({ sig, kind: 'timeout', what: 'order' });
+      }
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy('idle');
+      onBusy?.(false);
     }
   }
 
   async function onCancel(orderKey: string) {
     setError(null);
+    setNote(null); // a lingering "Stream live" above a cancel result would contradict it
+    onBusy?.(true);
     try {
       setBusy('cancelling');
       const tx = await cancelRecurringOrder({ user: account.address, orderKey });
-      setBusy('signing');
+      setBusy('cancel-signing');
       const { signature } = await signAndSend({ transaction: tx });
-      await waitForConfirmation(getBase58Decoder().decode(signature));
+      setBusy('cancel-confirming'); // distinct value: the CREATE button must not read "Confirming…"
+      const sig = getBase58Decoder().decode(signature);
+      const outcome = await waitForSignatureOutcome(sig);
+      if (outcome === 'failed') {
+        setError('The cancel failed on-chain — the stream is still active.');
+      } else if (outcome === 'timeout') {
+        setNote({ sig, kind: 'timeout', what: 'cancel' });
+      }
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy('idle');
+      onBusy?.(false);
     }
   }
 
@@ -229,20 +266,37 @@ export function RewardsPanel({ account }: { account: UiWalletAccount }) {
         className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
         <CalendarSync className="h-4 w-4" aria-hidden="true" />
-        {busy === 'preparing' ? 'Preparing…' : busy === 'signing' ? 'Confirm in wallet…' : 'Start reward stream'}
+        {busy === 'preparing' ? 'Preparing…' : busy === 'signing' ? 'Confirm in wallet…' : busy === 'confirming' ? 'Confirming on-chain…' : 'Start reward stream'}
       </button>
 
-      {lastSig ? (
+      {note?.kind === 'live' ? (
         <p className="flex items-center justify-center gap-1.5 text-center text-sm text-success">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" /> Stream live.{' '}
           <a
             className="inline-flex items-center gap-1 underline underline-offset-2"
-            href={`https://solscan.io/tx/${lastSig}`}
+            href={`https://solscan.io/tx/${note.sig}`}
             target="_blank"
             rel="noreferrer"
           >
             View transaction <ArrowUpRight className="h-3 w-3" />
           </a>
+        </p>
+      ) : null}
+      {note?.kind === 'confirming' ? (
+        <p className="text-center text-xs text-ink-dim">
+          Submitted — waiting for on-chain confirmation.{' '}
+          <a className="underline underline-offset-2 hover:text-ink" href={`https://solscan.io/tx/${note.sig}`} target="_blank" rel="noreferrer">View on Solscan</a>
+        </p>
+      ) : null}
+      {note?.kind === 'timeout' ? (
+        <p className="break-words text-center text-sm text-sunrise-500">
+          {note.what === 'ata' ? (
+            <>Payout-account setup is still unconfirmed — <a className="underline underline-offset-2" href={`https://solscan.io/tx/${note.sig}`} target="_blank" rel="noreferrer">check it</a>, then retry; setup is idempotent and no stream was created yet.</>
+          ) : note.what === 'cancel' ? (
+            <>Cancel still unconfirmed — <a className="underline underline-offset-2" href={`https://solscan.io/tx/${note.sig}`} target="_blank" rel="noreferrer">check it</a> and refresh in a moment before retrying.</>
+          ) : (
+            <>Still unconfirmed — check <a className="underline underline-offset-2" href={`https://solscan.io/tx/${note.sig}`} target="_blank" rel="noreferrer">the transaction</a> before retrying so you don&apos;t create two streams.</>
+          )}
         </p>
       ) : null}
       {error ? <p className="break-words text-center text-sm text-fuchsia-600">Failed: {error}</p> : null}

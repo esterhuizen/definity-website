@@ -7,7 +7,7 @@ import { useSignAndSendTransaction, useSelectedWalletAccount } from '@solana/rea
 import { getBase58Decoder } from '@solana/kit';
 import { ConnectWallet } from './ConnectWallet';
 import { RewardsPanel } from './RewardsPanel';
-import { getSolBalance, getDefinsolBalance, waitForConfirmation } from '@/lib/solana/rpc';
+import { getSolBalance, getDefinsolBalance, waitForSignatureOutcome } from '@/lib/solana/rpc';
 import { MultisigLiquidPanel } from './MultisigLiquidPanel';
 import {
   quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote,
@@ -22,8 +22,13 @@ type Tone = 'solana' | 'sunrise';
 type TxState =
   | { kind: 'idle' }
   | { kind: 'submitting' }
+  // Submitted, landing unknown — success may only render after on-chain
+  // confirmation (a signature is a submission receipt, not a result).
+  | { kind: 'confirming'; signature: string }
   | { kind: 'done'; signature: string }
-  | { kind: 'error'; message: string };
+  // Unresolved at the deadline: claim neither success nor failure.
+  | { kind: 'timeout'; signature: string }
+  | { kind: 'error'; message: string; signature?: string };
 
 function TokenChip({ label, tone }: { label: string; tone: Tone }) {
   const ring =
@@ -50,6 +55,18 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
   const [, setSelected] = useSelectedWalletAccount();
 
   const [mode, setMode] = useState<Mode>('stake');
+  // True while RewardsPanel has a tx in flight — switching modes would unmount
+  // it and permanently discard the outcome + Solscan link. Watchdog-released
+  // (5 min, above any real sign+confirm) so a never-settling wallet promise
+  // can't lock the mode toggle with no escape but a page reload.
+  const [rewardsBusy, setRewardsBusyRaw] = useState(false);
+  const rewardsWatchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setRewardsBusy = useCallback((b: boolean) => {
+    setRewardsBusyRaw(b);
+    if (rewardsWatchdog.current) clearTimeout(rewardsWatchdog.current);
+    if (b) rewardsWatchdog.current = setTimeout(() => setRewardsBusyRaw(false), 300_000);
+  }, []);
+  useEffect(() => () => { if (rewardsWatchdog.current) clearTimeout(rewardsWatchdog.current); }, []);
   const [sol, setSol] = useState<number | null>(null);
   const [definsol, setDefinsol] = useState<number | null>(null);
   const [amount, setAmount] = useState('');
@@ -57,6 +74,13 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
   const [quoting, setQuoting] = useState(false);
   const [tx, setTx] = useState<TxState>({ kind: 'idle' });
   const quoteSeq = useRef(0);
+  // Guards the in-flight submit against a mode switch: without it, a stake's
+  // outcome landing ~45s later would render under the unstake form (and wipe
+  // its typed amount). Bumped by switchMode; stale outcomes drop their writes.
+  const txSeq = useRef(0);
+  // Bumped on failed/timeout so the quote effect refetches — a retry after a
+  // 45s wait must not reuse a stale route.
+  const [requote, setRequote] = useState(0);
 
   // Direction-dependent token framing. SOL and definSOL are both 9-decimal.
   const dir = useMemo(() => {
@@ -98,6 +122,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
   function switchMode(next: Mode) {
     if (next === mode) return;
     quoteSeq.current++; // cancel any in-flight quote
+    txSeq.current++; // orphan any in-flight submit's UI writes
     setMode(next);
     setAmount('');
     setQuote(null);
@@ -123,7 +148,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [amount, mode, dir.inMint, dir.outMint, dir.inDecimals]);
+  }, [amount, mode, dir.inMint, dir.outMint, dir.inDecimals, requote]);
 
   // Largest amount the user can actually submit (keeps a gas reserve when the
   // input is native SOL). Both presets and the slider scale off this.
@@ -153,27 +178,48 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
   // anything a user actually over-types still trips the guard.
   const overBalance = dir.inBalance != null && Number(amount) > dir.inBalance + 1e-9;
   const canSubmit =
-    tx.kind !== 'submitting' && !!quote && Number(amount) > 0 && !overBalance;
+    tx.kind !== 'submitting' && tx.kind !== 'confirming' &&
+    !!quote && Number(amount) > 0 && !overBalance;
 
   async function onSubmit() {
     if (!quote) return;
+    const seq = ++txSeq.current;
+    const live = () => seq === txSeq.current; // false once the user switched modes
     setTx({ kind: 'submitting' });
     try {
       const bytes = await buildSwapTransaction(quote, account.address);
       const { signature } = await signAndSend({ transaction: bytes });
       const sig = getBase58Decoder().decode(signature);
-      setTx({ kind: 'done', signature: sig });
-      setAmount('');
-      setQuote(null);
-      // Wallets resolve on SUBMISSION, not confirmation — refresh once the
-      // trade actually lands (plus a trailing refresh for slow propagation).
-      void (async () => {
-        await waitForConfirmation(sig);
-        await refreshBalances();
-        setTimeout(() => { void refreshBalances(); }, 4_000);
-      })();
+      // Wallets resolve on SUBMISSION — "Done" only renders after the swap is
+      // CONFIRMED on-chain; failure and timeout each get their own state.
+      if (live()) setTx({ kind: 'confirming', signature: sig });
+      const outcome = await waitForSignatureOutcome(sig);
+      // Refresh on EVERY outcome: after failed/timeout the user needs current
+      // balances to judge what actually happened (a timed-out tx may yet land).
+      void refreshBalances();
+      setTimeout(() => { void refreshBalances(); }, 4_000); // slow propagation
+      if (outcome === 'confirmed') {
+        if (live()) {
+          setTx({ kind: 'done', signature: sig });
+          setAmount('');
+          setQuote(null);
+        }
+      } else if (outcome === 'failed') {
+        if (live()) {
+          setTx({
+            kind: 'error', signature: sig,
+            message: 'The swap failed on-chain — nothing was exchanged (only the network fee was spent).',
+          });
+          setQuote(null);
+          setRequote((n) => n + 1); // fetch a fresh route before any retry
+        }
+      } else if (live()) {
+        setTx({ kind: 'timeout', signature: sig });
+        setQuote(null);
+        setRequote((n) => n + 1);
+      }
     } catch (e) {
-      setTx({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
+      if (live()) setTx({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -202,9 +248,10 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
           <button
             key={m}
             type="button"
+            disabled={rewardsBusy && m !== mode}
             onClick={() => switchMode(m)}
             aria-pressed={mode === m}
-            className={`rounded-lg px-3 py-2 text-sm font-medium capitalize transition ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium capitalize transition disabled:cursor-not-allowed disabled:opacity-40 ${
               mode === m
                 ? 'bg-bg text-ink shadow-card'
                 : 'text-ink-muted hover:text-ink'
@@ -216,7 +263,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
       </div>
 
       {mode === 'rewards' ? (
-        <RewardsPanel account={account} />
+        <RewardsPanel account={account} onBusy={setRewardsBusy} />
       ) : (
       <>
       {/* Input */}
@@ -329,7 +376,7 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
         onClick={onSubmit}
         className="btn-primary mt-3 w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {tx.kind === 'submitting' ? 'Confirm in wallet…' : dir.cta}
+        {tx.kind === 'submitting' ? 'Confirm in wallet…' : tx.kind === 'confirming' ? 'Confirming on-chain…' : dir.cta}
       </button>
 
       {tx.kind === 'done' ? (
@@ -345,8 +392,26 @@ function DepositPanel({ account }: { account: UiWalletAccount }) {
           </a>
         </p>
       ) : null}
+      {tx.kind === 'confirming' ? (
+        <p className="text-center text-xs text-ink-dim">
+          Submitted — waiting for on-chain confirmation.{' '}
+          <a className="underline underline-offset-2 hover:text-ink" href={`https://solscan.io/tx/${tx.signature}`} target="_blank" rel="noreferrer">View on Solscan</a>
+        </p>
+      ) : null}
+      {tx.kind === 'timeout' ? (
+        <p className="break-words text-center text-sm text-sunrise-500">
+          Still unconfirmed — check{' '}
+          <a className="underline underline-offset-2" href={`https://solscan.io/tx/${tx.signature}`} target="_blank" rel="noreferrer">the transaction</a>{' '}
+          before retrying so you don&apos;t swap twice.
+        </p>
+      ) : null}
       {tx.kind === 'error' ? (
-        <p className="break-words text-center text-sm text-fuchsia-600">Failed: {tx.message}</p>
+        <p className="break-words text-center text-sm text-fuchsia-600">
+          Failed: {tx.message}
+          {tx.signature ? (
+            <> <a className="underline underline-offset-2" href={`https://solscan.io/tx/${tx.signature}`} target="_blank" rel="noreferrer">Details</a></>
+          ) : null}
+        </p>
       ) : null}
 
       <p className="flex items-center justify-center gap-1.5 pt-1 text-center text-[11px] text-ink-dim">

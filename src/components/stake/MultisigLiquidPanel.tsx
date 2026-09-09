@@ -6,6 +6,7 @@ import { useSignTransaction } from '@solana/react';
 import { Check, ArrowUpRight, ShieldCheck } from 'lucide-react';
 import { SOLANA_CHAIN } from '@/lib/solana/constants';
 import { buildVaultDepositWireTx, submitSignedTx } from '@/lib/solana/deposit-squads';
+import { waitForSignatureOutcome } from '@/lib/solana/rpc';
 
 function short(a: string) {
   return `${a.slice(0, 4)}…${a.slice(-4)}`;
@@ -14,8 +15,12 @@ function short(a: string) {
 type Sub =
   | { kind: 'idle' }
   | { kind: 'signing' }
-  | { kind: 'submitted'; signature: string }
-  | { kind: 'error'; message: string };
+  | { kind: 'confirming'; signature: string }
+  // Renders only after the proposal-create tx CONFIRMS, with a frozen snapshot
+  // of the amount (the live field could change during the wait).
+  | { kind: 'submitted'; signature: string; stakedAmt: number }
+  | { kind: 'timeout'; signature: string }
+  | { kind: 'error'; message: string; signature?: string };
 
 // Liquid (undirected) stake from a multisig (SquadsX). Builds a plain DepositSol
 // (NO `direct:` memo) with the vault as funds source, hands it to the wallet's
@@ -29,16 +34,28 @@ export function MultisigLiquidPanel({ account }: { account: UiWalletAccount }) {
   const [amount, setAmount] = useState('');
   const [sub, setSub] = useState<Sub>({ kind: 'idle' });
   const amt = Number(amount);
-  const canSubmit = Number.isFinite(amt) && amt > 0 && sub.kind !== 'signing';
+  const busy = sub.kind === 'signing' || sub.kind === 'confirming';
+  const canSubmit = Number.isFinite(amt) && amt > 0 && !busy;
 
   async function onSubmit() {
     if (!(amt > 0)) return;
+    const stakedAmt = amt; // frozen: the field stays live during confirmation
     try {
       setSub({ kind: 'signing' });
-      const wire = await buildVaultDepositWireTx(account.address, null, amt); // null vote → liquid, no memo
+      const wire = await buildVaultDepositWireTx(account.address, null, stakedAmt); // null vote → liquid, no memo
       const { signedTransaction } = await signTransaction({ transaction: wire });
       const signature = await submitSignedTx(signedTransaction);
-      setSub({ kind: 'submitted', signature });
+      // "Proposal created" only after the create tx confirms — a failed create
+      // means NO proposal exists in the Squad.
+      setSub({ kind: 'confirming', signature });
+      const outcome = await waitForSignatureOutcome(signature);
+      if (outcome === 'confirmed') {
+        setSub({ kind: 'submitted', signature, stakedAmt });
+      } else if (outcome === 'failed') {
+        setSub({ kind: 'error', signature, message: 'The transaction failed on-chain — no proposal was created (only the network fee was spent).' });
+      } else {
+        setSub({ kind: 'timeout', signature });
+      }
     } catch (e) {
       setSub({ kind: 'error', message: e instanceof Error ? e.message : String(e) });
     }
@@ -52,7 +69,7 @@ export function MultisigLiquidPanel({ account }: { account: UiWalletAccount }) {
         </div>
         <p className="font-display text-lg font-semibold text-ink">Proposal created</p>
         <p className="text-sm text-ink-muted">
-          Your liquid stake of {amt} SOL is now a proposal in your Squad. Open Squads, then{' '}
+          Your liquid stake of {sub.stakedAmt} SOL is now a proposal in your Squad. Open Squads, then{' '}
           <strong className="text-ink">approve and execute</strong> it — the SOL converts to definSOL, owned by your vault.
           Funds never leave the vault.
         </p>
@@ -115,11 +132,27 @@ export function MultisigLiquidPanel({ account }: { account: UiWalletAccount }) {
         onClick={onSubmit}
         className="btn-primary mt-1 w-full disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {sub.kind === 'signing' ? 'Forming proposal…' : 'Create stake proposal'}
+        {sub.kind === 'signing' ? 'Forming proposal…' : sub.kind === 'confirming' ? 'Confirming on-chain…' : 'Create stake proposal'}
       </button>
 
+      {sub.kind === 'confirming' ? (
+        <p className="text-center text-xs text-ink-dim">
+          Submitted — waiting for on-chain confirmation.{' '}
+          <a className="underline underline-offset-2 hover:text-ink" href={`https://solscan.io/tx/${sub.signature}`} target="_blank" rel="noreferrer">View on Solscan</a>
+        </p>
+      ) : null}
+      {sub.kind === 'timeout' ? (
+        <p className="break-words text-center text-sm text-sunrise-500">
+          Still unconfirmed — check{' '}
+          <a className="underline underline-offset-2" href={`https://solscan.io/tx/${sub.signature}`} target="_blank" rel="noreferrer">the transaction</a>{' '}
+          before retrying so you don&apos;t create two proposals.
+        </p>
+      ) : null}
       {sub.kind === 'error' ? (
-        <p className="break-words text-center text-sm text-fuchsia-600">Failed: {sub.message}</p>
+        <p className="break-words text-center text-sm text-fuchsia-600">
+          Failed: {sub.message}
+          {sub.signature ? <> <a className="underline underline-offset-2" href={`https://solscan.io/tx/${sub.signature}`} target="_blank" rel="noreferrer">Details</a></> : null}
+        </p>
       ) : null}
     </div>
   );

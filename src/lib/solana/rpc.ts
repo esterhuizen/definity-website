@@ -66,19 +66,6 @@ export async function waitForSignatureOutcome(
   return (await poll()) ?? 'timeout';
 }
 
-/**
- * Wait until a signature reaches `confirmed` (or better). Resolves true on
- * confirmation, false on timeout or on-chain error (callers refresh either way;
- * this only gates WHEN). Use waitForSignatureOutcome where failure and timeout
- * must render differently.
- */
-export async function waitForConfirmation(
-  signature: string,
-  opts: { timeoutMs?: number; pollMs?: number } = {},
-): Promise<boolean> {
-  return (await waitForSignatureOutcome(signature, opts)) === 'confirmed';
-}
-
 /** Native SOL balance in whole SOL (confirmed commitment, so fresh trades show). */
 export async function getSolBalance(owner: string): Promise<number> {
   const { value } = await getRpc()

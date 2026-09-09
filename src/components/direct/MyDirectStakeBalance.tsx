@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import type { UiWalletAccount } from '@wallet-standard/react';
 import { useSelectedWalletAccount, useSignAndSendTransaction, useSignTransaction } from '@solana/react';
 import { getBase58Decoder } from '@solana/kit';
@@ -8,7 +8,7 @@ import { Copy, Check } from 'lucide-react';
 import { SOLANA_CHAIN, DEFINSOL_MINT, DEFINSOL_DECIMALS, SOL_MINT, SOL_DECIMALS } from '@/lib/solana/constants';
 import { quoteSwap, quoteOut, buildSwapTransaction, toBaseUnits, type JupiterQuote } from '@/lib/solana/jupiter';
 import { errMsg } from '@/lib/solana/unstake';
-import { waitForConfirmation, getDefinsolBalance } from '@/lib/solana/rpc';
+import { waitForSignatureOutcome, getDefinsolBalance } from '@/lib/solana/rpc';
 import { submitSignedTx } from '@/lib/solana/deposit-squads';
 
 // FLOOR to 6 decimals, never round. toFixed()/r6() round half-up, so a
@@ -71,14 +71,25 @@ function Amount({ definsol, sol }: { definsol: number; sol: number }) {
 // here — no redirect to jup.ag. Same Jupiter routing under the hood as the embed
 // widget, presented in our own UI, via the SAME quoteSwap + buildSwapTransaction
 // position's unstakable amount.
-type USub = { k: 'idle' } | { k: 'signing' } | { k: 'done'; sig: string } | { k: 'error'; m: string };
+// 'done' renders only after on-chain confirmation and carries a frozen snapshot
+// of the unstaked amount (the live field could be edited during the wait).
+type USub =
+  | { k: 'idle' } | { k: 'signing' }
+  | { k: 'confirming'; sig: string }
+  | { k: 'done'; sig: string; amt: number }
+  | { k: 'timeout'; sig: string }
+  | { k: 'error'; m: string; sig?: string };
 
 function UnstakeInline({
-  account, maxDefinsol, onDone,
+  account, maxDefinsol, onDone, onBusy,
 }: {
   account: UiWalletAccount;
   maxDefinsol: number;
   onDone: () => void;
+  // Lets the parent lock this row's Unstake/Close toggle mid-confirmation —
+  // closing would unmount this panel, drop the in-flight outcome, and reopen
+  // a fresh form primed for a duplicate submit.
+  onBusy?: (b: boolean) => void;
 }) {
   // Identical wiring to the main StakeWidget's unstake (the proven mobile path):
   // quoteSwap + buildSwapTransaction from lib/solana/jupiter, no cast on account.
@@ -91,6 +102,7 @@ function UnstakeInline({
   const [quote, setQuote] = useState<JupiterQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [sub, setSub] = useState<USub>({ k: 'idle' });
+  const [requote, setRequote] = useState(0); // bumped on failed/timeout: retry must not reuse a stale route
   const amt = Number(amount);
   const out = quote ? quoteOut(quote, SOL_DECIMALS) : null;
 
@@ -115,33 +127,67 @@ function UnstakeInline({
         .catch(() => { if (alive) { setQuote(null); setQuoting(false); } });
     }, 400);
     return () => { alive = false; clearTimeout(t); };
-  }, [amount, amt]);
+  }, [amount, amt, requote]);
 
-  const can = amt > 0 && amt <= usableMax + 1e-9 && !!quote && sub.k !== 'signing';
+  const can = amt > 0 && amt <= usableMax + 1e-9 && !!quote && sub.k !== 'signing' && sub.k !== 'confirming';
 
   async function submit() {
     if (!quote) return;
     try {
+      const staked = amt; // frozen: the field stays live during confirmation
       setSub({ k: 'signing' });
+      onBusy?.(true);
       const bytes = await buildSwapTransaction(quote, account.address);
       const { signature } = await signAndSend({ transaction: bytes });
       const sig = getBase58Decoder().decode(signature);
-      setSub({ k: 'done', sig });
-      // Refresh the balance card once the redemption confirms (no page refresh).
-      void waitForConfirmation(sig)
-        .then(() => window.dispatchEvent(new CustomEvent('definity:direct-staked')))
-        .catch(() => {});
-      void waitForConfirmation(sig).then(onDone).catch(() => {});
+      // "Unstaked" renders only once confirmed; one outcome poll drives both
+      // the banner and the balance-card refresh (was two duplicate loops).
+      setSub({ k: 'confirming', sig });
+      const outcome = await waitForSignatureOutcome(sig);
+      if (outcome === 'confirmed') {
+        // Banner only — the refresh happens when the user dismisses it. An
+        // immediate dispatch made the parent refetch, zero out this position,
+        // and unmount the banner (evidence + Solscan link) within seconds.
+        setSub({ k: 'done', sig, amt: staked });
+      } else if (outcome === 'failed') {
+        setSub({ k: 'error', sig, m: 'The transaction failed on-chain — nothing was unstaked (only the network fee was spent).' });
+        setQuote(null);
+        setRequote((n) => n + 1);
+        // Nothing landed → position unchanged → the refetch can't unmount this
+        // panel; the card must show current data next to the failure message.
+        window.dispatchEvent(new CustomEvent('definity:direct-staked'));
+      } else {
+        // Timeout: the tx may yet land. Do NOT refresh here — a refetch that
+        // zeroes this position would unmount the card and take the "check this
+        // transaction" warning + Solscan link with it, which is the one thing
+        // the user needs on a timeout. The card stays until they act on it.
+        setSub({ k: 'timeout', sig });
+        setQuote(null);
+        setRequote((n) => n + 1);
+      }
     } catch (e) {
       console.error('[unstake] failed', e);
       setSub({ k: 'error', m: errMsg(e) });
+    } finally {
+      onBusy?.(false);
     }
   }
 
   if (sub.k === 'done') {
     return (
       <div className="mt-3 rounded-lg border border-success/40 bg-success/10 px-3 py-3 text-xs">
-        <div className="font-medium text-ink">✓ Unstaked {fmt(amt, 4)} definSOL → SOL</div>
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-ink">✓ Unstaked {fmt(sub.amt, 4)} definSOL → SOL</span>
+          <button
+            type="button"
+            className="text-ink-dim underline-offset-2 hover:text-ink hover:underline"
+            onClick={() => {
+              // Refresh (with the +4s registry-latency retry) and close the panel.
+              window.dispatchEvent(new CustomEvent('definity:direct-staked'));
+              onDone();
+            }}
+          >Done</button>
+        </div>
         <a href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-ink-dim underline hover:text-ink">
           View transaction →
         </a>
@@ -176,9 +222,21 @@ function UnstakeInline({
         onClick={submit}
         className="btn-primary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {sub.k === 'signing' ? 'Confirm in your wallet…' : 'Unstake to SOL'}
+        {sub.k === 'signing' ? 'Confirm in your wallet…' : sub.k === 'confirming' ? 'Confirming on-chain…' : 'Unstake to SOL'}
       </button>
-      {sub.k === 'error' ? <div className="mt-2 break-words text-xs text-fuchsia-600">Failed: {sub.m}</div> : null}
+      {sub.k === 'timeout' ? (
+        <div className="mt-2 break-words text-xs text-sunrise-500">
+          Still unconfirmed — check{' '}
+          <a className="underline" href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer">the transaction</a>{' '}
+          before retrying so you don&apos;t unstake twice.
+        </div>
+      ) : null}
+      {sub.k === 'error' ? (
+        <div className="mt-2 break-words text-xs text-fuchsia-600">
+          Failed: {sub.m}
+          {sub.sig ? <> <a className="underline" href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer">Details</a></> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -189,14 +247,21 @@ function UnstakeInline({
 // the route is quoted at proposal time, so a much-later execution may slip and need
 // re-proposing (definSOL↔SOL is a stable pair, so this is rare). Mounted only for a
 // sign-only wallet, so useSignTransaction never runs for a regular one.
-function MultisigUnstakeInline({ account, maxDefinsol }: { account: UiWalletAccount; maxDefinsol: number }) {
+function MultisigUnstakeInline({ account, maxDefinsol, onBusy }: { account: UiWalletAccount; maxDefinsol: number; onBusy?: (b: boolean) => void }) {
   const signTransaction = useSignTransaction(account, SOLANA_CHAIN);
   const [walletBal, setWalletBal] = useState<number | null>(null);
   const usableMax = walletBal != null ? Math.min(maxDefinsol, walletBal) : maxDefinsol;
   const [amount, setAmount] = useState(maxDefinsol > 0 ? floor6(maxDefinsol) : '');
   const [quote, setQuote] = useState<JupiterQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
-  const [sub, setSub] = useState<{ k: 'idle' } | { k: 'signing' } | { k: 'proposed'; sig: string } | { k: 'error'; m: string }>({ k: 'idle' });
+  const [sub, setSub] = useState<
+    | { k: 'idle' } | { k: 'signing' }
+    | { k: 'confirming'; sig: string }
+    | { k: 'proposed'; sig: string; amt: number } // frozen snapshot; renders only after confirmation
+    | { k: 'timeout'; sig: string }
+    | { k: 'error'; m: string; sig?: string }
+  >({ k: 'idle' });
+  const [requote, setRequote] = useState(0); // bumped on failed/timeout: a retry must not reuse a known-failed route
   const amt = Number(amount);
   const out = quote ? quoteOut(quote, SOL_DECIMALS) : null;
 
@@ -220,21 +285,39 @@ function MultisigUnstakeInline({ account, maxDefinsol }: { account: UiWalletAcco
         .catch(() => { if (alive) { setQuote(null); setQuoting(false); } });
     }, 400);
     return () => { alive = false; clearTimeout(t); };
-  }, [amount, amt]);
+  }, [amount, amt, requote]);
 
-  const can = amt > 0 && amt <= usableMax + 1e-9 && !!quote && sub.k !== 'signing';
+  const can = amt > 0 && amt <= usableMax + 1e-9 && !!quote && sub.k !== 'signing' && sub.k !== 'confirming';
 
   async function submit() {
     if (!quote) return;
     try {
+      const staked = amt; // frozen: the field stays live during confirmation
       setSub({ k: 'signing' });
+      onBusy?.(true);
       const bytes = await buildSwapTransaction(quote, account.address);
       const { signedTransaction } = await signTransaction({ transaction: bytes });
       const sig = await submitSignedTx(signedTransaction);
-      setSub({ k: 'proposed', sig });
+      // "Proposal created" only after the proposal-create tx confirms — a
+      // failed create means NO proposal exists in the Squad.
+      setSub({ k: 'confirming', sig });
+      const outcome = await waitForSignatureOutcome(sig);
+      if (outcome === 'confirmed') {
+        setSub({ k: 'proposed', sig, amt: staked });
+      } else if (outcome === 'failed') {
+        setSub({ k: 'error', sig, m: 'The transaction failed on-chain — no proposal was created (only the network fee was spent).' });
+        setQuote(null);
+        setRequote((n) => n + 1);
+      } else {
+        setSub({ k: 'timeout', sig });
+        setQuote(null);
+        setRequote((n) => n + 1);
+      }
     } catch (e) {
       console.error('[unstake-proposal] failed', e);
       setSub({ k: 'error', m: errMsg(e) });
+    } finally {
+      onBusy?.(false);
     }
   }
 
@@ -243,7 +326,7 @@ function MultisigUnstakeInline({ account, maxDefinsol }: { account: UiWalletAcco
       <div className="mt-3 rounded-lg border border-sunrise-300/40 bg-sunrise-300/10 px-3 py-3 text-xs">
         <div className="font-medium text-ink">Unstake proposal created</div>
         <p className="mt-1 leading-relaxed text-ink-muted">
-          Swapping {fmt(amt, 4)} definSOL → SOL is now a proposal in your Squad. Open Squads and{' '}
+          Swapping {fmt(sub.amt, 4)} definSOL → SOL is now a proposal in your Squad. Open Squads and{' '}
           <strong className="text-ink">approve + execute it soon</strong> — the route is quoted now. SOL lands in your vault.
         </p>
         <a href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer" className="mt-1 inline-block text-ink-dim underline hover:text-ink">
@@ -280,9 +363,21 @@ function MultisigUnstakeInline({ account, maxDefinsol }: { account: UiWalletAcco
         onClick={submit}
         className="btn-primary mt-2 w-full disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {sub.k === 'signing' ? 'Forming proposal…' : 'Create unstake proposal'}
+        {sub.k === 'signing' ? 'Forming proposal…' : sub.k === 'confirming' ? 'Confirming on-chain…' : 'Create unstake proposal'}
       </button>
-      {sub.k === 'error' ? <div className="mt-2 break-words text-xs text-fuchsia-600">Failed: {sub.m}</div> : null}
+      {sub.k === 'timeout' ? (
+        <div className="mt-2 break-words text-xs text-sunrise-500">
+          Still unconfirmed — check{' '}
+          <a className="underline" href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer">the transaction</a>{' '}
+          before retrying so you don&apos;t create two proposals.
+        </div>
+      ) : null}
+      {sub.k === 'error' ? (
+        <div className="mt-2 break-words text-xs text-fuchsia-600">
+          Failed: {sub.m}
+          {sub.sig ? <> <a className="underline" href={`https://solscan.io/tx/${sub.sig}`} target="_blank" rel="noreferrer">Details</a></> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -298,6 +393,23 @@ export function MyDirectStakeBalance() {
   const [meta, setMeta] = useState<Map<string, Meta>>(new Map());
   const [loading, setLoading] = useState(false);
   const [unstakingVote, setUnstakingVote] = useState<string | null>(null);
+  // True while the open unstake panel has a submit in flight — locks EVERY
+  // row's Unstake/Close toggle (opening another row unmounts the busy panel
+  // and discards its outcome: the duplicate-unstake vector). A watchdog timer
+  // releases the lock if a wallet promise never settles (mobile deep-link apps
+  // backgrounded mid-sign), so the page can't dead-lock.
+  const [unstakeBusy, setUnstakeBusyRaw] = useState(false);
+  const busyWatchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const setUnstakeBusy = useCallback((b: boolean) => {
+    setUnstakeBusyRaw(b);
+    if (busyWatchdog.current) clearTimeout(busyWatchdog.current);
+    // Pure dead-session rescue (a mobile wallet killed mid-sign never settles its
+    // promise, so the finally never runs). 5 min sits safely ABOVE any real
+    // approve-then-confirm (unbounded sign + ≤55s confirm), so it can't fire
+    // mid-flight and re-open the row-swap discard window it guards against.
+    if (b) busyWatchdog.current = setTimeout(() => setUnstakeBusyRaw(false), 300_000);
+  }, []);
+  useEffect(() => () => { if (busyWatchdog.current) clearTimeout(busyWatchdog.current); }, []);
 
   const load = useCallback(async () => {
     if (!wallet) { setData(null); return; }
@@ -333,13 +445,19 @@ export function MyDirectStakeBalance() {
   if (loading && !data) return <div className="mx-auto mt-6 max-w-md text-center font-mono text-sm text-ink-dim">Loading your direct stake…</div>;
   if (!data) return null;
 
-  // Drop fully-exited positions (everything unstaked → all amounts ~0), so a
-  // zeroed validator with a dead Unstake button doesn't linger. Keep a position
-  // while it still has directed stake, matched stake, or matching in the pipeline.
+  // Show EVERY validator this wallet has directed to (operator request 2026-09-09):
+  // a validator drops to zero "backing" whenever newer stakes consume the wallet's
+  // definSOL under the recency-first (LIFO) model, and hiding those made stakes
+  // appear/vanish confusingly. Keep them all; mark the un-backed ones distinctly
+  // instead. `backed` = the wallet's current holdings still cover this deposit.
   const DUST = 1e-6;
-  const positions = data.positions.filter(
-    (p) => p.directedDefinsol > DUST || p.principalSol > DUST || p.pendingMatchSol > DUST || p.matchedDeployedSol > DUST,
-  );
+  const isBacked = (p: Position) =>
+    p.directedDefinsol > DUST || p.principalSol > DUST || p.pendingMatchSol > DUST || p.matchedDeployedSol > DUST;
+  const positions = [...data.positions].sort((a, b) => {
+    const ab = isBacked(a), bb = isBacked(b);
+    if (ab !== bb) return ab ? -1 : 1; // backed cards first, directed-earlier below
+    return b.directedDefinsol - a.directedDefinsol;
+  });
   if (positions.length === 0) return null;
 
   const t = data.totals;
@@ -363,16 +481,22 @@ export function MyDirectStakeBalance() {
             const m = meta.get(p.vote);
             const name = p.name || m?.name || short(p.vote);
             const loc = [m?.country, m?.city || p.city].filter(Boolean).join(', ');
+            const backed = isBacked(p);
             return (
-              <div key={p.vote} className="rounded-xl border border-ring bg-bg p-4">
+              <div key={p.vote} className={`rounded-xl border p-4 ${backed ? 'border-ring bg-bg' : 'border-ring/50 bg-bg/40'}`}>
                 {/* validator header */}
                 <div className="flex items-center gap-3">
                   {m?.image
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={m.image} alt="" className="h-10 w-10 shrink-0 rounded-full" />
                     : <span className="h-10 w-10 shrink-0 rounded-full bg-ring" aria-hidden="true" />}
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-ink">{name}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`truncate text-sm font-semibold ${backed ? 'text-ink' : 'text-ink-muted'}`}>{name}</span>
+                      {!backed ? (
+                        <span className="shrink-0 rounded-full border border-ring/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-dim">directed earlier</span>
+                      ) : null}
+                    </div>
                     <div className="flex items-center truncate font-mono text-xs text-ink-dim">
                       {loc ? <span className="mr-2">{loc}</span> : null}
                       <span>{short(p.vote)}</span>
@@ -383,6 +507,14 @@ export function MyDirectStakeBalance() {
 
                 <div className="my-3 h-px bg-ring" />
 
+                {!backed ? (
+                  <p className="text-xs leading-relaxed text-ink-dim">
+                    Not currently backed by your definSOL — your holdings back your most recent stakes first, so this
+                    one reads zero until you hold enough definSOL to cover it again. Your on-chain deposit to this
+                    validator is unchanged.
+                  </p>
+                ) : (
+                <>
                 {/* amounts + action */}
                 <div className="flex items-end justify-between gap-3">
                   <div className="flex gap-8">
@@ -398,8 +530,13 @@ export function MyDirectStakeBalance() {
                   {p.unstakableDefinsol > DUST ? (
                     <button
                       type="button"
-                      onClick={() => setUnstakingVote((v) => (v === p.vote ? null : p.vote))}
-                      className="shrink-0 rounded-full border border-ring bg-bg px-4 py-2 text-sm font-medium text-ink transition hover:border-ink-dim hover:bg-bg-muted"
+                      disabled={unstakeBusy}
+                      onClick={() => {
+                        // Closing after a confirmed unstake must still refresh the card.
+                        if (unstakingVote === p.vote) window.dispatchEvent(new CustomEvent('definity:direct-staked'));
+                        setUnstakingVote((v) => (v === p.vote ? null : p.vote));
+                      }}
+                      className="shrink-0 rounded-full border border-ring bg-bg px-4 py-2 text-sm font-medium text-ink transition hover:border-ink-dim hover:bg-bg-muted disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {unstakingVote === p.vote ? 'Close' : 'Unstake'}
                     </button>
@@ -408,12 +545,13 @@ export function MyDirectStakeBalance() {
 
                 {unstakingVote === p.vote && selected && p.unstakableDefinsol > DUST ? (
                   isMultisig ? (
-                    <MultisigUnstakeInline account={selected} maxDefinsol={p.unstakableDefinsol} />
+                    <MultisigUnstakeInline account={selected} maxDefinsol={p.unstakableDefinsol} onBusy={setUnstakeBusy} />
                   ) : (
                     <UnstakeInline
                       account={selected}
                       maxDefinsol={p.unstakableDefinsol}
                       onDone={() => { setUnstakingVote(null); load(); }}
+                      onBusy={setUnstakeBusy}
                     />
                   )
                 ) : null}
@@ -435,6 +573,8 @@ export function MyDirectStakeBalance() {
                     <div key={w.hours} className="text-ink-dim">• <b className="text-ink">{fmt(w.matchSol, 2)} SOL</b> matching — after a full epoch (~{w.hours}h)</div>
                   ))}
                 </div>
+                </>
+                )}
               </div>
             );
           })}
