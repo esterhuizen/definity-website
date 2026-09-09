@@ -458,7 +458,11 @@ export function MyDirectStakeBalance() {
     if (ab !== bb) return ab ? -1 : 1; // backed cards first, directed-earlier below
     return b.directedDefinsol - a.directedDefinsol;
   });
-  if (positions.length === 0) return null;
+  // Suppress the whole panel when NOTHING is currently backed (e.g. a wallet that
+  // fully unstaked everything): a "Total: 0" headline over only "directed earlier"
+  // cards reads as broken. "directed earlier" markers only make sense alongside a
+  // live position, so require at least one backed validator to show the panel.
+  if (!positions.some(isBacked)) return null;
 
   const t = data.totals;
 
