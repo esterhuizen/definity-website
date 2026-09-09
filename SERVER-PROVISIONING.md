@@ -91,6 +91,24 @@ sudo systemctl restart definity definity-staging
   - prod: `/var/lib/definity/whitelist-applications.jsonl`
   - staging: `/var/lib/definity-staging/whitelist-applications.jsonl`
 
+**Directed-stake paths (`DIRECTED_WEBHOOK_PATH`) — writability matters.** The
+`/api/direct-stake/ingest` endpoint *appends* to the webhook log the instant the
+widget confirms a deposit, so the balance/requests pages reflect it in seconds
+instead of waiting for the scanner (~an epoch-slot). Because the web service
+writes it, the path **must be inside the unit's `ReadWritePaths`**
+(`/var/www/definity` or `/var/lib/definity` for prod; `/var/lib/definity-staging`
+for staging):
+  - prod: `DIRECTED_WEBHOOK_PATH=/var/lib/definity/directed-stake-webhook.jsonl`
+  - staging: `DIRECTED_WEBHOOK_PATH=/var/lib/definity-staging/directed-stake-webhook.jsonl`
+
+Do **not** point it at `/var/lib/definity-dsp/` — that dir is read-only to this
+service under `ProtectSystem=strict`, so every ingest fails with `EROFS` and the
+UI silently degrades to scanner lag, which transiently mis-attributes a fresh
+stake to the wallet's *previous* directed validator (fixed 2026-09-09; the code
+default is now the prod-writable path, so a lost env file no longer re-breaks it).
+The optimiser reads the *registry*, not this webhook file, so its placement is
+web-app-local.
+
 ### A0b · Staging environment (`test.definity.finance`)
 
 A second copy of the site runs on the same box, isolated by port + release tree

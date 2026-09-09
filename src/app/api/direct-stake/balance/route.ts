@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const REGISTRY_PATH = process.env.DIRECTED_REGISTRY_PATH ?? '/var/lib/definity-dsp/directed-stake-registry.jsonl';
-const WEBHOOK_PATH = process.env.DIRECTED_WEBHOOK_PATH ?? '/var/lib/definity-staging/directed-stake-webhook.jsonl';
+const WEBHOOK_PATH = process.env.DIRECTED_WEBHOOK_PATH ?? '/var/lib/definity/directed-stake-webhook.jsonl';
 const DEPLOYMENTS_PATH = process.env.DIRECTED_DEPLOYMENTS_PATH ?? '/var/lib/definity-dsp/directed-deployments.jsonl';
 const UPSTREAM = process.env.SOLANA_RPC_URL;
 const POOL = 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';

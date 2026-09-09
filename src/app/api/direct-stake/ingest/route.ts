@@ -14,7 +14,7 @@ import { dirname } from 'node:path';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const WEBHOOK_PATH = process.env.DIRECTED_WEBHOOK_PATH ?? '/var/lib/definity-staging/directed-stake-webhook.jsonl';
+const WEBHOOK_PATH = process.env.DIRECTED_WEBHOOK_PATH ?? '/var/lib/definity/directed-stake-webhook.jsonl';
 const UPSTREAM = process.env.SOLANA_RPC_URL;
 const POOL = 'Bvbu55B991evqqhLtKcyTZjzQ4EQzRUwtf9T4CcpMmPL';
 const POOL_PROGRAM = 'SPMBzsVUuoHA4Jm6KunbsotaahvVikZs1JyTW6iJvbn';
