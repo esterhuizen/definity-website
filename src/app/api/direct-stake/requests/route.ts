@@ -27,7 +27,7 @@ const RETAIL_MULTIPLE = 3.5;
 const PER_VALIDATOR_CAP_SOL = 20_000;
 // Combined directed-sleeve display cap (history: 60k→100k 2026-08-08 for the 78k matching raise;
 // 100k→135k 2026-08-29 for the 90k raise — full derivation in src/lib/directed-planned.mjs).
-const SLEEVE_CAP_SOL = 135_000; // 100k→135k 2026-08-29 — keep in lockstep with src/lib/directed-planned.mjs (derivation there)
+const SLEEVE_CAP_SOL = 161_000; // 100k→135k 2026-08-29, 135k→161k 2026-09-13 — keep in lockstep with src/lib/directed-planned.mjs (derivation there)
 
 type RegistryEntry = {
   signature: string;
