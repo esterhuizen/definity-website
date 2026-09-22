@@ -102,6 +102,8 @@ export default async function DirectStakingPage() {
             <div className="cred"><div className="ck">2 · Definity matches</div><div className="cv">+ up to 3.5×</div><div className="cd">On top of your stake, Definity directs up to 3.5× your stake onto your validator once it has been held a full epoch — subject to pool liquidity and capped at 20,000 SOL per validator.</div></div>
             <div className="cred"><div className="ck">3 · SFDP matches</div><div className="cv">+ more</div><div className="cd">If your validator is in the Solana Foundation Delegation Program, the Foundation matches again on top — taking your validator beyond 4.5×.</div></div>
           </div>
+          {/* The cap is where this page runs out of answers; /revenue-share is the next one. */}
+          <a className="morelink" href="/revenue-share">Validator already at the 20,000 SOL cap? Earn revenue share on the overflow →</a>
         </div>
       </section>
 

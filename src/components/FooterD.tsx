@@ -22,6 +22,7 @@ export async function FooterD() {
             <a href={LINKS.sanctumLst} target="_blank" rel="noreferrer">Stake on Sanctum</a>
             <a href={LINKS.jupiterSwap} target="_blank" rel="noreferrer">Swap on Jupiter</a>
             <a href="/institutions">Institutions</a>
+            <a href="/revenue-share">Revenue share</a>
             <a href="/stake">Stake widget</a>
           </div>
           <div className="fcol"><h4>Verify</h4>

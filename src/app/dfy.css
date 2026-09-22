@@ -316,3 +316,50 @@
 .dfy .hwnote summary:hover{color:var(--teal);border-color:var(--teal)}
 .dfy .hwnote[open] summary{color:var(--teal);border-color:transparent}
 .dfy .hwnote p{margin:10px auto 0;max-width:520px;font-size:13px;line-height:1.7;color:var(--dim)}
+
+/* ── revenue-share calculator (/revenue-share) ───────────────
+   Reuses .panel/.prow/.big/.twocol/.soon and the .wl-input field style; only the
+   size control and the fee-split bar are new. */
+.dfy .rs-size{margin-top:30px;max-width:470px}
+.dfy .rs-size .lab{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+.dfy .rs-size .lab b{font-family:var(--serif);font-size:26px;font-weight:600;letter-spacing:0;text-transform:none;color:#fff}
+.dfy .rs-size .lab b i{font-family:var(--mono);font-size:12px;font-style:normal;color:var(--dim);margin-left:5px}
+.dfy .rs-field{display:flex;gap:10px;align-items:stretch;margin-top:12px}
+.dfy .rs-field .wl-input{margin-top:0;flex:1 1 auto;font-size:15px;padding:12px 14px;text-align:right;font-variant-numeric:tabular-nums}
+.dfy .rs-unit{display:inline-flex;align-items:center;padding:0 15px;border:1px solid var(--hair);border-radius:6px;background:rgba(0,0,0,.12);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.dfy input[type=range].rs-range{-webkit-appearance:none;appearance:none;width:100%;margin:22px 0 0;height:2px;background:var(--hair);border-radius:2px;outline:none;cursor:pointer}
+.dfy input[type=range].rs-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;border-radius:50%;background:var(--teal);border:0;box-shadow:0 0 12px rgba(55,240,176,.6);cursor:grab}
+.dfy input[type=range].rs-range::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--teal);border:0;box-shadow:0 0 12px rgba(55,240,176,.6);cursor:grab}
+.dfy input[type=range].rs-range:focus-visible::-webkit-slider-thumb{outline:2px solid #fff;outline-offset:2px}
+.dfy input[type=range].rs-range:focus-visible::-moz-range-thumb{outline:2px solid #fff;outline-offset:2px}
+.dfy .rs-presets{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.dfy .rs-presets button{font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:7px 13px;border-radius:999px;border:1px solid var(--hair);background:none;color:var(--dim);cursor:pointer;transition:.18s}
+.dfy .rs-presets button:hover{border-color:var(--dim);color:#fff}
+.dfy .rs-presets button[aria-pressed=true]{border-color:var(--teal);color:var(--teal);background:rgba(55,240,176,.09)}
+.dfy .rs-panel .big .v{font-size:clamp(36px,4.6vw,52px);font-variant-numeric:tabular-nums}
+.dfy .rs-panel .big .v i{font-family:var(--mono);font-size:15px;font-style:normal;color:var(--teal);margin-left:7px;vertical-align:.24em;letter-spacing:.04em}
+.dfy .rs-panel .prow .sub{margin-top:9px;font-size:11px;color:var(--faint);letter-spacing:.04em}
+/* .soon uppercases its label text; units must not follow it ("pp", not "PP"). */
+.dfy .rs-panel .soon b{text-transform:none;letter-spacing:.02em}
+.dfy .rs-panel .twocol .v{font-variant-numeric:tabular-nums}
+
+/* the fee split: one bar, three slices, so "a third comes back" is shown not claimed */
+.dfy .rs-split{margin-top:34px;border:1px solid var(--hair);background:rgba(8,16,90,.3);padding:26px}
+.dfy .rs-split h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:0 0 4px}
+.dfy .rs-split p{margin:0 0 20px;color:var(--dim);font-size:12.5px;line-height:1.66;max-width:620px}
+.dfy .rs-bar{display:flex;height:34px;border:1px solid var(--hair);overflow:hidden}
+.dfy .rs-bar span{display:block;transition:flex-basis .3s}
+.dfy .rs-bar .yours{background:var(--teal)}
+.dfy .rs-bar .ours{background:rgba(255,255,255,.30);border-left:1px solid var(--hair)}
+.dfy .rs-bar .sanctum{background:rgba(255,255,255,.10);border-left:1px solid var(--hair)}
+.dfy .rs-key{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.dfy .rs-key>div{font-size:11.5px;color:var(--dim);line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+.dfy .rs-key i{flex:0 0 auto;width:10px;height:10px;margin-top:3px;border:1px solid var(--hair)}
+.dfy .rs-key b{display:block;color:#fff;font-weight:500;font-family:var(--mono);font-size:12.5px;letter-spacing:.02em}
+.dfy .rs-work{width:100%;border-collapse:collapse;margin-top:14px}
+.dfy .rs-work td{padding:13px 0;border-bottom:1px solid var(--hair);font-family:var(--mono);font-size:12.5px}
+.dfy .rs-work td:first-child{color:var(--dim);width:54%}
+.dfy .rs-work td:last-child{color:#fff;text-align:right;font-variant-numeric:tabular-nums}
+.dfy .rs-work td span{display:block;font-size:10.5px;color:var(--faint);margin-top:4px}
+.dfy .rs-meta{margin-top:20px;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.04em;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+@media(max-width:760px){.dfy .rs-key{grid-template-columns:1fr}.dfy .rs-size{max-width:none}}

@@ -181,6 +181,7 @@ export default async function InstitutionsPage() {
           </div>
           <div className="cta">
             <a className="btn btn-solid" href={LINKS.telegram} target="_blank" rel="noreferrer">Enquire about size →</a>
+            <a className="btn btn-ghost" href="/revenue-share">Price the revenue share →</a>
           </div>
         </div>
       </section>
