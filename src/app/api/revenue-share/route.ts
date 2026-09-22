@@ -18,13 +18,13 @@ import { loadEconomics, numParam } from '@/lib/pool-economics';
 // fee handed back. The page says so in those words, because the alternative
 // reading is flattering and wrong.
 //
-// Query overrides: ?stake= (SOL, default 10000) &share= (% of Definity's fee,
+// Query overrides: ?stake= (SOL, default 100000) &share= (% of Definity's fee,
 // default 50) plus everything loadEconomics accepts (apy, poolFee, definityFee,
 // tvl, sol, nzd, epochDays).
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_STAKE_SOL = 10_000;
+const DEFAULT_STAKE_SOL = 100_000;
 const DEFAULT_SHARE_PCT = 50; // half of Definity's fee
 const MAX_STAKE_SOL = 10_000_000; // sanity bound so a pasted number cannot render nonsense
 

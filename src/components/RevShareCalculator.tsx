@@ -47,10 +47,12 @@ type Data = {
   };
 };
 
-const DEFAULT_STAKE = 10_000;
+const DEFAULT_STAKE = 100_000;
 const MIN_STAKE = 1_000;
 const MAX_STAKE = 1_000_000;
-const PRESETS = [10_000, 25_000, 50_000, 100_000, 250_000];
+// Centred on the 100k default: 10k stays as the entry point for someone just over a
+// 20k cap, and the top end extends to 500k so the row does not read as all-smaller.
+const PRESETS = [10_000, 50_000, 100_000, 250_000, 500_000];
 const REFRESH_MS = 120_000;
 
 // Log slider: the interesting range spans three orders of magnitude, so a linear
